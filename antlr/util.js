@@ -10,6 +10,11 @@ Array.prototype.tail = function() {
   return this.slice(1);
 };
 Array.prototype.last = function() { return this[this.length-1]; }
+Array.prototype.reduceFirst = function(fn) {
+  var acc = this[0];
+  for (var m = 1, el; el = this[m]; m++) { res = fn(acc, el); };
+  return res;
+}; 
 
 Object.prototype.keys = function() { 
   var res = [];

@@ -110,25 +110,17 @@ var primitives = {
   'lambda': function(operands, env) {
     return makeLambda(operands.slice(0, -1), operands.last(), env);
   }, 
-  '+': opEval(function(operands, env) { // TODO very repetitive, find a way to refactor (wish + was a function in JS)
-    var res = operands[0];
-    for (var m = 1, num; num = operands[m]; m++) { res = res + num; };
-    return res;
+  '+': opEval(function(operands, env) {
+    return operands.reduceFirst(function(acc, el) { return acc + el; });
   }), 
-  '-': opEval(function(operands, env) {
-    var res = operands[0];
-    for (var m = 1, num; num = operands[m]; m++) { res = res - num; };
-    return res;
+  '-': opEval(function(operands, env) { 
+    return operands.reduceFirst(function(acc, el) { return acc - el; });
   }), 
   '*': opEval(function(operands, env) {
-    var res = operands[0];
-    for (var m = 1, num; num = operands[m]; m++) { res = res * num; };
-    return res;
+    return operands.reduceFirst(function(acc, el) { return acc * el; });
   }), 
   '/': opEval(function(operands, env) {
-    var res = operands[0];
-    for (var m = 1, num; num = operands[m]; m++) { res = res / num; };
-    return res;
+    return operands.reduceFirst(function(acc, el) { return acc / el; });
   }), 
   '=': function(operands, env) {
     var name = operands[0];
