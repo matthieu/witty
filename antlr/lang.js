@@ -21,8 +21,8 @@ function parse(expr) {
 }
 
 function eval_(exp, env) {
-  //print(">eval " + JSON.stringify(exp));
-  if (selfEval(exp)) return Number(exp);
+  //print(">eval " + JSON.stringify(exp) + " - " + JSON.stringify(env));
+  if (selfEval(exp)) return eval(exp); // JS eval for native type
   else if (quoted(exp)) return eval(exp); // JS eval to unescape
   else if (variableRef(exp)) return variableValue(exp, env);
   else if (list(exp)) return evalList(exp, env);
@@ -37,7 +37,7 @@ function evalList(operands, env) {
   else return [eval_(operands.first(), env)].concat(evalList(operands.tail(), env));
 }
 
-function selfEval(exp) { return !isNaN(exp); }
+function selfEval(exp) { return (!isNaN(exp)); }
 function quoted(exp) { return ((typeof exp) == 'string') && exp[0] == '"'; }
 
 function variableRef(exp) { return (typeof exp) == 'string'; }
@@ -45,13 +45,13 @@ function variableValue(exp, env) {
   var res = null;
   env.forEach(function(frame) {
         var value = frame[exp];
-        if (value) { res = value; return; }
+        if (value != undefined) { res = value; return; }
       });
   return res;
 }
 function extendEnv(names, values, env) {
   if (names.length > values.length) throw "Too many parameters: " + names;
-  else if (names.length < values.length) throw "Too values for parameters: " + names;
+  else if (names.length < values.length) throw "Too many values for parameters: " + names;
   else {
     var frame = {};
     for (var m = 0, name; name = names[m]; m++) { frame[name] = values[m]; };
@@ -99,7 +99,7 @@ function applyPrimitive(operation, operands, env) {
   else throw "Unrecognized primitive: " + operation[1] + ", most certainly a bug.";
 }
 function opEval(fn) {
-  return function(operands, env) { return fn(evalList(operands), env); };
+  return function(operands, env) { return fn(evalList(operands, env), env); };
 }
 
 var primitives = {
@@ -110,16 +110,24 @@ var primitives = {
   'lambda': function(operands, env) {
     return makeLambda(operands.slice(0, -1), operands.last(), env);
   }, 
-  '+': opEval(function(operands, env) {
-    var res = 0;
-    var values = evalList(operands, env);
-    for (var m = 0, num; num = values[m]; m++) { res = res + num; };
+  '+': opEval(function(operands, env) { // TODO very repetitive, find a way to refactor (wish + was a function in JS)
+    var res = operands[0];
+    for (var m = 1, num; num = operands[m]; m++) { res = res + num; };
     return res;
   }), 
   '-': opEval(function(operands, env) {
-    var values = evalList(operands, env);
-    var res = values[0];
-    for (var m = 1, num; num = values[m]; m++) { res = res - num; };
+    var res = operands[0];
+    for (var m = 1, num; num = operands[m]; m++) { res = res - num; };
+    return res;
+  }), 
+  '*': opEval(function(operands, env) {
+    var res = operands[0];
+    for (var m = 1, num; num = operands[m]; m++) { res = res * num; };
+    return res;
+  }), 
+  '/': opEval(function(operands, env) {
+    var res = operands[0];
+    for (var m = 1, num; num = operands[m]; m++) { res = res / num; };
     return res;
   }), 
   '=': function(operands, env) {
@@ -128,9 +136,9 @@ var primitives = {
     var found = false;
     env.forEach(function(frame) {
       var value = frame[name];
-      if (value) { frame[exp] = newval; found = true; }
+      if (value != undefined) { frame[name] = newval; found = true; }
     });
-    env.first()[name] = newval;
+    if (!found) env.first()[name] = newval;
     return newval;
   },
   '==': opEval(function(operands, env) { return operands[0] == operands[1]; }), 
@@ -143,6 +151,9 @@ var primitives = {
 function setupEnv() {
   var baseFrame = {};
   primitives.eachPair(function(k,v) { baseFrame[k] = makePrimitive(k); });
+  baseFrame['true'] = true;
+  baseFrame['false'] = false;
+  baseFrame['null'] = null;
   return [baseFrame];
 }
 
@@ -151,7 +162,6 @@ function repl() {
   var env = setupEnv();
   while (line != 'quit' && line != 'exit') {
     var struct = parse(line);
-    print(JSON.stringify(struct));
     var res = eval_(struct, env);
     print(res);
     line = readline();
