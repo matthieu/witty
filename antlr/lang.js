@@ -21,7 +21,7 @@ function parse(expr) {
 }
 
 function eval_(exp, env) {
-  //print(">eval " + JSON.stringify(exp) + " - " + JSON.stringify(env));
+  // print(">eval " + JSON.stringify(exp));
   if (selfEval(exp)) return eval(exp); // JS eval for native type
   else if (quoted(exp)) return eval(exp); // JS eval to unescape
   else if (variableRef(exp)) return variableValue(exp, env);
@@ -69,8 +69,7 @@ function list(exp) { return exp instanceof List };
 function sequence(val) { return (val instanceof Block); }
 function evalSeq(exps, env) {
   exps = rewriteSeq(exps);
-  if (!(exps instanceof Array)) return eval_(exps, env);
-  else if (exps.length == 1) return eval_(exps.first(), env);
+  if (exps.length == 1) return eval_(exps.first(), env);
   else {
     eval_(exps.first(), env);
     return evalSeq(exps.tail(), env);
@@ -97,7 +96,13 @@ function rewriteSeq(exps) {
 function apply(operation, operands, env) {
   // Primitives are responsible for evaluating (or not) their operands
   if (primitive(operation)) return applyPrimitive(operation, operands, env);
-  else return evalSeq(lambdaBody(operation), extendEnv(lambdaParams(operation), evalList(operands, env), lambdaEnv(operation)));
+  else {
+    // Single expression block case
+    if (lambdaBody(operation) instanceof Array)
+      return evalSeq(lambdaBody(operation), extendEnv(lambdaParams(operation), evalList(operands, env), lambdaEnv(operation)));
+    else
+      return eval_(lambdaBody(operation), extendEnv(lambdaParams(operation), evalList(operands, env), lambdaEnv(operation)));
+  }
 }
 
 function makeLambda(params, body, env) {

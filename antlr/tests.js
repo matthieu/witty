@@ -8,5 +8,6 @@ assert(==(a, 2), "If shouldn't evaluate wrong branch.")
 if(false, =(a,4), null)
 assert(==(a, 2), "If shouldn't evaluate wrong branch.")
 
-=(fact, lambda(n, if(==(n, 1), 1, *(n, fact(-(n, 1))))))
+=(fact1, lambda(n, if(==(n, 1), 1, *(n, fact(-(n, 1))))))
+fact2 = lambda(n, if(n == 1, 1, n * fact(n - 1)))
 
