@@ -82,7 +82,7 @@ function rewriteSeq(exps) {
   for (var n = 0, mc; mc = macros[n]; n++) {
     var copy = new Block();
     for (var m = 0, el; el = original[m]; m++) {
-      if (el == mc) {
+      if (el == mc && !copy.isEmpty() && original[m+1]) {
         var call = {};
         call[mc] = new List(copy.pop(), original[++m]);
         copy.push(call);
