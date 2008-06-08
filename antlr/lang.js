@@ -68,12 +68,30 @@ function list(exp) { return exp instanceof List };
 // We want to return the result of the last expression
 function sequence(val) { return (val instanceof Block); }
 function evalSeq(exps, env) {
+  exps = rewriteSeq(exps);
   if (!(exps instanceof Array)) return eval_(exps, env);
   else if (exps.length == 1) return eval_(exps.first(), env);
   else {
     eval_(exps.first(), env);
     return evalSeq(exps.tail(), env);
   }
+}
+
+macros = ['*', '/', '+', '-', '==', '='];
+function rewriteSeq(exps) {
+  var original = exps;
+  for (var n = 0, mc; mc = macros[n]; n++) {
+    var copy = new Block();
+    for (var m = 0, el; el = original[m]; m++) {
+      if (el == mc) {
+        var call = {};
+        call[mc] = new List(copy.pop(), original[++m]);
+        copy.push(call);
+      } else copy.push(el);
+    }
+    original = copy;
+  }
+  return copy;
 }
 
 function apply(operation, operands, env) {
