@@ -3,6 +3,7 @@ load("langLexer.js");
 load("langParser.js");
 load("util.js");
 load("json2.js");
+load("macro.js");
 
 // Couldn't find a way to clone a function
 var Block = function() { for (var i = 0; i < arguments.length; i++) { this.push(arguments[i]); } }
@@ -20,6 +21,7 @@ function parse(expr) {
   return result;
 }
 
+// TODO lambda(a,b,a + b)(1, 2) doesn't seem to work, why?
 function eval_(exp, env) {
   // print(">eval " + JSON.stringify(exp));
   if (selfEval(exp)) return eval(exp); // JS eval for native type
@@ -68,7 +70,9 @@ function list(exp) { return exp instanceof List };
 // We want to return the result of the last expression
 function sequence(val) { return (val instanceof Block); }
 function evalSeq(exps, env) {
-  exps = rewriteSeq(exps);
+  //exps = rewriteSeq(exps);
+  print("evalSeq");
+  expandMacros(exps, env);
   if (exps.length == 1) return eval_(exps.first(), env);
   else {
     eval_(exps.first(), env);
@@ -95,7 +99,8 @@ function rewriteSeq(exps) {
 
 function apply(operation, operands, env) {
   // Primitives are responsible for evaluating (or not) their operands
-  if (primitive(operation)) return applyPrimitive(operation, operands, env);
+  if (primitive(operation)) 
+    return applyPrimitive(operation, operands, env);
   else {
     // Single expression block case
     if (lambdaBody(operation) instanceof Array)
@@ -105,9 +110,6 @@ function apply(operation, operands, env) {
   }
 }
 
-function makeLambda(params, body, env) {
-  return ['lambda', params, body, env];
-}
 function lambdaParams(lambda) { return lambda[1];  }
 function lambdaBody(lambda) { return lambda[2];  }
 function lambdaEnv(lambda) { return lambda[3];  }
@@ -131,8 +133,14 @@ var primitives = {
     else return eval_(operands[2], env);
   }, 
   'lambda': function(operands, env) {
-    return makeLambda(operands.slice(0, -1), operands.last(), env);
-  }, 
+    return ['lambda', operands.slice(0, -1), operands.last(), env];
+  },
+  'macro': function(operands, env) {
+    return ['macro', operands.slice(0, -1), operands.last(), macroId++, env];
+  },
+  '#': function(operands, env) {
+    return operands;
+  },
   '+': opEval(function(operands, env) {
     return operands.reduceFirst(function(acc, el) { return acc + el; });
   }), 

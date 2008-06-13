@@ -9,6 +9,10 @@ Array.prototype.tail = function() {
   if (this.length < 2) return [];
   return this.slice(1);
 };
+Array.prototype.tailAtom = function() {
+  if (this.length == 1) return this.first();
+  return this.slice(1);
+};
 Array.prototype.last = function() { return this[this.length-1]; }
 Array.prototype.reduceFirst = function(fn) {
   var acc = this[0];
