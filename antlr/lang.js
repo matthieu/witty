@@ -10,6 +10,8 @@ var Block = function() { for (var i = 0; i < arguments.length; i++) { this.push(
 Block.prototype = new Array();
 var List = function() { for (var i = 0; i < arguments.length; i++) { this.push(arguments[i]); } }
 List.prototype = new Array();
+var Applic = function() { for (var i = 0; i < arguments.length; i++) { this.push(arguments[i]); } }
+Applic.prototype = new Array();
 
 function parse(expr) {
   var cstream = new ANTLR.runtime.ANTLRStringStream(expr),
@@ -61,23 +63,21 @@ function extendEnv(names, values, env) {
   }
 }
 
-function application(exp) { return (typeof exp) == 'object'; }
-function operator(exp) { return exp.keys().first(); } 
-function operands(exp) { return exp[operator(exp)]; }
+function application(exp) { return exp instanceof Applic; }
+function operator(exp) { return exp[0]; } 
+function operands(exp) { return exp[1]; }
 
 function list(exp) { return exp instanceof List };
 
 // We want to return the result of the last expression
 function sequence(val) { return (val instanceof Block); }
 function evalSeq(exps, env) {
-  //exps = rewriteSeq(exps);
-  print("evalSeq");
+  exps = rewriteSeq(exps);
   expandMacros(exps, env);
-  if (exps.length == 1) return eval_(exps.first(), env);
-  else {
-    eval_(exps.first(), env);
-    return evalSeq(exps.tail(), env);
-  }
+  print("after expand " + JSON.stringify(exps));
+  print("after expand " + exps instanceof Applic);
+  for (var m = 0; m < exps.length-1; m++) eval_(exps[m], env);
+  return eval_(exps[m], env);
 }
 
 macros = ['*', '/', '+', '-', '==', '='];
@@ -102,11 +102,12 @@ function apply(operation, operands, env) {
   if (primitive(operation)) 
     return applyPrimitive(operation, operands, env);
   else {
+  print("lambda " + JSON.stringify(lambdaBody(operation)));
     // Single expression block case
-    if (lambdaBody(operation) instanceof Array)
-      return evalSeq(lambdaBody(operation), extendEnv(lambdaParams(operation), evalList(operands, env), lambdaEnv(operation)));
-    else
+    if (lambdaBody(operation) instanceof Applic)
       return eval_(lambdaBody(operation), extendEnv(lambdaParams(operation), evalList(operands, env), lambdaEnv(operation)));
+    else
+      return evalSeq(lambdaBody(operation), extendEnv(lambdaParams(operation), evalList(operands, env), lambdaEnv(operation)));
   }
 }
 
@@ -136,10 +137,12 @@ var primitives = {
     return ['lambda', operands.slice(0, -1), operands.last(), env];
   },
   'macro': function(operands, env) {
-    return ['macro', operands.slice(0, -1), operands.last(), macroId++, env];
+    var pattern = operands.slice(0, -1);
+    if (pattern.length == 1 && pattern[0] instanceof Array) pattern = pattern[0];
+    return ['macro', pattern, operands.last(), macroId++, env];
   },
   '#': function(operands, env) {
-    return operands;
+    return escapeEval(operands, env);
   },
   '+': opEval(function(operands, env) {
     return operands.reduceFirst(function(acc, el) { return acc + el; });

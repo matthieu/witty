@@ -18,7 +18,7 @@ old+ = +
 assert(5 + 2 == 3, "Couldn't redefine + operator.")
 + = old+
 
-+ = macro(a '+' b, #( +($a, $b) ))
++ = macro(?a '+' ?b, #( +($a, $b) ))
 
-? = macro(pred '?' b1 ':' b2, if($pred, $b1, $b2))
+? = macro(?pred '?' ?b1 ':' ?b2, if($pred, $b1, $b2))
 let = macro(var, val, block, lambda($var, $block)($val))

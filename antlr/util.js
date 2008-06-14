@@ -10,7 +10,8 @@ Array.prototype.tail = function() {
   return this.slice(1);
 };
 Array.prototype.tailAtom = function() {
-  if (this.length == 1) return this.first();
+  if (this.length == 2) return this[1];
+  if (this.length < 2) return [];
   return this.slice(1);
 };
 Array.prototype.last = function() { return this[this.length-1]; }
