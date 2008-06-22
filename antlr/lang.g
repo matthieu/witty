@@ -16,18 +16,22 @@ innt   returns [int value]    :   INNT { $value = $INNT.text; };
 string returns [String value] :   STRING { $value = $STRING.text; };
 id     returns [String value] :   ID { $value = $ID.text; };
 
+STRING    :  '"' ( ESC_SEQ | ~('\\'|'"') )* '"';
 ID        : (LETTER | SYMBOLS) (LETTER | DIGIT | SYMBOLS)*;
 INNT      : (DIGIT)+ ;
-STRING    : '"' ( ESCAPE_SEQ | ~('\\'|'"') )* '"'; // TODO Escape seq don't seem to work
-ESCAPE_SEQ: '\\' ('b'|'t'|'n'|'f'|'r'|'\"'|'\''|'\\');
-
 SL_COMMENTS
       : ('//') .* CR { $channel = HIDDEN; };
 TERM  : (CR | WS | ';')+;
 
-fragment SYMBOLS    : ('_' | '-' | '~' | '!' | '@' | '#' | '$' | '%' | '^' | '&' | '<' | '>'
-                      | '*' | '+' | '=' | '|' | '\\' | ':' | '.' | '?' | '/');
+fragment ESC_SEQ      :   '\\' ('b'|'t'|'n'|'f'|'r'|'\"'|'\''|'\\') | UNICODE_ESC | OCTAL_ESC;
+fragment OCTAL_ESC    : '\\' ('0'..'3') ('0'..'7') ('0'..'7') | '\\' ('0'..'7') ('0'..'7') | '\\' ('0'..'7');
+fragment UNICODE_ESC  :   '\\' 'u' HEX_DIG HEX_DIG HEX_DIG HEX_DIG;
+
+fragment SYMBOLS      : ('_' | '-' | '~' | '!' | '@' | '#' | '$' | '%' | '^' | '&' | '<' | '>'
+                          | '*' | '+' | '=' | '|' | '\\' | ':' | '.' | '?' | '/');
 fragment CR  : ('\r' | '\n' );
 fragment WS  : ( ' ' | '\t' );
 fragment DIGIT  :    '0'..'9';
 fragment LETTER : 'a'..'z' | 'A'..'Z';
+fragment HEX_DIG : ('0'..'9'|'a'..'f'|'A'..'F') ;
+
