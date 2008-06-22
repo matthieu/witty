@@ -6,8 +6,8 @@ options {
 block  returns [Object value] :   TERM? e=exp { $value = $e.value; } 
                                    (TERM e=exp { if (!($value instanceof Block)) $value = new Block($value, $e.value); 
                                                  else $value.push($e.value) })* TERM?;
-exp    returns [Object value] :   symb list? { if ($list.value) { $value = new Applic($symb.value, $list.value); } 
-                                                else $value = $symb.value; } 
+exp    returns [Object value] :   symb { $value = $symb.value;} 
+                                  (list { $value = new Applic(value, $list.value); })*
                                     | list { $value = $list.value; };
 list   returns [Array value]  :   '(' b=block? { if ($b.value) $value = new List($b.value); else $value = new List(); } 
                                     (',' b=block { $value.push($b.value); } )* ')';

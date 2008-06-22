@@ -27,6 +27,12 @@ assert(n + m == 5, "Macro replacement on modified variables doesn't produce the 
 macro(other_add(?a,?b), #(+($a, $b)))
 assert(other_add(4,7) == 11, "Macro other_add didn't alias addition.")
 
++4 = lambda(n, n + 4)
+assert(+4(6) == 10, "Couldn't define a lambda based on a symbol (+4)")
+
+assert((lambda(n, n + 3)(4)) == 7, "Applying a lambda directly failed (n+3)")
+assert((lambda(n, n * 10)(4)) == 40, "Applying a lambda directly failed (n*10)")
+
 ? = macro(?pred '?' ?b1 ':' ?b2, if($pred, $b1, $b2))
 macro(let(?var, ?val, ?block), lambda($var, $block)($val))
 
