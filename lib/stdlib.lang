@@ -5,5 +5,5 @@ macro(?a - ?b, #(-($a, $b)))
 macro(?a * ?b, #(*($a, $b)))
 macro(?a / ?b, #(/($a, $b)))
 
-macro(foo(?a,?b), #(+($a, $b)))
 
+// let, print, eval, load
