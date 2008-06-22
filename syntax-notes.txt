@@ -4,6 +4,7 @@ http://www.railsenvy.com/2008/5/27/groovy-sugar-railsconf
 http://www.rubyinside.com/21-ruby-tricks-902.html
 
 Language features:
+  * Syntax support for list, hash, regexp
   * Support "let" for locally scoped definitions (of procedures)
   * Tail calls
   * Partial parameters application for currying

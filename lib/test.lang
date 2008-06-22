@@ -18,7 +18,13 @@ old+ = +
 assert(5 + 2 == 3, "Couldn't redefine + operator.")
 + = old+
 
-+ = macro(?a '+' ?b, #( +($a, $b) ))
+m = 1;
+n = 2;
+assert(n + m == 3, "Macro replacement on variables doesn't produce the expected result.")
+n = n + 1; m = m + 1;
+assert(n + m == 5, "Macro replacement on modified variables doesn't produce the expected result.")
 
 ? = macro(?pred '?' ?b1 ':' ?b2, if($pred, $b1, $b2))
 let = macro(var, val, block, lambda($var, $block)($val))
+
+// TODO 2 + (1 + 3) or (2 * 3) + 1 break!
