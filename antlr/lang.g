@@ -4,12 +4,12 @@ options {
 }
 
 block  returns [Object value] :   TERM? e=exp { $value = $e.value; } 
-                                   (TERM e=exp { if (!($value instanceof Block)) $value = new Block($value, $e.value); 
+                                   (TERM e=exp { if ($value.sntx != 'B') { $value = [$value, $e.value]; $value.sntx = 'B'; }
                                                  else $value.push($e.value) })* TERM?;
 exp    returns [Object value] :   symb { $value = $symb.value;} 
-                                  (list { $value = new Applic(value, $list.value); })*
+                                  (list { $value = [value, $list.value]; $value.sntx = 'A' })*
                                     | list { $value = $list.value; };
-list   returns [Array value]  :   '(' b=block? { if ($b.value) $value = new List($b.value); else $value = new List(); } 
+list   returns [Array value]  :   '(' b=block? { if ($b.value) $value = [$b.value]; else $value = []; $value.sntx = 'L'; } 
                                     (',' b=block { $value.push($b.value); } )* ')';
 symb   returns [Object value] :   innt { $value = $innt.value; } | string { $value = $string.value; } | id { $value = $id.value; };
 innt   returns [int value]    :   INNT { $value = $INNT.text; };
