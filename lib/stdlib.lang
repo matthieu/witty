@@ -7,6 +7,8 @@ macro(?a * ?b, #(*($a, $b)))
 macro(?a / ?b, #(/($a, $b)))
 macro(! ?a, #(!($a)))
 
+// ? = macro(?pred '?' ?b1 ':' ?b2, if($pred, $b1, $b2))
+
 // TODO let with variable number of var/val pairs
 macro(let(?var, ?val, ?block), #(lambda($var, $block)($val)))
 
