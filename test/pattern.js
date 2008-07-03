@@ -1,4 +1,4 @@
-load('lib/lang.js')
+load('lib/interpr.js')
 
 function assert(pred, msg) { 
   if (!pred) throw msg;
