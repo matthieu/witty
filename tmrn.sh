@@ -30,4 +30,5 @@ $ESCBIN/shell \
     $ESCBIN/eval-support.es.abc \
     $ESCBIN/esc-env.es.abc \
     $ESCBIN/main.es.abc \
-    -- $@
+    -- -es3 -debug $@
+
