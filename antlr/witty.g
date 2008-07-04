@@ -34,8 +34,9 @@ atom
 returns [Object val]: ID { $val = $ID.text; } | INNT { $val = $INNT.text; } 
                       | STRING {$val = $STRING.text; } | OPER { $val = $OPER.text; };
 
+
+ID        : (LETTER | NON_OP)*;
 STRING    :  '"' ( ESC_SEQ | ~('\\'|'"') )* '"';
-ID        : (LETTER | NON_OP) (LETTER | DIGIT | SYMBOLS)*;
 OPER      : SYMBOLS+;
 INNT      : (DIGIT)+ ;
 
