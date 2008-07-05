@@ -5,7 +5,7 @@ macro(?a + ?b, #(+($a, $b)))
 macro(?a - ?b, #(-($a, $b)))
 macro(?a * ?b, #(*($a, $b)))
 macro(?a / ?b, #(/($a, $b)))
-macro(! ?a, #(!($a)))
+macro(! ?a, #(!($a,0)))
 
 // ? = macro(?pred '?' ?b1 ':' ?b2, if($pred, $b1, $b2))
 

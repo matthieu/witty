@@ -17,10 +17,10 @@ assert(fact2(5) == 120, "Factorial 5 produced a wrong result (expanded flavor)."
 assert(fact1(8) == 40320, "Factorial 8 produced a wrong result (nested flavor).")
 assert(fact2(8) == 40320, "Factorial 8 produced a wrong result (expanded flavor).")
 
-old+ = +
+old_plus = +
 + = lambda(a, b, a - b)
 assert(5 + 2 == 3, "Couldn't redefine + operator.")
-+ = old+
++ = old_plus
 assert(5 + 2 == 7, "Couldn't restore + operator.")
 
 m = 1;
@@ -39,7 +39,9 @@ m1 = m2 = 3
 assert(m1 == 3, "Multi-assign didn't set m1 value.");
 assert(m2 == 3, "Multi-assign didn't set m2 value.");
 
-//4+ = lambda(n, n + 4)
-//assert(4+(6) == 10, "Couldn't define a lambda based on a symbol (+4)")
-
-// TODO 2 + (1 + 3) or (2 * 3) + 1 break!
+assert(2+(1+3)==6, "Basic calculation 2+(1+3)==6 failed.");
+assert(2 + (1 + 3) == 6, "Basic calculation 2 + (1 + 3) == 6 failed.");
+assert(2*(1+3)==8, "Basic calculation 2*(1+3)==8 failed.");
+assert(2 * (1 + 3) == 8, "Basic calculation 2 * (1 + 3) == 8 failed.");
+assert((1+3)*2==8, "Basic calculation (1+3)*2==8 failed.");
+assert((1 + 3) * 2 == 8, "Basic calculation (1 + 3) * 2 == 8 failed.");
