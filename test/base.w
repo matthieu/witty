@@ -32,6 +32,10 @@ assert(n + m == 5, "Macro replacement on modified variables doesn't produce the 
 macro(other_add(`a,`b), `(+($a, $b)))
 assert(other_add(4,7) == 11, "Macro other_add didn't alias addition.")
 
+macro(`pred ? `b1 : `b2, `(if($pred, $b1, $b2)))
+assert(((5==6) ? 1 : 2) == 2, "Symbolic if/else didn't execute failure case.")
+assert(((5==5) ? 1 : 2) == 1, "Symbolic if/else didn't execute success case.")
+
 assert((lambda(n, n + 3)(4)) == 7, "Applying a lambda directly failed (n+3)")
 assert((lambda(n, n * 10)(4)) == 40, "Applying a lambda directly failed (n*10)")
 
@@ -46,6 +50,6 @@ assert(2 * (1 + 3) == 8, "Basic calculation 2 * (1 + 3) == 8 failed.");
 assert((1+3)*2==8, "Basic calculation (1+3)*2==8 failed.");
 assert((1 + 3) * 2 == 8, "Basic calculation (1 + 3) * 2 == 8 failed.");
 
-# macro including macros
-# recursive macros
-# macro including function calls
+// macro including macros
+// recursive macros
+// macro including function calls
