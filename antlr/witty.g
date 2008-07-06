@@ -11,9 +11,9 @@ returns [Object val]: TERM* s1=stmt { $val = $s1.val; var append = false; }
                       TERM* EOF?;
 
 stmt
-returns [Object val]: WS* e1=exp { $val = $e1.val; var append = false;
+returns [Object val]: e1=exp { $val = $e1.val; var append = false;
                                    if ($val.sntx == 'M') $val.sntx = 'B'; }
-                      (WS* e2=exp { if (append) {
+                      (e2=exp { if (append) {
                                       if ($e2.val.sntx == 'M') { $val = $val.concat($e2.val); $val.sntx = 'B'; }
                                       else $val.push($e2.val);
                                     } else { 
@@ -21,13 +21,12 @@ returns [Object val]: WS* e1=exp { $val = $e1.val; var append = false;
                                       else $val = [$val, $e2.val];
                                       $val.sntx = 'B'; append = true;
                                     } } )* 
-                      WS*;
+                      ;
 
 exp
 returns [Object val]: (OPER unary_list)=> OPER u=unary_list { print("un_oper"); $val = [$OPER.text, $u.val]; $val.sntx = 'M'; }
                       | (atom list+)=> applic { $val = $applic.val; } 
-                      | atom { $val = $atom.val; } 
-                      | list { $val = $list.val; };
+                      | atom { $val = $atom.val; };
 
 applic
 returns [Object val]: atom { $val = $atom.val; } 
@@ -61,7 +60,7 @@ INNT      : (DIGIT)+ ;
 
 COMMENT   : '//' .* TERM { $channel=HIDDEN };
 TERM      : (CR | ';')+;
-WS        :  (' '|'\t'|'\u000C');
+WS        :  (' '|'\t'|'\u000C') { $channel=HIDDEN };
 
 fragment ESC_SEQ      :   '\\' ('b'|'t'|'n'|'f'|'r'|'\"'|'\''|'\\') | UNICODE_ESC | OCTAL_ESC;
 fragment OCTAL_ESC    : '\\' ('0'..'3') ('0'..'7') ('0'..'7') | '\\' ('0'..'7') ('0'..'7') | '\\' ('0'..'7');
