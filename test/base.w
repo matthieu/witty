@@ -29,7 +29,7 @@ assert(n + m == 3, "Macro replacement on variables doesn't produce the expected 
 n = n + 1; m = m + 1;
 assert(n + m == 5, "Macro replacement on modified variables doesn't produce the expected result.")
 
-macro(other_add(?a,?b), #(+($a, $b)))
+macro(other_add(`a,`b), `(+($a, $b)))
 assert(other_add(4,7) == 11, "Macro other_add didn't alias addition.")
 
 assert((lambda(n, n + 3)(4)) == 7, "Applying a lambda directly failed (n+3)")
@@ -45,3 +45,7 @@ assert(2*(1+3)==8, "Basic calculation 2*(1+3)==8 failed.");
 assert(2 * (1 + 3) == 8, "Basic calculation 2 * (1 + 3) == 8 failed.");
 assert((1+3)*2==8, "Basic calculation (1+3)*2==8 failed.");
 assert((1 + 3) * 2 == 8, "Basic calculation (1 + 3) * 2 == 8 failed.");
+
+# macro including macros
+# recursive macros
+# macro including function calls

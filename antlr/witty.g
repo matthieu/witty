@@ -69,8 +69,8 @@ fragment UNICODE_ESC  :   '\\' 'u' HEX_DIG HEX_DIG HEX_DIG HEX_DIG;
 fragment HEX_DIG      : ('0'..'9'|'a'..'f'|'A'..'F') ;
 
 fragment SYMBOLS      : ('_' | '-' | '~' | '!' | '@' | '#' | '$' | '%' | '^' | '&' | '<' | '>'
-                          | '*' | '+' | '=' | '|' | '\\' | ':' | '.' | '?' | '/');
-fragment NON_OP       : ('_' | '~' | '@' | '#' | '$' | ':' | '.' | '?' );
+                          | '*' | '+' | '=' | '|' | '\\' | ':' | '.' | '?' | '/' | '`');
+fragment NON_OP       : ('_' | '~' | '@' | '#' | '$' | ':' | '.' | '?' | '`' );
 
 fragment DIGIT  :    '0'..'9';
 fragment LETTER : 'a'..'z' | 'A'..'Z';
