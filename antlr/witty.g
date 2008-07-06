@@ -26,7 +26,8 @@ returns [Object val]: e1=exp { $val = $e1.val; var append = false;
 exp
 returns [Object val]: (OPER unary_list)=> OPER u=unary_list { print("un_oper"); $val = [$OPER.text, $u.val]; $val.sntx = 'M'; }
                       | (atom list+)=> applic { $val = $applic.val; } 
-                      | atom { $val = $atom.val; };
+                      | atom { $val = $atom.val; }
+                      | unary_list { $val = $unary_list.val; };
 
 applic
 returns [Object val]: atom { $val = $atom.val; } 
