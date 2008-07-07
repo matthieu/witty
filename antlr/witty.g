@@ -50,14 +50,14 @@ returns [Object val]: '(' b1=block { if ($b1.val) $val = [$b1.val];
                        (',' b2=block { $val.push($b2.val); } )+ ')';
 
 atom
-returns [Object val]: ID { $val = $ID.text; } | INNT { $val = $INNT.text; } 
+returns [Object val]: ID { $val = $ID.text; } | NUM { $val = $NUM.text; } 
                       | STRING {$val = $STRING.text; } | OPER { $val = $OPER.text; };
 
 
 ID        : (LETTER | NON_OP) (LETTER | DIGIT | NON_OP | '!')*;
 STRING    :  '"' ( ESC_SEQ | ~('\\'|'"') )* '"';
 OPER      : SYMBOLS+;
-INNT      : (DIGIT)+ ;
+NUM       : DIGIT+ ('.' DIGIT+)? ;
 
 COMMENT   : '//' .* TERM { $channel=HIDDEN };
 TERM      : (CR | ';')+;
@@ -70,8 +70,8 @@ fragment HEX_DIG      : ('0'..'9'|'a'..'f'|'A'..'F') ;
 
 fragment SYMBOLS      : ('_' | '-' | '~' | '!' | '@' | '#' | '$' | '%' | '^' | '&' | '<' | '>'
                           | '*' | '+' | '=' | '|' | '\\' | ':' | '.' | '?' | '/' | '`');
-fragment NON_OP       : ('_' | '~' | '@' | '#' | '$' | ':' | '.' | '?' | '`' );
+fragment NON_OP       : ('_' | '~' | '@' | '#' | '$' | ':' | '?' | '`' );
 
-fragment DIGIT  :    '0'..'9';
-fragment LETTER : 'a'..'z' | 'A'..'Z';
-fragment CR  : ('\r')? '\n';
+fragment DIGIT    : '0'..'9';
+fragment LETTER   : 'a'..'z' | 'A'..'Z';
+fragment CR       : ('\r')? '\n';
