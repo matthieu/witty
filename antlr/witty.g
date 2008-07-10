@@ -31,8 +31,11 @@ returns [Object val]: (OPER unary_list)=> OPER u=unary_list { $val = [$OPER.text
 
 applic
 returns [Object val]: (atom { $val = $atom.val; } 
-                      | unary_list { $val = $unary_list.val; })  
+                      | parens_block { $val = $parens_block.val; })  
                       (list { $val = [$val, $list.val]; $val.sntx = 'A'; })+;
+
+parens_block
+returns [Object val]: '(' block ')' { $val = [$block.val]; $val.sntx = 'B'; };
 
 list
 returns [Object val]: empty_list { $val = $empty_list.val; }
@@ -40,10 +43,10 @@ returns [Object val]: empty_list { $val = $empty_list.val; }
                       | multi_list { $val = $multi_list.val; };
 
 empty_list
-returns [Object val]: '(' ')' { $val = []; $val.sntx = 'B'; };
+returns [Object val]: '(' ')' { $val = []; $val.sntx = 'L'; };
 
 unary_list
-returns [Object val]: '(' block ')' { $val = [$block.val]; $val.sntx = 'B'; };
+returns [Object val]: '(' block ')' { $val = [$block.val]; $val.sntx = 'L'; };
 
 multi_list
 returns [Object val]: '(' b1=block { if ($b1.val) $val = [$b1.val]; 

@@ -32,6 +32,19 @@ var frame = {};
 patternMatch(['`a', '+', '`b'], ['1', '+'], frame);
 assert(frame['a'] == null, "Partial match worked.");
 
+var frame={};
+patternMatch(Block("`arr", ".", Applic("`idx", List("`val"))), Block("foo", ".", Applic("addAll", List("12"))) , frame);
+assert(frame["arr"] == "foo", "Matching of  . application failed for object");
+assert(frame["idx"] == "addAll", "Matching of . application failed for operation");
+assert(frame["val"] == "12", "Matching of . application failed for argument");
+
+var frame={};
+patternMatch(Block("`arr", ".", Applic("`idx", List("`val"))), Block("foo", ".", Applic("addAll", List("12", "6"))) , frame);
+assert(frame["arr"] == "foo", "Matching of  . application failed for object");
+assert(frame["idx"] == "addAll", "Matching of . application failed for operation");
+assert(frame["val"][0] == "12", "Matching of . application failed for first argument in list");
+assert(frame["val"][1] == "6", "Matching of . application failed for second argument in list");
+
 var appl = Applic('+', List('$a', '$b'));
 var res = escapeEval(appl, [[{'a': 1, 'b':'2'}, {}]]);
 assert(res.sntx == 'A', "escapeEval modified the Applic instance type.");
