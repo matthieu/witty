@@ -50,6 +50,17 @@ assert(2 * (1 + 3) == 8, "Basic calculation 2 * (1 + 3) == 8 failed.");
 assert((1+3)*2==8, "Basic calculation (1+3)*2==8 failed.");
 assert((1 + 3) * 2 == 8, "Basic calculation (1 + 3) * 2 == 8 failed.");
 
+for(m = 0, m < 10, m=m+1, print("foo" + m))
+
+for(m = 0; n = 3 , 
+    m < 10; n < 11 , 
+    m+=1; n+=2 ,
+  print("foo" + 1)
+)
+for(L(2,3,4), lambda(m, print(m))) // lambda can take a second param for counter
+
+// leftCurry, rightCurry and ncurry to build a new lambda out of an existing one with a preset param
+
 // macro including macros
 // recursive macros
 // macro including function calls
