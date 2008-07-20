@@ -1,3 +1,9 @@
+=(a, 2)
+if(true, null, =(a,4))
+assert(==(a, 2), "If shouldn't evaluate wrong branch.")
+if(false, =(a,4), null)
+assert(==(a, 2), "If shouldn't evaluate wrong branch.")
+
 counter = 0
 for(m = 0, m < 10, m=m+1, 
   assert(counter == m, "Manual and automatic counter differ in for loop: " + m + " / " + counter)
@@ -16,7 +22,7 @@ assert(str == "03152739", "Double counter based loop didn't produce expected res
 
 str = ""
 for(L(2,3,4), lambda(m, str = str + m))
-assert(str == "234", "Lamda based for loop didn't iterate over list properly.")
+assert(str == "234", "Lambda based for loop didn't iterate over list properly.")
 
 str = ""
 for(L(2,3,4), 
@@ -25,4 +31,4 @@ for(L(2,3,4),
     str = str + count
   )
 )
-assert(str == "203142", "Lamda based for loop with counter didn't iterate over list properly.")
+assert(str == "203142", "Lambda based for loop with counter didn't iterate over list properly.")

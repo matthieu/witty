@@ -2,12 +2,6 @@
 assert(==(add(1,2), 3), "Bad addition (1+2)")
 assert(==(add(5,10), 15), "Bad addition (5+10)")
 
-=(a, 2)
-if(true, null, =(a,4))
-assert(==(a, 2), "If shouldn't evaluate wrong branch.")
-if(false, =(a,4), null)
-assert(==(a, 2), "If shouldn't evaluate wrong branch.")
-
 =(fact1, lambda(n, if(==(n, 1), 1, *(n, fact1(-(n, 1))))))
 fact2 = lambda(n, if(n == 1, 1, n * fact2(n - 1)))
 assert(fact1(5) == 120, "Factorial 5 produced a wrong result (nested flavor).")
