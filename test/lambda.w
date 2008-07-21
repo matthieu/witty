@@ -23,3 +23,8 @@ assert(fact5() == 120, "Curried factorial of 5 didn't produce expected result.")
 testIt = rcurry(if, 1, 0)
 assert(testIt(2 == 3) == 0, "Right currying of if failed (0).")
 assert(testIt(3 == 3) == 1, "Right currying of if failed (1).")
+
+successOnly = ncurry(if, 1, "success")
+assert(successOnly(1 == 1) == "success", "N currying at pos 1 of if failed in equality case.")
+assert(successOnly(1 == 0) != "success", "N currying at pos 1 of if failed in non equality case.")
+assert(successOnly(1 == 0, "failed") == "failed", "N currying at pos 1 of if with failure result failed in non equality case.")
