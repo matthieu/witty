@@ -1,3 +1,16 @@
+// Simple definitions
+//
+=(add, lambda(a,b, +(a,b)))
+assert(==(add(1,2), 3), "Bad addition (1+2)")
+assert(==(add(5,10), 15), "Bad addition (5+10)")
+
+=(fact1, lambda(n, if(==(n, 1), 1, *(n, fact1(-(n, 1))))))
+fact2 = lambda(n, if(n == 1, 1, n * fact2(n - 1)))
+assert(fact1(5) == 120, "Factorial 5 produced a wrong result (nested flavor).")
+assert(fact2(5) == 120, "Factorial 5 produced a wrong result (expanded flavor).")
+assert(fact1(8) == 40320, "Factorial 8 produced a wrong result (nested flavor).")
+assert(fact2(8) == 40320, "Factorial 8 produced a wrong result (expanded flavor).")
+
 // Creation, application
 //
 old_plus = +

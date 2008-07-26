@@ -29,9 +29,9 @@ returns [Object val]: '(' s1=stmt ')' (op=(OPER | UNARY) s2=stmt)?
                         { $val = ($s2.val || $s2.val == 0) ? [Block($s1.val), $op.text, $s2.val] : Block($s1.val); };
 
 atom_assoc
-returns [Object val]: ((UNARY applic)=>u1=UNARY p1=applic { $val = [$u1.text, $p1.val]; }
+returns [Object val]: ((UNARY applic)=>u1=UNARY p1=applic { $val = Applic($u1.text, List($p1.val)); }
                       | (applic)=>p2=applic { $val = $p2.val; }
-                      | (UNARY atom)=>u2=UNARY a1=atom { $val = [$u2.text, $a1.val]; }
+                      | (UNARY atom)=>u2=UNARY a1=atom { $val = Applic($u2.text, List($a1.val)); }
                       | a2=atom) { if(!$val) $val = $a2.val; }
                       (op=(OPER | UNARY) stmt { $val = [$val, $op.text, $stmt.val]; } )?;
 

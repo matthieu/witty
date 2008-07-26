@@ -13,7 +13,6 @@ macro(`a + `b, `(+($a, $b)))
 macro(`a - `b, `(-($a, $b)))
 macro(`a * `b, `(*($a, $b)))
 macro(`a / `b, `(/($a, $b)))
-macro(! `a, `(!($a,0)))
 
 macro(`arr . `idx, `(.($arr, $idx)))
 
