@@ -1,7 +1,11 @@
 // Operators, order is establishing precedence
 macro(`a = `b, `(=($a, $b)))
 
+macro(`a && `b, `(&&($a, $b)))
+macro(`a || `b, `(||($a, $b)))
+
 macro(`a == `b, `(==($a, $b)))
+macro(`a != `b, `(!=($a, $b)))
 macro(`a < `b, `(<($a, $b)))
 macro(`a <= `b, `(<=($a, $b)))
 macro(`a > `b, `(>($a, $b)))

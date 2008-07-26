@@ -32,6 +32,17 @@ val += 2
 assert(val == 4, "Error with += and -= calculations")
 assert((val += 6) == 10, "Error with += and -= calculations inline")
 
+// Logic operators
+//
+assert((true || true) == true, "true || true didn't return true.")
+assert((false || true) == true, "false || true didn't return true.")
+assert((true || false) == true, "true || false didn't return true.")
+assert((false || false) == false, "false || false didn't return false.")
+assert((true && true) == true, "true && true didn't return true.")
+assert((false && true) == false, "false && true didn't return false.")
+assert((true && false) == false, "true && false didn't return false.")
+assert((false && false) == false, "false && false didn't return false.")
+
 m1 = m2 = 3
 assert(m1 == 3, "Multi-assign didn't set m1 value.");
 assert(m2 == 3, "Multi-assign didn't set m2 value.");
