@@ -4,19 +4,7 @@ load("test/arithmetics.w")
 load("test/list.w")
 load("test/control.w")
 load("test/lambda.w")
-
-m = 1;
-n = 2;
-assert(n + m == 3, "Macro replacement on variables doesn't produce the expected result.")
-n = n + 1; m = m + 1;
-assert(n + m == 5, "Macro replacement on modified variables doesn't produce the expected result.")
-
-macro(other_add(`a,`b), `(+($a, $b)))
-assert(other_add(4,7) == 11, "Macro other_add didn't alias addition.")
-
-macro(`pred ? `b1 : `b2, `(if($pred, $b1, $b2)))
-assert(((5==6) ? 1 : 2) == 2, "Symbolic if/else didn't execute failure case.")
-assert(((5==5) ? 1 : 2) == 1, "Symbolic if/else didn't execute success case.")
+load("test/macro.w")
 
 // -1 doesn't work
 // basic list operations (push, pop, ...)
