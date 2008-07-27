@@ -1,5 +1,8 @@
 assert = lambda(expr, msg, if(! expr, throw(msg), true))
 
+// scopingFn = lambda(body, print("before"); body(); print("after"))
+// macro(scoping(`body), `(scopingFn(lambda($body))))
+
 load("test/arithmetics.w")
 load("test/list.w")
 load("test/control.w")

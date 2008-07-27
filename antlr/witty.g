@@ -59,7 +59,7 @@ ID        : (LETTER | NON_OP) (LETTER | DIGIT | NON_OP | '!')*;
 STRING    :  '"' ( ESC_SEQ | ~('\\'|'"') )* '"';
 NUM       : DIGIT+ ('.' DIGIT+)? ;
 
-COMMENT   : '//' .* TERM { $channel=HIDDEN };
+COMMENT   : '//' .* CR { $channel=HIDDEN };
 TERM      : (CR | ';')+;
 WS        :  (' '|'\t'|'\u000C') { $channel=HIDDEN };
 
