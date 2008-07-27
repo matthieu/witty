@@ -4,6 +4,8 @@ assert(alist.0 == 3, "Wrong list value at index 0.")
 assert(alist.1 == 4, "Wrong list value at index 1.")
 assert(alist.2 == "bar", "Wrong list value at index 2.")
 assert(alist.3 == 6, "Wrong list value at index 3.")
+m=1
+assert(alist.1 == 4, "Wrong list value at variable index.")
 
 // Operations
 //
