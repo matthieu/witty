@@ -28,6 +28,8 @@ assert((lambda(n, n * 10)(4)) == 40, "Applying a lambda directly failed (n*10)")
 add2 = lcurry(add, 2)
 assert(add2(3) == 5, "Curried add lambda didn't produce expected result (5).")
 assert(add2(7) == 9, "Curried add lambda didn't produce expected result (9).")
+addto10 = lcurry(add, 3, 7)
+assert(addto10() == 10, "Currying all parameters failed.")
 
 fact = lambda(n, if(n == 1, 1, n * fact(n - 1)))
 fact5 = lcurry(fact, 5)
