@@ -25,3 +25,9 @@ assert(join(L(192, 168, 0 , 1), ".") == "192.168.0.1", "Failed to join ints with
 // Length
 assert(length(L()) == 0, "Empty list should have a 0 length.")
 assert(length(L(1,2,3)) == 3, "Length of list of 3 didn't produce expected result.")
+
+// Map
+add2 = lcurry(+, 2)
+assert(map(L(1,2,3), add2).0 == 3, "Map with add2 didn't produce expected result on first element of the list.")
+assert(map(L(1,2,3), add2).2 == 5, "Map with add2 didn't produce expected result on first element of the list.")
+assert(length(map(L(), add2)) == 0, "Map of an empty list didn't produce an empty list.")
