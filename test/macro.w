@@ -22,6 +22,14 @@ fooFn = lambda(m = "changed again")
 assert(foo() == "changed again", "Macro calling changed function didn't produce expected result.")
 assert(m == "changed again", "Macro calling changed function didn't alter variable.")
 
+macro(execCode(`code), `(execCodeFn(lambda(x, $code))))
+execCodeFn = lambda(fn,
+  fn(3)
+)
+y = 0
+execCode(y = x)
+assert(y == 3, "Macro calling a function with a function didn't produce expected result.")
+
 // See if we can create the pred ? condTrue : condFalse syntax sugar
 //
 macro(`pred ? `b1 : `b2, `(if($pred, $b1, $b2)))
