@@ -7,6 +7,9 @@ assert(alist.3 == 6, "Wrong list value at index 3.")
 m=1
 assert(alist.1 == 4, "Wrong list value at variable index.")
 
+l = L(L(5), L(7))
+assert(l.1.0 == 7, "Index composition didn't work.")
+
 // Operations
 //
 added = L(4,5) + L(7,8)

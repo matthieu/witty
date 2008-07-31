@@ -1,50 +1,56 @@
-// Basic Calculations
-//
-assert(2+(1+3)==6, "Basic calculation 2+(1+3)==6 failed.");
-assert(2 + (1 + 3) == 6, "Basic calculation 2 + (1 + 3) == 6 failed.");
-assert(2*(1+3)==8, "Basic calculation 2*(1+3)==8 failed.");
-assert(2 * (1 + 3) == 8, "Basic calculation 2 * (1 + 3) == 8 failed.");
-assert((1+3)*2==8, "Basic calculation (1+3)*2==8 failed.");
-assert((1 + 3) * 2 == 8, "Basic calculation (1 + 3) * 2 == 8 failed.");
-assert(5-3 == 2, "Basic substraction failed (5-3).");
-assert(-5+3 == -2, "Something is wrong with the - unary operator.");
-assert(5-(-3) == 8, "Something is wrong with the - unary operator.");
+describe("Calculation operators",
+  it("should calculate 2+(1+3)", 2+(1+3)==6)
+  it("should calculate (1 + 4) + 3", (1 + 4) + 3  == 8)
+  it("should calculate 2*(1+3)", 2*(1+3)==8)
+  it("should calculate 2 * 7 + 3", 2 * 7 + 3  == 17)
+  it("should calculate (2+3)*7", (2+3)*7==35)
+  it("should calculate (1 + 3) * 2", (1 + 3) * 2 == 8)
+  it("should calculate 5-3", 5-3 == 2)
+  it("should calculate -5 + 3", -5 + 3 == -2)
+  it("should calculate 5-(-3)", 5-(-3) == 8)
+)
 
-// Comparison
-//
-assert(3 < 2 == false, "Lesser than comparison failed (false).")
-assert(3 < 3 == false, "Lesser than comparison failed (equality case).")
-assert(3 < 4 == true, "Lesser than comparison failed (true).")
-assert(3 <= 2 == false, "Lesser or equal than comparison failed.")
-assert(3 <= 3 == true, "Lesser or equal than comparison failed (equality case).")
-assert(3 > 2 == true, "Greater than comparison failed (false).")
-assert(3 > 3 == false, "Greater than comparison failed (equality case).")
-assert(4 > 3 == true, "Greater than comparison failed (true).")
-assert(3 >= 4 == false, "Greater or equal than comparison failed.")
-assert(3 >= 3 == true, "Greater or equal than comparison failed (equality case).")
+describe("Comparison operators",
+  it("should compare 3 < 2", 3 < 2 == false)
+  it("should compare 3 < 3", 3 < 3 == false)
+  it("should compare 3 < 4", 3 < 4 == true)
+  it("should compare 3 <= 2", 3 <= 2 == false)
+  it("should compare 3 <= 3", 3 <= 3 == true)
+  it("should compare 3 > 2", 3 > 2 == true)
+  it("should compare 3 > 3", 3 > 3 == false)
+  it("should compare 4 > 3", 4 > 3 == true)
+  it("should compare 3 >= 4", 3 >= 4 == false)
+  it("should compare 3 >= 3", 3 >= 3 == true)
+)
 
-// Increment operators
-//
-val = 0
-val += 3
-val -= 1
-val += 2
-assert(val == 4, "Error with += and -= calculations")
-assert((val += 6) == 10, "Error with += and -= calculations inline")
+describe("Incrementing operators",
+  val = 0
+  val += 3
+  val -= 1
+  val += 2
 
-// Logic operators
-//
-assert((true || true) == true, "true || true didn't return true.")
-assert((false || true) == true, "false || true didn't return true.")
-assert((true || false) == true, "true || false didn't return true.")
-assert((false || false) == false, "false || false didn't return false.")
-assert((true && true) == true, "true && true didn't return true.")
-assert((false && true) == false, "false && true didn't return false.")
-assert((true && false) == false, "true && false didn't return false.")
-assert((false && false) == false, "false && false didn't return false.")
+  it("should increment and decrement a variable value", val == 4)
+  it("should return the operation result", (val += 6) == 10)
+)
 
-m1 = m2 = 3
-assert(m1 == 3, "Multi-assign didn't set m1 value.");
-assert(m2 == 3, "Multi-assign didn't set m2 value.");
+describe("Logic operators",
+  val1 = val2 = 0
+  false && (val1 += 1)
+  true || (val2 += 1)
+  it("should combine (true || true)", (true || true) == true)
+  it("should combine (false || true)", (false || true) == true)
+  it("should combine (true || false)", (true || false) == true)
+  it("should combine (false || false)", (false || false) == false)
+  it("should combine (true && true)", (true && true) == true)
+  it("should combine (false && true)", (false && true) == false)
+  it("should combine (true && false)", (true && false) == false)
+  it("should combine (false && false)", (false && false) == false)
+  it("shouldn't evaluate the second operand of a false && combination", val1 == 0)
+  it("shouldn't evaluate the second operand of a true || combination", val2 == 0)
+)
 
-
+describe("Multiple equal",
+  m1 = m2 = 3
+  it("should set the first variable", m1 == 3)
+  it("should set the second variable", m2 == 3)
+)
