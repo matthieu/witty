@@ -18,8 +18,8 @@ macro(describe(`str, `descBody), `(
 ))
 
 load("test/arithmetics.w")
-//load("test/list.w")
-//load("test/control.w")
+load("test/list.w")
+load("test/control.w")
 //load("test/lambda.w")
 //load("test/macro.w")
 

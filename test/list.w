@@ -1,43 +1,60 @@
-// Index retrieval
-alist = L(3,4,"bar",6)
-assert(alist.0 == 3, "Wrong list value at index 0.")
-assert(alist.1 == 4, "Wrong list value at index 1.")
-assert(alist.2 == "bar", "Wrong list value at index 2.")
-assert(alist.3 == 6, "Wrong list value at index 3.")
-m=1
-assert(alist.1 == 4, "Wrong list value at variable index.")
+describe("List index retrieval",
+  alist = L(3,4,"bar",6)
+  m=1
+  l = L(L(5), L(7))
 
-l = L(L(5), L(7))
-assert(l.1.0 == 7, "Index composition didn't work.")
+  it("should access a value at index 0", alist.0 == 3)
+  it("should access a value at index 1", alist.1 == 4)
+  it("should access a string value at index 2", alist.2 == "bar")
+  it("should access a value at index 3", alist.3 == 6)
+  it("should access a variable index value", alist.m == 4)
+  it("should access a list value inside a list", l.1.0 == 7)
+)
 
 // Operations
 //
-added = L(4,5) + L(7,8)
-assert(added.0 == 4, "Wrong list addition value at index 0.")
-assert(added.1 == 5, "Wrong list addition value at index 1.")
-assert(added.2 == 7, "Wrong list addition value at index 2.")
-assert(added.3 == 8, "Wrong list addition value at index 3.")
+describe("List operations", 
+  added = L(4,5) + L(7,8)
+  subst = L(4,"foo",9,3) - L(3,"foo")
+  it("should have correct elements after addition",
+    added.0 == 4 && added.1 == 5 && added.2 == 7 && added.3 == 8
+  )
+  it("should have correct length after addition",
+    length(added) == 4
+  )
+  it("should have correct elements after substraction",
+    subst.0 == 4 && subst.1 == 9
+  )
+  it("should have correct length after addition",
+    length(subst) == 2
+  )
+)
 
-subst = L(4,"foo",9,3) - L(3,"foo")
-assert(subst.0 == 4, "Wrong list substraction value at index 0.")
-assert(subst.1 == 9, "Wrong list substraction value at index 1.")
+describe("List joining",
+  it("should join a list using no separator", join(L("foo", "bar")) == "foobar")
+  it("should join a list using a separator", 
+    join(L(192, 168, 0 , 1), ".") == "192.168.0.1"
+  )
+)
 
-// Join
-//
-assert(join(L("foo", "bar")) == "foobar", "Failed to join strings with no separator")
-assert(join(L(192, 168, 0 , 1), ".") == "192.168.0.1", "Failed to join ints with . separator")
+describe("List length",
+  it("should be 0 for an empty list", length(L()) == 0)
+  it("should be 3 for a 3 elements list", length(L(1,2,3)))
+)
 
-// Length
-assert(length(L()) == 0, "Empty list should have a 0 length.")
-assert(length(L(1,2,3)) == 3, "Length of list of 3 didn't produce expected result.")
-
-// Map
-add2 = lcurry(+, 2)
-assert(map(L(1,2,3), add2).0 == 3, "Map with add2 didn't produce expected result on first element of the list.")
-assert(map(L(1,2,3), add2).2 == 5, "Map with add2 didn't produce expected result on first element of the list.")
-assert(length(map(L(), add2)) == 0, "Map of an empty list didn't produce an empty list.")
+describe("List map",
+  add2 = lcurry(+, 2)
+  it("should map a list with a function adding 2 to each element",
+    newlist = map(L(1,2,3), add2)
+    newlist.0 == 3 && newlist.1 == 4 && newlist.2 == 5
+  ) 
+  it("should conserve the original list length", length(map(L(4,5,6,7), add2)) == 4)
+  it("should produce an empty list from an empty list", length(map(L(), add2)) == 0)
+)
 
 // Push
-l = L(1,2)
-assert(length(push(l, "abc")) == 3, "Pushing an element in a 2 element array didn't result in a length of 3")
-assert(l.2 == "abc", "Retrieving pushed element by index didn't work.")
+describe("List push",
+  l = L(1,2)
+  it("should increase the length by 1", length(push(l, "abc")) == 3)
+  it("should add the right element at the last index", l.2 == "abc")
+)

@@ -1,34 +1,47 @@
-=(a, 2)
-if(true, null, =(a,4))
-assert(==(a, 2), "If shouldn't evaluate wrong branch.")
-if(false, =(a,4), null)
-assert(==(a, 2), "If shouldn't evaluate wrong branch.")
+describe("If control structure",
+  a = b = 2
+  if(true, null, a = 4)
+  if(false, b = 4, null)
 
-counter = 0
-for(m = 0, m < 10, m=m+1, 
-  assert(counter == m, "Manual and automatic counter differ in for loop: " + m + " / " + counter)
-  counter = counter + 1
-)
-assert(counter == 10, "Counter based for loop didn't execute expected iteration count:" + counter)
-
-str = ""
-for(m = 0; n = 3 , 
-    n < 11, 
-    m += 1; n += 2,
-  str = str + m
-  str = str + n
-)
-assert(str == "03152739", "Double counter based loop didn't produce expected result")
-
-str = ""
-for(L(2,3,4), lambda(m, str = str + m))
-assert(str == "234", "Lambda based for loop didn't iterate over list properly.")
-
-str = ""
-for(L(2,3,4), 
-  lambda(m, count, 
-    str = str + m
-    str = str + count
+  it("should return the then branch if predicate is true", 
+    if(3 == 3, 5, 10) == 5
   )
+  it("should return the else branch if predicate is false", 
+    if(false, 5, 10) == 10
+  )
+  it("shouldn't evaluate the else branch if predicate if true", a == 2)
+  it("shouldn't evaluate the then branch if predicate if false", b == 4)
 )
-assert(str == "203142", "Lambda based for loop with counter didn't iterate over list properly.")
+
+describe("Basic for loops",
+  counter = 0
+  for(m = 0, m < 5, m=m+1,
+    it("should iterate on index ", counter == m)
+    counter = counter + 1
+  )
+  it("should have iterated 5 times", counter == 5)
+
+  str = ""
+  for(m = 0; n = 3 , 
+      n < 11, 
+      m += 1; n += 2,
+    str = str + m
+    str = str + n
+  )
+  it("should iterate with two index variables", str == "03152739")
+)
+
+describe("Iterated for loops",
+  str = ""
+  for(L(2,3,4), lambda(m, str = str + m))
+  it("should iterate on each element of the list", str == "234")
+
+  str = ""
+  for(L(2,3,4), 
+    lambda(m, count, 
+      str = str + m
+      str = str + count
+    )
+  )
+  it("should iterate on each element with setting the counter appropriately", str == "203142")
+)
