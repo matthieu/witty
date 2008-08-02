@@ -12,20 +12,21 @@ macro(describe(`str, `descBody), `(
       push(cases, L($desc, lambda($itBody)))
     ))
     $descBody
-    
-    push(descriptions, L("describe", $str, before, cases))
+
+    push(descriptions, L("describe", $str, before, cases));
   )()
 ))
 
 load("test/arithmetics.w")
 load("test/list.w")
 load("test/control.w")
+
 //load("test/lambda.w")
 //load("test/macro.w")
 
+print("descriptions: " + descriptions);
 for(descriptions, lambda(desc,
   print(desc.1)
-  // TODO handle before execution
   for(desc.3, lambda(case,
     caseBody = case.1
     if (desc.2,
