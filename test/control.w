@@ -9,8 +9,8 @@ describe("If control structure",
   it("should return the else branch if predicate is false", 
     if(false, 5, 10) == 10
   )
-  it("shouldn't evaluate the else branch if predicate if true", a == 2)
-  it("shouldn't evaluate the then branch if predicate if false", b == 4)
+  it("shouldn't evaluate the else branch if predicate is true", a == 2)
+  it("shouldn't evaluate the then branch if predicate is false", b == 2)
 )
 
 describe("Basic for loops",
@@ -34,14 +34,15 @@ describe("Basic for loops",
 describe("Iterated for loops",
   str = ""
   for(L(2,3,4), lambda(m, str = str + m))
-  it("should iterate on each element of the list", str == "234")
+  
+  it("should iterate on each element of the list",print(":: " + str); str == "234")
 
-  str = ""
+  str2 = ""
   for(L(2,3,4), 
     lambda(m, count, 
-      str = str + m
-      str = str + count
+      str2 = str2 + m
+      str2 = str2 + count
     )
   )
-  it("should iterate on each element with setting the counter appropriately", str == "203142")
+  it("should iterate on each element with setting the counter appropriately", str2 == "203142")
 )
