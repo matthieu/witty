@@ -3,27 +3,25 @@ describe("List index retrieval",
   m=1
   l = L(L(5), L(7))
 
-  it("should access a value at index 0", alist.0 == 3)
-  it("should access a value at index 1", alist.1 == 4)
-  it("should access a string value at index 2", alist.2 == "bar")
-  it("should access a value at index 3", alist.3 == 6)
-  it("should access a variable index value", alist.m == 4)
-  it("should access a list value inside a list", l.1.0 == 7)
+  it("should access a value at index 0", alist@0 == 3)
+  it("should access a value at index 1", alist@1 == 4)
+  it("should access a string value at index 2", alist@2 == "bar")
+  it("should access a value at index 3", alist@3 == 6)
+  it("should access a variable index value", alist@m == 4)
+  it("should access a list value inside a list", l@1@0 == 7)
 )
 
-// Operations
-//
 describe("List operations", 
   added = L(4,5) + L(7,8)
   subst = L(4,"foo",9,3) - L(3,"foo")
   it("should have correct elements after addition",
-    added.0 == 4 && added.1 == 5 && added.2 == 7 && added.3 == 8
+    added@0 == 4 && added@1 == 5 && added@2 == 7 && added@3 == 8
   )
   it("should have correct length after addition",
     length(added) == 4
   )
   it("should have correct elements after substraction",
-    subst.0 == 4 && subst.1 == 9
+    subst@0 == 4 && subst@1 == 9
   )
   it("should have correct length after addition",
     length(subst) == 2
@@ -46,7 +44,7 @@ describe("List map",
   add2 = lcurry(+, 2)
   it("should map a list with a function adding 2 to each element",
     newlist = map(L(1,2,3), add2)
-    newlist.0 == 3 && newlist.1 == 4 && newlist.2 == 5
+    newlist@0 == 3 && newlist@1 == 4 && newlist@2 == 5
   ) 
   it("should conserve the original list length", length(map(L(4,5,6,7), add2)) == 4)
   it("should produce an empty list from an empty list", length(map(L(), add2)) == 0)
@@ -56,5 +54,5 @@ describe("List map",
 describe("List push",
   l = L(1,2)
   it("should increase the length by 1", length(push(l, "abc")) == 3)
-  it("should add the right element at the last index", l.2 == "abc")
+  it("should add the right element at the last index", l@2 == "abc")
 )

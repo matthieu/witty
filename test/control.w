@@ -1,5 +1,5 @@
 describe("If control structure",
-  a = b = 2
+  a = (b = 2)
   if(true, null, a = 4)
   if(false, b = 4, null)
 

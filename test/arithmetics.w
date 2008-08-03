@@ -34,7 +34,7 @@ describe("Incrementing operators",
 )
 
 describe("Logic operators",
-  val1 = val2 = 0
+  val1 = (val2 = 0)
   false && (val1 += 1)
   true || (val2 += 1)
   it("should combine (true || true)", (true || true) == true)
@@ -50,7 +50,7 @@ describe("Logic operators",
 )
 
 describe("Multiple equal",
-  m1 = m2 = 3
+  m1 = (m2 = 3)
   it("should set the first variable", m1 == 3)
   it("should set the second variable", m2 == 3)
 )

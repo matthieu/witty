@@ -1,45 +1,49 @@
-// Simple definitions
-//
-=(add, lambda(a,b, +(a,b)))
-assert(==(add(1,2), 3), "Bad addition (1+2)")
-assert(==(add(5,10), 15), "Bad addition (5+10)")
+describe("Simple lambda definitions",
+  =(add, lambda(a,b, +(a,b)))
+  fact = lambda(n, if(n == 1, 1, n * fact(n - 1)))
 
-=(fact1, lambda(n, if(==(n, 1), 1, *(n, fact1(-(n, 1))))))
-fact2 = lambda(n, if(n == 1, 1, n * fact2(n - 1)))
-assert(fact1(5) == 120, "Factorial 5 produced a wrong result (nested flavor).")
-assert(fact2(5) == 120, "Factorial 5 produced a wrong result (expanded flavor).")
-assert(fact1(8) == 40320, "Factorial 8 produced a wrong result (nested flavor).")
-assert(fact2(8) == 40320, "Factorial 8 produced a wrong result (expanded flavor).")
+  it("should allow a working definition of a add(1,2) function based on +", ==(add(1,2), 3))
+  it("should allow a working definition of a add(5,10) function based on +", ==(add(5,10), 15))
+  it("should allow a working definition of factorial(5)", fact(5) == 120)
+  it("should allow a working definition of factorial(8)", fact(8) == 40320)
+)
 
-// Creation, application
-//
-old_plus = +
-+ = lambda(a, b, a - b)
-assert(5 + 2 == 3, "Couldn't redefine + operator.")
-+ = old_plus
-assert(5 + 2 == 7, "Couldn't restore + operator.")
+describe("Primitive redefinition",
+  it("should allow overriding the + operator behavior", 
+    old_plus = +
+    + = lambda(a, b, a - b)
+    res = 5 + 2
+    + = old_plus
+    res + 3 == 6
+  )
+)
 
-assert((lambda(n, n + 3)(4)) == 7, "Applying a lambda directly failed (n+3)")
-assert((lambda(n, n * 10)(4)) == 40, "Applying a lambda directly failed (n*10)")
+describe("Direct lambda application",
+  it("should work after applying a curried +", (lambda(n, n + 3)(4)) == 7)
+  it("should work after applying a curried *", (lambda(n, n * 10)(4)) == 40)
+)
 
-// Currying
-//
-=(add, lambda(a,b, +(a,b)))
-add2 = lcurry(add, 2)
-assert(add2(3) == 5, "Curried add lambda didn't produce expected result (5).")
-assert(add2(7) == 9, "Curried add lambda didn't produce expected result (9).")
-addto10 = lcurry(add, 3, 7)
-assert(addto10() == 10, "Currying all parameters failed.")
+describe("Lambda currying",
+  =(add, lambda(a,b, +(a,b)))
+  add2 = lcurry(add, 2)
+  addto10 = lcurry(add, 3, 7)
+  it("should work when left currying a simple addition with 2 lambda and applying to 3", add2(3) == 5)
+  it("should work when left currying a simple addition with 2 lambda and applying to 7", add2(7) == 9)
+  it("should work when left currying a simple addition with both 3 and 7", addto10() == 10)
 
-fact = lambda(n, if(n == 1, 1, n * fact(n - 1)))
-fact5 = lcurry(fact, 5)
-assert(fact5() == 120, "Curried factorial of 5 didn't produce expected result.")
+  fact = lambda(n, if(n == 1, 1, n * fact(n - 1)))
+  fact5 = lcurry(fact, 5)
+  it("should work when left currying a single valued lambda like factorial with 5", fact5() == 120)
 
-testIt = rcurry(if, 1, 0)
-assert(testIt(2 == 3) == 0, "Right currying of if failed (0).")
-assert(testIt(3 == 3) == 1, "Right currying of if failed (1).")
+  testIt = rcurry(if, 1, 0)
+  it("should work when right currying if with 1 for then branch and 0 for else branch applied to 2==3", testIt(2 == 3) == 0)
+  it("should work when right currying if with 1 for then branch and 0 for else branch applied to 3==3", testIt(3 == 3) == 1)
 
-successOnly = ncurry(if, 1, "success")
-assert(successOnly(1 == 1) == "success", "N currying at pos 1 of if failed in equality case.")
-assert(successOnly(1 == 0) != "success", "N currying at pos 1 of if failed in non equality case.")
-assert(successOnly(1 == 0, "failed") == "failed", "N currying at pos 1 of if with failure result failed in non equality case.")
+  successOnly = ncurry(if, 1, "success")
+  it("should work when n-currying if at position 1 (then branch) applied to 1==1",
+      successOnly(1 == 1) == "success")
+  it("should work when n-currying if at position 1 (then branch) applied to 1==0",
+      successOnly(1 == 0) != "success")
+  it("should work when n-currying if at position 1 (then branch) applied to (1==0, failed)",
+      successOnly(1 == 0, "failed") == "failed")
+)

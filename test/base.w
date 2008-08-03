@@ -20,22 +20,21 @@ macro(describe(`str, `descBody), `(
 load("test/arithmetics.w")
 load("test/list.w")
 load("test/control.w")
-
-//load("test/lambda.w")
-//load("test/macro.w")
+load("test/lambda.w")
+load("test/macro.w")
 
 failures = L()
 for(descriptions, lambda(desc,
-  print(desc.1)
-  for(desc.3, lambda(case,
-    caseBody = case.1
-    if (desc.2,
-      bef = desc.2
+  print(desc@1)
+  for(desc@3, lambda(case,
+    caseBody = case@1
+    if (desc@2,
+      bef = desc@2
       bef()
     )
     success = caseBody()
-    print("  " + case.0 + " -> " + if(success, "OK", "FAILED"))
-    if(!success, push(failures, desc.1 + " " + case.0))
+    print("  " + case@0 + " -> " + if(success, "OK", "FAILED"))
+    if(!success, push(failures, desc@1 + " " + case@0))
   ))
 ))
 
@@ -45,7 +44,7 @@ if(length(failures) > 0,
   for(failures, lambda(f, print("  " + f)))
 )
 
-// Invocation of a lambda stored in a list: foo.5()
+// Invocation of a lambda stored in a list: foo@5()
 // provide primitives allowing read/write access to witty code so code can be created or altered directly
 // basic list operations (push, pop, ...)
 // empty function for strings and lists
