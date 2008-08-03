@@ -24,7 +24,7 @@ load("test/control.w")
 //load("test/lambda.w")
 //load("test/macro.w")
 
-print("descriptions: " + descriptions);
+failures = L()
 for(descriptions, lambda(desc,
   print(desc.1)
   for(desc.3, lambda(case,
@@ -33,14 +33,24 @@ for(descriptions, lambda(desc,
       bef = desc.2
       bef()
     )
-    print("  " + case.0 + " -> " + if(caseBody(), "OK", "FAILED"))
+    success = caseBody()
+    print("  " + case.0 + " -> " + if(success, "OK", "FAILED"))
+    if(!success, push(failures, desc.1 + " " + case.0))
   ))
 ))
+
+if(length(failures) > 0,
+  print("\n")
+  print("There were " + length(failures) + " failure(s)!")
+  for(failures, lambda(f, print("  " + f)))
+)
 
 // Invocation of a lambda stored in a list: foo.5()
 // provide primitives allowing read/write access to witty code so code can be created or altered directly
 // basic list operations (push, pop, ...)
+// empty function for strings and lists
 // real exceptions with script line error numbers
+// hash data type
 // single param lambdas syntax sugar: \(..)
 // multiline strings
 // recursive lambdas when they're not named
