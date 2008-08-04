@@ -37,7 +37,9 @@ returns [Object val]: ((UNARY applic)=>u1=UNARY p1=applic { $val = Applic($u1.te
 
 atom
 returns [Object val] : a=(NUM | STRING) { $val = $a.text; } 
-                        | tokn { $val = $tokn.text; };
+                        | tokn { $val = $tokn.text; }
+                        | hash_lit { $val = $hash_lit.val; }
+                        | list_lit { $val = $list_lit.val; };
 
 applic
 returns [Object val]: tokn { $val = Applic($tokn.val); var first = true; } 
@@ -45,15 +47,30 @@ returns [Object val]: tokn { $val = Applic($tokn.val); var first = true; }
                         '(' (b1=block { $val.push(List($b1.val)); } )? 
                             (',' b2=block { $val[1].push($b2.val); } )* ')' )+;
 
+hash_lit
+returns [Object val]: '{' { $val = Applic("H", List()); }
+                       (p1=pair { $val[1].push($p1.val[0], $p1.val[1]); } )? 
+                       (',' p2=pair { $val[1].push($p2.val[0], $p2.val[1]); } )* '}';
+
+pair
+returns [Object val]: ID COLON stmt { $val = [$ID.text, $stmt.val]; };
+
+list_lit
+returns [Object val]: '[' { $val = Applic("L", List()); }  
+                       (s1=stmt { $val[1].push($s1.val); } )? 
+                       (',' s2=stmt { $val[1].push($s2.val); } )* ']';
+
 tokn
 returns [Object val]: t=(ID | OPER | UNARY) { $val = $t.text; };
 
 OPER: SYMBOLS (SYMBOLS|UNARY)* | UNARY SYMBOLS+;
 
 fragment SYMBOLS: ('_' | '~' | '@' | '#' | '$' | '%' | '^' | '&' | '<' | '>'
-      | '*' | '+' | '=' | '|' | '\\' | ':' | '.' | '?' | '/' | '`');
+      | '*' | '+' | '=' | '|' | '\\' | '.' | '?' | '/' | '`' | COLON);
 
-UNARY: '!' | '-'; 
+UNARY: '!' | '-';
+fragment COLON: ':';
+fragment NON_OP   : ('_' | '~' | '#' | '$' | '?' | '`' | '.' );
 
 ID        : (LETTER | NON_OP) (LETTER | DIGIT | NON_OP | '!')*;
 STRING    :  '"' ( ESC_SEQ | ~('\\'|'"') )* '"';
@@ -67,9 +84,6 @@ fragment ESC_SEQ      :   '\\' ('b'|'t'|'n'|'f'|'r'|'\"'|'\''|'\\') | UNICODE_ES
 fragment OCTAL_ESC    : '\\' ('0'..'3') ('0'..'7') ('0'..'7') | '\\' ('0'..'7') ('0'..'7') | '\\' ('0'..'7');
 fragment UNICODE_ESC  :   '\\' 'u' HEX_DIG HEX_DIG HEX_DIG HEX_DIG;
 fragment HEX_DIG      : ('0'..'9'|'a'..'f'|'A'..'F') ;
-
-fragment NON_OP       : ('_' | '~' | '#' | '$' | ':' | '?' | '`' | '.' );
-
 fragment DIGIT    : '0'..'9';
 fragment LETTER   : 'a'..'z' | 'A'..'Z';
 fragment CR       : ('\r')? '\n';

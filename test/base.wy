@@ -49,6 +49,7 @@ if(length(failures) > 0,
 // empty function for strings and lists
 // real exceptions with script line error numbers
 // hash data type
+// pretty printer for all data types
 // single param lambdas syntax sugar: \(..)
 // lambdas shortcut y(...) ?
 // multiline strings

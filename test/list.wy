@@ -56,3 +56,11 @@ describe("List push",
   it("should increase the length by 1", length(push(l, "abc")) == 3)
   it("should add the right element at the last index", l@2 == "abc")
 )
+
+describe("List syntax sugar",
+  alist = [3, "foo", 4.1]
+  it("should allow access of a value at index 0", alist@0 == 3)
+  it("should allow access of a value at index 1", alist@1 == "foo")
+  it("should allow access of a value at index 2", alist@2 == 4.1)
+  it("should have a proper length", length(alist) == 3)
+)
