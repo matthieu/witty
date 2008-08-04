@@ -44,7 +44,6 @@ if(length(failures) > 0,
   for(failures, lambda(f, print("  " + f)))
 )
 
-// Invocation of a lambda stored in a list: foo@5()
 // provide primitives allowing read/write access to witty code so code can be created or altered directly
 // basic list operations (push, pop, ...)
 // empty function for strings and lists
