@@ -1,7 +1,7 @@
 describe("Macro expressions",
-  macro(`pred ? `b1 : `b2, `(if($pred, $b1, $b2)))
-  it("should work when having more than one symbol ((5==6) ? 1 : 2)", ((5==6) ? 1 : 2) == 2)
-  it("should work when having more than one symbol ((5==5) ? 1 : 2)", ((5==5) ? 1 : 2) == 1)
+  macro(`pred ? `b1 ~ `b2, `(if($pred, $b1, $b2)))
+  it("should work when having more than one symbol ((5==6) ? 1 ~ 2)", ((5==6) ? 1 ~ 2) == 2)
+  it("should work when having more than one symbol ((5==5) ? 1 ~ 2)", ((5==5) ? 1 ~ 2) == 1)
 )
 
 describe("Macro functions",
