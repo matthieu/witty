@@ -53,7 +53,7 @@ returns [Object val]: '{' { $val = Applic("H", List()); }
                        (',' p2=pair { $val[1].push($p2.val[0], $p2.val[1]); } )* '}';
 
 pair
-returns [Object val]: ID COLON stmt { $val = [$ID.text, $stmt.val]; };
+returns [Object val]: ID ':' block { $val = [$ID.text, $block.val]; };
 
 list_lit
 returns [Object val]: '[' { $val = Applic("L", List()); }  
@@ -66,11 +66,9 @@ returns [Object val]: t=(ID | OPER | UNARY) { $val = $t.text; };
 OPER: SYMBOLS (SYMBOLS|UNARY)* | UNARY SYMBOLS+;
 
 fragment SYMBOLS: ('_' | '~' | '@' | '#' | '$' | '%' | '^' | '&' | '<' | '>'
-      | '*' | '+' | '=' | '|' | '\\' | '.' | '?' | '/' | '`' | COLON);
+      | '*' | '+' | '=' | '|' | '\\' | '.' | '?' | '/' | '`');
 
-UNARY: '!' | '-';
-fragment COLON: ':';
-fragment NON_OP   : ('_' | '~' | '#' | '$' | '?' | '`' | '.' );
+UNARY: '!' | '-'; 
 
 ID        : (LETTER | NON_OP) (LETTER | DIGIT | NON_OP | '!')*;
 STRING    :  '"' ( ESC_SEQ | ~('\\'|'"') )* '"';
@@ -84,6 +82,9 @@ fragment ESC_SEQ      :   '\\' ('b'|'t'|'n'|'f'|'r'|'\"'|'\''|'\\') | UNICODE_ES
 fragment OCTAL_ESC    : '\\' ('0'..'3') ('0'..'7') ('0'..'7') | '\\' ('0'..'7') ('0'..'7') | '\\' ('0'..'7');
 fragment UNICODE_ESC  :   '\\' 'u' HEX_DIG HEX_DIG HEX_DIG HEX_DIG;
 fragment HEX_DIG      : ('0'..'9'|'a'..'f'|'A'..'F') ;
+
+fragment NON_OP       : ('_' | '~' | '#' | '$' | '?' | '`' | '.' );
+
 fragment DIGIT    : '0'..'9';
 fragment LETTER   : 'a'..'z' | 'A'..'Z';
 fragment CR       : ('\r')? '\n';
