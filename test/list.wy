@@ -50,7 +50,6 @@ describe("List map",
   it("should produce an empty list from an empty list", length(map(L(), add2)) == 0)
 )
 
-// Push
 describe("List push",
   l = L(1,2)
   it("should increase the length by 1", length(push(l, "abc")) == 3)
@@ -63,4 +62,20 @@ describe("List syntax sugar",
   it("should allow access of a value at index 1", alist@1 == "foo")
   it("should allow access of a value at index 2", alist@2 == 4.1)
   it("should have a proper length", length(alist) == 3)
+)
+
+describe("List index-based modification",
+  alist = [4,5,[6,7],8]
+  it("should set a value at a given index",
+    alist@1 = 0
+    alist@1 == 0
+  )
+  it("should set a value inside a sublist",
+    alist@2@0 = 0
+    alist@2@0 == 0
+  )
+  it("should set a value at a calculated index",
+    alist@(1+2) = 10
+    alist@(1+2) == 10
+  )
 )
