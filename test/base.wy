@@ -24,6 +24,7 @@ load("test/lambda.wy")
 load("test/macro.wy")
 
 failures = L()
+testCount = 0
 for(descriptions, lambda(desc,
   print(desc@1)
   for(desc@3, lambda(case,
@@ -34,12 +35,14 @@ for(descriptions, lambda(desc,
     )
     success = caseBody()
     print("  " + case@0 + " -> " + if(success, "OK", "FAILED"))
+    testCount += 1
     if(!success, push(failures, desc@1 + " " + case@0))
   ))
 ))
 
+print("")
+print(testCount + " tests were executed.")
 if(length(failures) > 0,
-  print("\n")
   print("There were " + length(failures) + " failure(s)!")
   for(failures, lambda(f, print("  " + f)))
 )
