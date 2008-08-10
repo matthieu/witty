@@ -44,12 +44,14 @@ if(length(failures) > 0,
   for(failures, lambda(f, print("  " + f)))
 )
 
+// generalized variables
 // provide primitives allowing read/write access to witty code so code can be created or altered directly
 // basic list operations (push, pop, ...)
 // empty function for strings and lists
 // real exceptions with script line error numbers
 // hash data type
 // pretty printer for all data types
+// assign with := returns old value to allow a = b := a (exchange value)
 // single param lambdas syntax sugar: \(..)
 // lambdas shortcut y(...) ?
 // multiline strings

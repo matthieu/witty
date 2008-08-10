@@ -1,5 +1,11 @@
 // Operators, order is establishing precedence
-macro(`a = `b, `(=($a, $b)))
+macro(`a = `b,
+  if(applic?(a),
+    if(fnName(a) == "@", 
+      `(@!($(fnNthParam(a, 0)), $(fnNthParam(a,1)), $b)) ),
+    `(=($a, $b))
+  )
+)
 
 macro(`a && `b, `(&&($a, $b)))
 macro(`a || `b, `(||($a, $b)))

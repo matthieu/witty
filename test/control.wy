@@ -35,7 +35,7 @@ describe("Iterated for loops",
   str = ""
   for(L(2,3,4), lambda(m, str = str + m))
   
-  it("should iterate on each element of the list",print(":: " + str); str == "234")
+  it("should iterate on each element of the list", str == "234")
 
   str2 = ""
   for(L(2,3,4), 
