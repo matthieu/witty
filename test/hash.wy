@@ -1,0 +1,35 @@
+describe("Hash creation",
+  it("should work with the H function",
+    h = H("foo",4,"bar",6)
+    h@bar == 6
+  )
+  it("should work with the {} syntax sugar",
+    h = {foo: 4, bar: 6}
+    h@foo == 4
+  )
+)
+
+describe("Hash length",
+  it("should return the number of keys",
+    h = H("foo",4,"bar",6)
+    length(h) == 2
+  )
+  it("should keep an updated number of keys",
+    h = H("foo",4,"bar",6)
+    h@baz = 8
+    length(h) == 3
+  )
+)
+
+describe("Has mutator",
+  it("should update an existing value",
+    h = {foo: 4, bar: 6}
+    h@bar = "abc"
+    h@bar == "abc"
+  )
+  it("should add a non-existent value",
+    h = {foo: 4, bar: 6}
+    h@baz = "cde"
+    h@baz == "cde"
+  )
+)
