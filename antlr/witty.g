@@ -29,23 +29,17 @@ returns [Object val]: '(' s1=stmt ')' (op=(OPER | UNARY) s2=stmt)?
                         { $val = ($s2.val || $s2.val == 0) ? [Block($s1.val), $op.text, $s2.val] : Block($s1.val); };
 
 atom_assoc
-returns [Object val]: ((UNARY applic)=>u1=UNARY p1=applic { $val = Applic($u1.text, List($p1.val)); }
-                      | (applic)=>p2=applic { $val = $p2.val; }
-                      | (UNARY atom)=>u2=UNARY a1=atom { $val = Applic($u2.text, List($a1.val)); }
-                      | a2=atom) { if(!$val) $val = $a2.val; }
+returns [Object val]: ((UNARY atom)=>u2=UNARY a1=atom { $val = Applic($u2.text, List($a1.val)); }
+                      | a2=atom { $val = $a2.val; } )
                       (op=(OPER | UNARY) stmt { $val = [$val, $op.text, $stmt.val]; } )?;
 
 atom
-returns [Object val] : a=(NUM | STRING) { $val = $a.text; } 
-                        | tokn { $val = $tokn.text; }
+returns [Object val] : (a=(NUM | STRING | ID | OPER | UNARY) { $val = $a.text; } 
                         | hash_lit { $val = $hash_lit.val; }
-                        | list_lit { $val = $list_lit.val; };
-
-applic
-returns [Object val]: tokn { $val = Applic($tokn.val); var first = true; } 
-                      ( { if (first) first = false; else $val = Applic($val); }
-                        '(' (b1=block { $val.push(List($b1.val)); } )? 
-                            (',' b2=block { $val[1].push($b2.val); } )* ')' )+;
+                        | list_lit { $val = $list_lit.val; } )
+                       ('(' { $val = Applic($val); }
+                            (b1=block { $val.push(List($b1.val)); } )? 
+                            (',' b2=block { $val[1].push($b2.val); } )* ')' )*;
 
 hash_lit
 returns [Object val]: '{' { $val = Applic("H", List()); }
@@ -53,7 +47,7 @@ returns [Object val]: '{' { $val = Applic("H", List()); }
                        (',' p2=pair { $val[1].push($p2.val[0], $p2.val[1]); } )* '}';
 
 pair
-returns [Object val]: ID ':' block { $val = [$ID.text, $block.val]; };
+returns [Object val]: ID ':' block { $val = ["\"" + $ID.text + "\"", $block.val]; };
 
 list_lit
 returns [Object val]: '[' { $val = Applic("L", List()); }  

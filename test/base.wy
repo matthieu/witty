@@ -19,6 +19,7 @@ macro(describe(`str, `descBody), `(
 
 load("test/arithmetics.wy")
 load("test/list.wy")
+load("test/hash.wy")
 load("test/control.wy")
 load("test/lambda.wy")
 load("test/macro.wy")
@@ -52,7 +53,7 @@ if(length(failures) > 0,
 // basic list operations (push, pop, ...)
 // empty function for strings and lists
 // real exceptions with script line error numbers
-// hash data type
+// regexps
 // pretty printer for all data types
 // assign with := returns old value to allow a = b := a (exchange value)
 // single param lambdas syntax sugar: \(..)
