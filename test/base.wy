@@ -48,7 +48,10 @@ if(length(failures) > 0,
   for(failures, lambda(f, print("  " + f)))
 )
 
+// named lexical scopes (module, package, ...)
+// hygiene
 // generalized variables
+// cond/case
 // provide primitives allowing read/write access to witty code so code can be created or altered directly
 // basic list operations (push, pop, ...)
 // empty function for strings and lists
@@ -59,7 +62,7 @@ if(length(failures) > 0,
 // single param lambdas syntax sugar: \(..)
 // lambdas shortcut y(...) ?
 // multiline strings
-// recursive lambdas when they're not named
+// anonymous recursive lambdas (aka anaphoric lambdas)
 // macro including macros
 // recursive macros
 // function composition

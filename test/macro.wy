@@ -33,3 +33,10 @@ describe("Macros calling lambdas",
   execCode(y = x)
   it("should allow code capture by wrapping in the lambda", y == 3)
 )
+
+describe("Macros manipulating functions",
+  bar = lambda(a, "bar" + a)
+  macro(foo(`p), if(applic?(p), `(bar($<(params(p)))), `(bar($p))))
+  it("should make parameters rewriting possible with list expansion", foo(baz("a")) == "bara")
+  it("should detect applications properly", foo("a") == "bara")
+)

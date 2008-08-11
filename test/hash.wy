@@ -21,7 +21,7 @@ describe("Hash length",
   )
 )
 
-describe("Has mutator",
+describe("Hash mutator",
   it("should update an existing value",
     h = {foo: 4, bar: 6}
     h@bar = "abc"
@@ -32,4 +32,11 @@ describe("Has mutator",
     h@baz = "cde"
     h@baz == "cde"
   )
+)
+
+describe("Hash element applications",
+  h = {foo: lambda(p, "f"+p), bar: lambda("b" + "ar"), baz: lambda(a,b, "z"+(a+b)) }
+  it("should execute a one parameter lambda", h@foo(3) == "f3")
+  it("should execute a zero parameter lambda", h@bar() == "bar")
+  it("should execute a multi-parameter lambda", h@baz(3,7) == "z10")
 )
