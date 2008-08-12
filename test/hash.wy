@@ -40,3 +40,8 @@ describe("Hash element applications",
   it("should execute a zero parameter lambda", h@bar() == "bar")
   it("should execute a multi-parameter lambda", h@baz(3,7) == "z10")
 )
+
+describe("Hash empty",
+  it("should return true for an empty hash", empty?({}) == true)
+  it("should return false for a non-empty hash", empty?({foo:1, bar:4}) == false)
+)

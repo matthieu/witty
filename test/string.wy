@@ -1,4 +1,11 @@
-assert(length("abcd") == 4, "Simple string length failed.")
+describe("String split",
+  it("should split a simple string", 
+    sp = split("abc", "b")
+    sp@0 == "a" && sp@1 == "c"
+  )
+)
 
-assert(split("abc", "b").0 == "a", "Splitting a simple string failed.")
-assert(split("abc", "b").1 == "c", "Splitting a simple string failed.")
+describe("String empty",
+  it("should return true for an empty string", empty?("") == true)
+  it("should return false for a non-empty string", empty?("abc") == false)
+)

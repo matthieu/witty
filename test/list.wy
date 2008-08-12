@@ -79,3 +79,8 @@ describe("List index-based modification",
     alist@(1+2) == 10
   )
 )
+
+describe("List empty",
+  it("should return true for an empty list", empty?([]) == true)
+  it("should return false for a non-empty list", empty?([3,4]) == false)
+)

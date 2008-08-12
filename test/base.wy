@@ -18,6 +18,7 @@ macro(describe(`str, `descBody), `(
 ))
 
 load("test/arithmetics.wy")
+load("test/string.wy")
 load("test/list.wy")
 load("test/hash.wy")
 load("test/control.wy")
@@ -52,6 +53,7 @@ if(length(failures) > 0,
 // hygiene
 // generalized variables
 // cond/case
+// optional function parameters, parameters with default values
 // provide primitives allowing read/write access to witty code so code can be created or altered directly
 // basic list operations (push, pop, ...)
 // empty function for strings and lists
