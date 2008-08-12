@@ -56,7 +56,6 @@ if(length(failures) > 0,
 // optional function parameters, parameters with default values
 // provide primitives allowing read/write access to witty code so code can be created or altered directly
 // basic list operations (push, pop, ...)
-// empty function for strings and lists
 // real exceptions with script line error numbers
 // regexps
 // pretty printer for all data types
