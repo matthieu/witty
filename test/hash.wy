@@ -32,6 +32,13 @@ describe("Hash mutator",
     h@baz = "cde"
     h@baz == "cde"
   )
+  if("should be composable",
+    h = {}
+    h@foo = {}
+    h@foo@bar = 2
+    h@foo@baz = "abc"
+    h@foo2bar == 2 && h@foo@baz == "abc"
+  )
 )
 
 describe("Hash element applications",
