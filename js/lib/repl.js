@@ -28,7 +28,7 @@ function repl() {
   var line = new String(readline());
   while (line != 'quit' && line != 'exit') {
     var struct = parse(line);
-    //print(JSON.stringify(struct) + " - " + struct.sntx);
+    print(JSON.stringify(struct));
     if (struct) {
       try {
         var res = eval_(struct, env);
