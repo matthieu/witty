@@ -1,7 +1,11 @@
 describe("Macro expressions",
   macro(`pred ? `b1 ~ `b2, `(if($pred, $b1, $b2)))
+	macro(sq(`x), `(*($x,$x)))
+  macro(sumOf(`x, `y), `(+($x, $y)))
   it("should work when having more than one symbol ((5==6) ? 1 ~ 2)", ((5==6) ? 1 ~ 2) == 2)
   it("should work when having more than one symbol ((5==5) ? 1 ~ 2)", ((5==5) ? 1 ~ 2) == 1)
+  it("should conserve operators precedence on square", sq(3+3) == 36)
+  it("should conserve operators precedence on sumOf", 2*sumOf(1,7) == 16)
 )
 
 describe("Macro functions",
