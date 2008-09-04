@@ -9,21 +9,23 @@ This is the grammar for Wy written as a sequence of Perl 6 rules.
 grammar Wy::Grammar is PCT::Grammar;
 
 rule TOP {
-    <statement>*
+    <block>
     [ $ || <panic: 'Syntax error'> ]
     {*}
 }
 
-##  this <ws> rule treats # as "comment to eol"
-##  you may want to replace it with something appropriate
-token ws {
-    <!ww>
-    [ '#' \N* \n? | \s+ ]*
+rule block {
+    <statement>* 
+    {*}
 }
 
 rule statement {
-    'say' <expression> [ ',' <expression> ]* ';'
-    {*}
+    | <id> <params>* {*}    #= applic
+    | <value> {*}           #= value
+}
+
+rule params {
+  \( <block> [ ',' <block> ]* \) {*}
 }
 
 rule value {
@@ -34,14 +36,12 @@ rule value {
 rule integer { \d+ {*} }
 
 rule quote {
-    [ \' <string_literal: '\'' > \' | \" <string_literal: '"' > \" ]
-    {*}
+    [ \' <string_literal: '\'' > \' | \" <string_literal: '"' > \" ] {*}
 }
 
-##  terms
-token term {
-    | <value> {*}                                #= value
+token id { <[A..Za..z]> [\w|_]* }
+
+token ws {
+    <!ww>
+    [ '#' \N* \n? | \s+ ]*
 }
-
-rule expression is optable { ... }
-

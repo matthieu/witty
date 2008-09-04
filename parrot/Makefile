@@ -95,7 +95,6 @@ help:
 	@echo ""
 
 test: all
-	@echo ${BUILD_DIR}
 	$(PERL) t/harness
 
 # this target has nothing to do

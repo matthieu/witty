@@ -33,6 +33,9 @@ object.
     $P1.'language'('Wy')
     $P1.'parsegrammar'('Wy::Grammar')
     $P1.'parseactions'('Wy::Grammar::Actions')
+
+    $P1.'commandline_banner'("Wy for Parrot VM\n")
+    $P1.'commandline_prompt'('> ')
 .end
 
 =item main(args :slurpy)  :main
