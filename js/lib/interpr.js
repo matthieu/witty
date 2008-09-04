@@ -368,7 +368,7 @@ addPrimitive('=', ['symbol', 'value'], function(operands, env) {
     return newval;
   });
 addPrimitive('==', ['loperand', 'roperand'], opEval(
-  function(operands, env) { 
+  function(operands, env) {
     if (!operands[0] || !operands[1]) return operands[0] == operands[1];
     else if (operands[0] instanceof Array) operands[0].toString() == operands[1].toString();
     else return operands[0].valueOf() == operands[1].valueOf(); 

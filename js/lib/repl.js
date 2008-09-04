@@ -1,9 +1,11 @@
-if (typeof trace != 'undefined')
-  var load = ESC::compileAndLoadFile
+//if (typeof trace != 'undefined')
+//  var load = ESC::compileAndLoadFile
 
-load('lib/rhino-ext.js');
+//oad('lib/rhino-ext.js');
 //load("lib/tamarin-ext.js")
 load('lib/interpr.js');
+
+var arguments = parameters().split(" ").slice(0, -1);
 
 function setupEnv() {
   var baseFrame = {};
@@ -74,9 +76,9 @@ function parse(expr) {
   return res;
 }
 
-
-if (arguments.length == 0) repl();
-else {
+if (arguments.length == 0) {
+  repl();
+} else {
   var env = setup();
   var script = readfile(arguments[0]);
   eval_(parse(script), env);
