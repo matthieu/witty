@@ -57,6 +57,17 @@ function variableValue(exp, env, isMacro) {
   }
   return undefined;
 }
+function setVariableValue(name, newval, env) {
+  if(!variableRef(name) || quoted(name) || selfEval(name)) throw "Not a name, can't set " + name;
+  if (typeof newval == "undefined") throw "Unknown reference: " + newval;
+  var found = false;
+  for (var m = 0, frame; frame = env[m]; m++) {
+    var value = frame[0][name];
+    if (typeof value != "undefined") { frame[0][name] = newval; found = true; break; }
+  }
+  if (!found) env.first()[0][name] = newval;
+  return newval;
+}
 function extendEnvValues(names, values, env) {
   if (names.length > values.length) throw "Not enough parameters: " + values;
   else if (names.length < values.length) throw "Too many parameters: " + values;
@@ -153,6 +164,14 @@ function nCurry(l, n, param) {
   return curry;
 }
 
+// Package
+//
+
+function makePackage(name, frame) {
+  return ['package', name, frame];
+}
+function packageFrame(p) { return p[2]; }
+
 // Primitives handling
 //
 function makePrimitive(name, params, body) { return ['primitive', params, null, body, name]; }
@@ -208,6 +227,25 @@ addPrimitive('macro', ['pattern', 'body'],
     var decl = ['macro', pattern, operands.last(), macroId++, env];
     mframe[key] = decl;
     return key;
+  });
+addPrimitive('package', ['name', 'body'],
+  function(operands, env) {
+    var existingPackage = variableValue(operands[0]);
+    var newFrame = (typeof existingPackage != "undefined") ? packageFrame(existingPackage) : [];
+    var innerEnv = extendEnv(newFrame, env);
+    eval_(operands[1], innerEnv);
+    makePackage(operands[0], newFrame);
+    return null;
+  });
+addPrimitive('import', ['name'],
+  function(operands, env) {
+    var name = operands[0];
+    var p = variableValue(name);
+    if (!p || !isPackage(p)) throw "Unknown package: " + name;
+    var pframe = packageFrame(p);
+    var mergeFrame = env[0][0];
+    pframe.eachPair(function(k, v) { mergeFrame[k] = v; });
+    return null;
   });
 addPrimitive('print', ['elements*'], 
   function(operands, env) {
@@ -278,6 +316,7 @@ addPrimitive('for', ['listOrInit', 'lambdaOrStopCond', 'incrementExpr', 'body'],
       var stop = operands[1];
       var inc = operands[2];
       var body = operands.last();
+      // TODO don't create a new frame, for loops aren't isolated scopes
       var innerEnv = extendEnv({}, env);
       eval_(init, innerEnv);
       var ret = null;
@@ -356,16 +395,8 @@ addPrimitive('ncurry', ['lambda', 'index', 'parameter'], opEval(
   }));
 addPrimitive('=', ['symbol', 'value'], function(operands, env) {
     var name = operands[0];
-    if(!variableRef(name) || quoted(name) || selfEval(name)) throw "Not a name, can't set " + name;
     var newval = eval_(operands[1], env);
-    if (typeof newval == "undefined") throw "Unknown reference: " + newval;
-    var found = false;
-    for (var m = 0, frame; frame = env[m]; m++) {
-      var value = frame[0][name];
-      if (typeof value != "undefined") { frame[0][name] = newval; found = true; break; }
-    }
-    if (!found) env.first()[0][name] = newval;
-    return newval;
+    return setVariableValue(name, newval, env);
   });
 addPrimitive('==', ['loperand', 'roperand'], opEval(
   function(operands, env) {

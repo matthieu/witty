@@ -58,7 +58,7 @@ if(length(failures) > 0,
 // basic list operations (push, pop, ...)
 // real exceptions with script line error numbers
 // regexps
-// pretty printer for all data types
+// pretty printer for all data types, including lambda, macro and package
 // assign with := returns old value to allow a = b := a (exchange value)
 // single param lambdas syntax sugar: \(..)
 // lambdas shortcut y(...) ?
