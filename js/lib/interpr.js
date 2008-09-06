@@ -171,6 +171,7 @@ function makePackage(name, frame) {
   return ['package', name, frame];
 }
 function packageFrame(p) { return p[2]; }
+function isPackage(p) { return (p instanceof Array) && p[0] == 'package'; }
 
 // Primitives handling
 //
@@ -230,17 +231,18 @@ addPrimitive('macro', ['pattern', 'body'],
   });
 addPrimitive('package', ['name', 'body'],
   function(operands, env) {
-    var existingPackage = variableValue(operands[0]);
+    var existingPackage = variableValue(operands[0], env);
     var newFrame = (typeof existingPackage != "undefined") ? packageFrame(existingPackage) : [];
     var innerEnv = extendEnv(newFrame, env);
     eval_(operands[1], innerEnv);
-    makePackage(operands[0], newFrame);
+    var p = makePackage(operands[0], newFrame);
+    setVariableValue(operands[0], p, env);
     return null;
   });
 addPrimitive('import', ['name'],
   function(operands, env) {
     var name = operands[0];
-    var p = variableValue(name);
+    var p = variableValue(name, env);
     if (!p || !isPackage(p)) throw "Unknown package: " + name;
     var pframe = packageFrame(p);
     var mergeFrame = env[0][0];

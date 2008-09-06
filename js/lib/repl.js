@@ -1,7 +1,7 @@
 //if (typeof trace != 'undefined')
 //  var load = ESC::compileAndLoadFile
 
-//oad('lib/rhino-ext.js');
+//load('lib/rhino-ext.js');
 //load("lib/tamarin-ext.js")
 load('lib/interpr.js');
 
@@ -28,9 +28,10 @@ function repl() {
   var env = setup();
   pr("> ");
   var line = new String(readline());
+  print("= " + line);
   while (line != 'quit' && line != 'exit') {
     var struct = parse(line);
-    print(JSON.stringify(struct));
+    print("-- " + JSON.stringify(struct));
     if (struct) {
       try {
         var res = eval_(struct, env);
