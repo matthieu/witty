@@ -281,6 +281,10 @@ addPrimitive('load', ['file'], opEval(
     var ctnt = readfile(operands.first());
     return eval_(parse(ctnt), env);
   }));
+addPrimitive('defined?', ['name'],
+  function(operands, env) {
+    return (typeof variableValue(operands[0], env) != "undefined")
+  });
 addPrimitive('L', ['elements*'], opEval(
   function(operands, env) {
     var arr = operands.slice();
