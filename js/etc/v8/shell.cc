@@ -150,7 +150,7 @@ v8::Handle<v8::Value> ReadFile(const v8::Arguments& args) {
 
 v8::Handle<v8::Value> ReadLine(const v8::Arguments& args) {
   char str[256];
-  scanf("%s",str);
+  fgets(str, 256, stdin);
   return v8::String::New(str);
 }
 
