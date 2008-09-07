@@ -60,7 +60,7 @@ returns [Object val]: t=(ID | OPER | UNARY) { $val = $t.text; };
 OPER: SYMBOLS (SYMBOLS|UNARY)* | UNARY SYMBOLS+;
 
 fragment SYMBOLS: ('_' | '~' | '@' | '#' | '$' | '%' | '^' | '&' | '<' | '>'
-      | '*' | '+' | '=' | '|' | '\\' | '.' | '?' | '/' | '`');
+      | '*' | '+' | '=' | '|' | '\\' | '.' | '?' | '/' | '`' | ':');
 
 UNARY: '!' | '-'; 
 
