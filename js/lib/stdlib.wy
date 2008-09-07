@@ -35,6 +35,15 @@ macro(`arr @ `idx,
   )
 )
 
+macro(`pack :: `def, 
+  if(applic?(def),
+    if(params?(def),
+      `( ::($pack, $(fnName(def)))($<(params(def))) ),
+      `( ::($pack, $(fnName(def)))() )
+    ),
+    `(::($pack, $def))
+  )
+)
 
 // TODO let with variable number of var/val pairs
 macro(let(`var, `val, `block), `(lambda($var, $block)($val)))

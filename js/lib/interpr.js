@@ -7,7 +7,7 @@ load("lib/macro.js");
 load("lib/dtype.js");
 
 function eval_(exp, env) {
-  //print("eval: " + JSON.stringify(exp) + " :sntx: " + exp.sntx);
+  // print("eval: " + JSON.stringify(exp) + " :sntx: " + exp.sntx);
   if (selfEval(exp)) return eval(exp); // JS eval for native type
   else if (quoted(exp)) return evalQuoted(exp);
   else if (variableRef(exp)) {
@@ -231,23 +231,29 @@ addPrimitive('macro', ['pattern', 'body'],
   });
 addPrimitive('package', ['name', 'body'],
   function(operands, env) {
-    var existingPackage = variableValue(operands[0], env);
+    var name = operands[0]; // TODO should delegate back to eval_, just need error handling
+    var existingPackage = variableValue(name, env);
     var newFrame = (typeof existingPackage != "undefined") ? packageFrame(existingPackage) : [];
     var innerEnv = extendEnv(newFrame, env);
     eval_(operands[1], innerEnv);
-    var p = makePackage(operands[0], newFrame);
-    setVariableValue(operands[0], p, env);
+    var p = makePackage(name, newFrame);
+    setVariableValue(name, p, env);
     return null;
   });
 addPrimitive('import', ['name'],
   function(operands, env) {
-    var name = operands[0];
-    var p = variableValue(name, env);
+    var p = eval_(operands[0], env);
     if (!p || !isPackage(p)) throw "Unknown package: " + name;
     var pframe = packageFrame(p);
     var mergeFrame = env[0][0];
     pframe.eachPair(function(k, v) { mergeFrame[k] = v; });
-    return null;
+    return true;
+  });
+addPrimitive('::', ['package', 'definition'],
+  function(operands, env) {
+    var p = eval_(operands[0], env);
+    if (!p || !isPackage(p)) throw "Unknown package: " + name;
+    return packageFrame(p)[operands[1]];    
   });
 addPrimitive('print', ['elements*'], 
   function(operands, env) {
