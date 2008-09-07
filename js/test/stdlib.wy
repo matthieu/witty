@@ -1,0 +1,6 @@
+describe("Function defined?",
+  it("should return false for an unknown name", !defined?(a) )
+  it("should return true for an known name", a = 0; defined?(a) )
+  it("should consider a boolean defined", defined?(false) )
+  it("should consider a function defined", defined?(defined?) )
+)
