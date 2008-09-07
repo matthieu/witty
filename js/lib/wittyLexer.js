@@ -1,4 +1,4 @@
-// $ANTLR 3.0.1 antlr/witty.g 2008-08-10 17:42:30
+// $ANTLR 3.0.1 antlr/witty.g 2008-09-06 18:50:49
 
 var wittyLexer = function(input) {
     this.dfa14 = new wittyLexer.DFA14(this);
@@ -175,7 +175,7 @@ ANTLR.lang.extend(wittyLexer, ANTLR.runtime.Lexer, {
             var alt3=2;
             var LA3_0 = this.input.LA(1);
 
-            if ( ((LA3_0>='#' && LA3_0<='&')||(LA3_0>='*' && LA3_0<='+')||(LA3_0>='.' && LA3_0<='/')||(LA3_0>='<' && LA3_0<='@')||LA3_0=='\\'||(LA3_0>='^' && LA3_0<='`')||LA3_0=='|'||LA3_0=='~') ) {
+            if ( ((LA3_0>='#' && LA3_0<='&')||(LA3_0>='*' && LA3_0<='+')||(LA3_0>='.' && LA3_0<='/')||LA3_0==':'||(LA3_0>='<' && LA3_0<='@')||LA3_0=='\\'||(LA3_0>='^' && LA3_0<='`')||LA3_0=='|'||LA3_0=='~') ) {
                 alt3=1;
             }
             else if ( (LA3_0=='!'||LA3_0=='-') ) {
@@ -197,7 +197,7 @@ ANTLR.lang.extend(wittyLexer, ANTLR.runtime.Lexer, {
                         var alt1=2;
                         var LA1_0 = this.input.LA(1);
 
-                        if ( (LA1_0=='!'||(LA1_0>='#' && LA1_0<='&')||(LA1_0>='*' && LA1_0<='+')||(LA1_0>='-' && LA1_0<='/')||(LA1_0>='<' && LA1_0<='@')||LA1_0=='\\'||(LA1_0>='^' && LA1_0<='`')||LA1_0=='|'||LA1_0=='~') ) {
+                        if ( (LA1_0=='!'||(LA1_0>='#' && LA1_0<='&')||(LA1_0>='*' && LA1_0<='+')||(LA1_0>='-' && LA1_0<='/')||LA1_0==':'||(LA1_0>='<' && LA1_0<='@')||LA1_0=='\\'||(LA1_0>='^' && LA1_0<='`')||LA1_0=='|'||LA1_0=='~') ) {
                             alt1=1;
                         }
 
@@ -205,7 +205,7 @@ ANTLR.lang.extend(wittyLexer, ANTLR.runtime.Lexer, {
                         switch (alt1) {
                     	case 1 :
                     	    // antlr/witty.g:
-                    	    if ( this.input.LA(1)=='!'||(this.input.LA(1)>='#' && this.input.LA(1)<='&')||(this.input.LA(1)>='*' && this.input.LA(1)<='+')||(this.input.LA(1)>='-' && this.input.LA(1)<='/')||(this.input.LA(1)>='<' && this.input.LA(1)<='@')||this.input.LA(1)=='\\'||(this.input.LA(1)>='^' && this.input.LA(1)<='`')||this.input.LA(1)=='|'||this.input.LA(1)=='~' ) {
+                    	    if ( this.input.LA(1)=='!'||(this.input.LA(1)>='#' && this.input.LA(1)<='&')||(this.input.LA(1)>='*' && this.input.LA(1)<='+')||(this.input.LA(1)>='-' && this.input.LA(1)<='/')||this.input.LA(1)==':'||(this.input.LA(1)>='<' && this.input.LA(1)<='@')||this.input.LA(1)=='\\'||(this.input.LA(1)>='^' && this.input.LA(1)<='`')||this.input.LA(1)=='|'||this.input.LA(1)=='~' ) {
                     	        this.input.consume();
 
                     	    }
@@ -236,7 +236,7 @@ ANTLR.lang.extend(wittyLexer, ANTLR.runtime.Lexer, {
                         var alt2=2;
                         var LA2_0 = this.input.LA(1);
 
-                        if ( ((LA2_0>='#' && LA2_0<='&')||(LA2_0>='*' && LA2_0<='+')||(LA2_0>='.' && LA2_0<='/')||(LA2_0>='<' && LA2_0<='@')||LA2_0=='\\'||(LA2_0>='^' && LA2_0<='`')||LA2_0=='|'||LA2_0=='~') ) {
+                        if ( ((LA2_0>='#' && LA2_0<='&')||(LA2_0>='*' && LA2_0<='+')||(LA2_0>='.' && LA2_0<='/')||LA2_0==':'||(LA2_0>='<' && LA2_0<='@')||LA2_0=='\\'||(LA2_0>='^' && LA2_0<='`')||LA2_0=='|'||LA2_0=='~') ) {
                             alt2=1;
                         }
 
@@ -273,9 +273,9 @@ ANTLR.lang.extend(wittyLexer, ANTLR.runtime.Lexer, {
     // $ANTLR start SYMBOLS
     mSYMBOLS: function()  {
         try {
-            // antlr/witty.g:62:17: ( ( '_' | '~' | '@' | '#' | '$' | '%' | '^' | '&' | '<' | '>' | '*' | '+' | '=' | '|' | '\\\\' | '.' | '?' | '/' | '`' ) )
-            // antlr/witty.g:62:19: ( '_' | '~' | '@' | '#' | '$' | '%' | '^' | '&' | '<' | '>' | '*' | '+' | '=' | '|' | '\\\\' | '.' | '?' | '/' | '`' )
-            if ( (this.input.LA(1)>='#' && this.input.LA(1)<='&')||(this.input.LA(1)>='*' && this.input.LA(1)<='+')||(this.input.LA(1)>='.' && this.input.LA(1)<='/')||(this.input.LA(1)>='<' && this.input.LA(1)<='@')||this.input.LA(1)=='\\'||(this.input.LA(1)>='^' && this.input.LA(1)<='`')||this.input.LA(1)=='|'||this.input.LA(1)=='~' ) {
+            // antlr/witty.g:62:17: ( ( '_' | '~' | '@' | '#' | '$' | '%' | '^' | '&' | '<' | '>' | '*' | '+' | '=' | '|' | '\\\\' | '.' | '?' | '/' | '`' | ':' ) )
+            // antlr/witty.g:62:19: ( '_' | '~' | '@' | '#' | '$' | '%' | '^' | '&' | '<' | '>' | '*' | '+' | '=' | '|' | '\\\\' | '.' | '?' | '/' | '`' | ':' )
+            if ( (this.input.LA(1)>='#' && this.input.LA(1)<='&')||(this.input.LA(1)>='*' && this.input.LA(1)<='+')||(this.input.LA(1)>='.' && this.input.LA(1)<='/')||this.input.LA(1)==':'||(this.input.LA(1)>='<' && this.input.LA(1)<='@')||this.input.LA(1)=='\\'||(this.input.LA(1)>='^' && this.input.LA(1)<='`')||this.input.LA(1)=='|'||this.input.LA(1)=='~' ) {
                 this.input.consume();
 
             }
@@ -1090,23 +1090,24 @@ ANTLR.lang.extend(wittyLexer, ANTLR.runtime.Lexer, {
 
 ANTLR.lang.augmentObject(wittyLexer, {
     DFA14_eotS:
-        "\u0009\uffff\u0001\u000f\u0001\u0013\u0001\u000f\u0006\uffff\u0001"+
-    "\u000f\u0001\uffff\u0002\u000f\u0001\uffff",
+        "\u0006\uffff\u0001\u0012\u0002\uffff\u0001\u000f\u0001\u0014\u0001"+
+    "\u000f\u0007\uffff\u0001\u000f\u0001\uffff\u0002\u000f\u0001\uffff",
     DFA14_eofS:
-        "\u0017\uffff",
+        "\u0018\uffff",
     DFA14_minS:
-        "\u0001\u0009\u0008\uffff\u0001\u0021\u0001\u0023\u0001\u002f\u0006"+
-    "\uffff\u0001\u0021\u0001\uffff\u0002\u0000\u0001\uffff",
+        "\u0001\u0009\u0005\uffff\u0001\u0021\u0002\uffff\u0001\u0021\u0001"+
+    "\u0023\u0001\u002f\u0007\uffff\u0001\u0021\u0001\uffff\u0002\u0000\u0001"+
+    "\uffff",
     DFA14_maxS:
-        "\u0001\u007e\u0008\uffff\u0002\u007e\u0001\u002f\u0006\uffff\u0001"+
-    "\u007e\u0001\uffff\u0002\ufffe\u0001\uffff",
+        "\u0001\u007e\u0005\uffff\u0001\u007e\u0002\uffff\u0002\u007e\u0001"+
+    "\u002f\u0007\uffff\u0001\u007e\u0001\uffff\u0002\ufffe\u0001\uffff",
     DFA14_acceptS:
         "\u0001\uffff\u0001\u0001\u0001\u0002\u0001\u0003\u0001\u0004\u0001"+
-    "\u0005\u0001\u0006\u0001\u0007\u0001\u0008\u0003\uffff\u0001\u000b\u0001"+
-    "\u000c\u0001\u000d\u0001\u0009\u0001\u000f\u0001\u0010\u0001\uffff\u0001"+
-    "\u000a\u0002\uffff\u0001\u000e",
+    "\u0005\u0001\uffff\u0001\u0007\u0001\u0008\u0003\uffff\u0001\u000b\u0001"+
+    "\u000c\u0001\u000d\u0001\u0009\u0001\u000f\u0001\u0010\u0001\u0006\u0001"+
+    "\uffff\u0001\u000a\u0002\uffff\u0001\u000e",
     DFA14_specialS:
-        "\u0017\uffff}>",
+        "\u0018\uffff}>",
     DFA14_transitionS: [
             "\u0001\u0011\u0001\u0010\u0001\uffff\u0001\u0011\u0001\u0010"+
             "\u0012\uffff\u0001\u0011\u0001\u000a\u0001\u000d\u0002\u0009"+
@@ -1121,36 +1122,43 @@ ANTLR.lang.augmentObject(wittyLexer, {
             "",
             "",
             "",
+            "\u0001\u000f\u0001\uffff\u0004\u000f\u0003\uffff\u0002\u000f"+
+            "\u0001\uffff\u0003\u000f\u000a\uffff\u0001\u000f\u0001\uffff"+
+            "\u0005\u000f\u001b\uffff\u0001\u000f\u0001\uffff\u0003\u000f"+
+            "\u001b\uffff\u0001\u000f\u0001\uffff\u0001\u000f",
             "",
             "",
-            "",
-            "\u0001\u0012\u0001\uffff\u0002\u0012\u0009\uffff\u0001\u0012"+
-            "\u0001\uffff\u000a\u000c\u0005\uffff\u0001\u0012\u0001\uffff"+
-            "\u001a\u000c\u0004\uffff\u0002\u0012\u001a\u000c\u0003\uffff"+
-            "\u0001\u0012",
+            "\u0001\u0013\u0001\uffff\u0002\u0013\u0009\uffff\u0001\u0013"+
+            "\u0001\uffff\u000a\u000c\u0005\uffff\u0001\u0013\u0001\uffff"+
+            "\u001a\u000c\u0004\uffff\u0002\u0013\u001a\u000c\u0003\uffff"+
+            "\u0001\u0013",
             "\u0004\u000f\u0003\uffff\u0002\u000f\u0002\uffff\u0002\u000f"+
-            "\u000c\uffff\u0005\u000f\u001b\uffff\u0001\u000f\u0001\uffff"+
-            "\u0003\u000f\u001b\uffff\u0001\u000f\u0001\uffff\u0001\u000f",
-            "\u0001\u0014",
+            "\u000a\uffff\u0001\u000f\u0001\uffff\u0005\u000f\u001b\uffff"+
+            "\u0001\u000f\u0001\uffff\u0003\u000f\u001b\uffff\u0001\u000f"+
+            "\u0001\uffff\u0001\u000f",
+            "\u0001\u0015",
             "",
             "",
             "",
             "",
             "",
             "",
-            "\u0001\u0012\u0001\uffff\u0002\u0012\u0009\uffff\u0001\u0012"+
-            "\u0001\uffff\u000a\u000c\u0005\uffff\u0001\u0012\u0001\uffff"+
-            "\u001a\u000c\u0004\uffff\u0002\u0012\u001a\u000c\u0003\uffff"+
-            "\u0001\u0012",
             "",
-            "\u0021\u0016\u0001\u0015\u0001\u0016\u0004\u0015\u0003\u0016"+
-            "\u0002\u0015\u0001\u0016\u0003\u0015\u000c\u0016\u0005\u0015"+
-            "\u001b\u0016\u0001\u0015\u0001\u0016\u0003\u0015\u001b\u0016"+
-            "\u0001\u0015\u0001\u0016\u0001\u0015\uff80\u0016",
-            "\u0021\u0016\u0001\u0015\u0001\u0016\u0004\u0015\u0003\u0016"+
-            "\u0002\u0015\u0001\u0016\u0003\u0015\u000c\u0016\u0005\u0015"+
-            "\u001b\u0016\u0001\u0015\u0001\u0016\u0003\u0015\u001b\u0016"+
-            "\u0001\u0015\u0001\u0016\u0001\u0015\uff80\u0016",
+            "\u0001\u0013\u0001\uffff\u0002\u0013\u0009\uffff\u0001\u0013"+
+            "\u0001\uffff\u000a\u000c\u0005\uffff\u0001\u0013\u0001\uffff"+
+            "\u001a\u000c\u0004\uffff\u0002\u0013\u001a\u000c\u0003\uffff"+
+            "\u0001\u0013",
+            "",
+            "\u0021\u0017\u0001\u0016\u0001\u0017\u0004\u0016\u0003\u0017"+
+            "\u0002\u0016\u0001\u0017\u0003\u0016\u000a\u0017\u0001\u0016"+
+            "\u0001\u0017\u0005\u0016\u001b\u0017\u0001\u0016\u0001\u0017"+
+            "\u0003\u0016\u001b\u0017\u0001\u0016\u0001\u0017\u0001\u0016"+
+            "\uff80\u0017",
+            "\u0021\u0017\u0001\u0016\u0001\u0017\u0004\u0016\u0003\u0017"+
+            "\u0002\u0016\u0001\u0017\u0003\u0016\u000a\u0017\u0001\u0016"+
+            "\u0001\u0017\u0005\u0016\u001b\u0017\u0001\u0016\u0001\u0017"+
+            "\u0003\u0016\u001b\u0017\u0001\u0016\u0001\u0017\u0001\u0016"+
+            "\uff80\u0017",
             ""
     ]
 });
