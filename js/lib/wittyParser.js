@@ -1,4 +1,4 @@
-// $ANTLR 3.0.1 antlr/witty.g 2008-09-06 18:50:48
+// $ANTLR 3.0.1 antlr/witty.g 2008-09-07 19:07:54
 
   Applic = function() { var na = Array.prototype.slice.call(arguments); na.sntx = 'A'; return na; }
   Block = function() { var na = Array.prototype.slice.call(arguments); na.sntx = 'B'; return na; }
@@ -85,18 +85,19 @@ ANTLR.lang.extend(wittyParser, ANTLR.runtime.Parser, {
             this._fsp--;
             if (this.failed) return val;
             if ( this.backtracking===0 ) {
-               if (s1 instanceof Array && s1.sntx != 'A') val = Block(s1);
+               if (s1 instanceof Array && s1.sntx != 'A') 
+                                                val = Block(s1);
                                               else val = s1; var first = true; 
             }
-            // antlr/witty.g:16:23: ( ( TERM )+ s2= stmt )*
+            // antlr/witty.g:17:23: ( ( TERM )+ s2= stmt )*
             loop3:
             do {
                 var alt3=2;
                 alt3 = this.dfa3.predict(this.input);
                 switch (alt3) {
             	case 1 :
-            	    // antlr/witty.g:16:24: ( TERM )+ s2= stmt
-            	    // antlr/witty.g:16:24: ( TERM )+
+            	    // antlr/witty.g:17:24: ( TERM )+ s2= stmt
+            	    // antlr/witty.g:17:24: ( TERM )+
             	    var cnt2=0;
             	    loop2:
             	    do {
@@ -110,7 +111,7 @@ ANTLR.lang.extend(wittyParser, ANTLR.runtime.Parser, {
 
             	        switch (alt2) {
             	    	case 1 :
-            	    	    // antlr/witty.g:16:24: TERM
+            	    	    // antlr/witty.g:17:24: TERM
             	    	    this.match(this.input,TERM,wittyParser.FOLLOW_TERM_in_block85); if (this.failed) return val;
 
 
@@ -144,7 +145,7 @@ ANTLR.lang.extend(wittyParser, ANTLR.runtime.Parser, {
                 }
             } while (true);
 
-            // antlr/witty.g:18:23: ( TERM )*
+            // antlr/witty.g:19:23: ( TERM )*
             loop4:
             do {
                 var alt4=2;
@@ -157,7 +158,7 @@ ANTLR.lang.extend(wittyParser, ANTLR.runtime.Parser, {
 
                 switch (alt4) {
             	case 1 :
-            	    // antlr/witty.g:18:23: TERM
+            	    // antlr/witty.g:19:23: TERM
             	    this.match(this.input,TERM,wittyParser.FOLLOW_TERM_in_block119); if (this.failed) return val;
 
 
@@ -168,7 +169,7 @@ ANTLR.lang.extend(wittyParser, ANTLR.runtime.Parser, {
                 }
             } while (true);
 
-            // antlr/witty.g:18:29: ( EOF )?
+            // antlr/witty.g:19:29: ( EOF )?
             var alt5=2;
             var LA5_0 = this.input.LA(1);
 
@@ -177,7 +178,7 @@ ANTLR.lang.extend(wittyParser, ANTLR.runtime.Parser, {
             }
             switch (alt5) {
                 case 1 :
-                    // antlr/witty.g:18:29: EOF
+                    // antlr/witty.g:19:29: EOF
                     this.match(this.input,EOF,wittyParser.FOLLOW_EOF_in_block122); if (this.failed) return val;
 
 
@@ -203,7 +204,7 @@ ANTLR.lang.extend(wittyParser, ANTLR.runtime.Parser, {
     },
 
 
-    // antlr/witty.g:20:1: stmt returns [Object val] : ( WS )* as= assoc ( WS )* ;
+    // antlr/witty.g:21:1: stmt returns [Object val] : ( WS )* as= assoc ( WS )* ;
     // $ANTLR start stmt
     stmt: function() {
         var val = null;
@@ -211,9 +212,9 @@ ANTLR.lang.extend(wittyParser, ANTLR.runtime.Parser, {
          var as = null;
 
         try {
-            // antlr/witty.g:21:21: ( ( WS )* as= assoc ( WS )* )
-            // antlr/witty.g:21:23: ( WS )* as= assoc ( WS )*
-            // antlr/witty.g:21:23: ( WS )*
+            // antlr/witty.g:22:21: ( ( WS )* as= assoc ( WS )* )
+            // antlr/witty.g:22:23: ( WS )* as= assoc ( WS )*
+            // antlr/witty.g:22:23: ( WS )*
             loop6:
             do {
                 var alt6=2;
@@ -226,7 +227,7 @@ ANTLR.lang.extend(wittyParser, ANTLR.runtime.Parser, {
 
                 switch (alt6) {
             	case 1 :
-            	    // antlr/witty.g:21:23: WS
+            	    // antlr/witty.g:22:23: WS
             	    this.match(this.input,WS,wittyParser.FOLLOW_WS_in_stmt134); if (this.failed) return val;
 
 
@@ -244,7 +245,7 @@ ANTLR.lang.extend(wittyParser, ANTLR.runtime.Parser, {
             if ( this.backtracking===0 ) {
                val = as; 
             }
-            // antlr/witty.g:21:56: ( WS )*
+            // antlr/witty.g:22:56: ( WS )*
             loop7:
             do {
                 var alt7=2;
@@ -257,7 +258,7 @@ ANTLR.lang.extend(wittyParser, ANTLR.runtime.Parser, {
 
                 switch (alt7) {
             	case 1 :
-            	    // antlr/witty.g:21:56: WS
+            	    // antlr/witty.g:22:56: WS
             	    this.match(this.input,WS,wittyParser.FOLLOW_WS_in_stmt143); if (this.failed) return val;
 
 
@@ -286,7 +287,7 @@ ANTLR.lang.extend(wittyParser, ANTLR.runtime.Parser, {
     },
 
 
-    // antlr/witty.g:23:1: assoc returns [Object val] : (p= parens_assoc | am= atom_assoc );
+    // antlr/witty.g:24:1: assoc returns [Object val] : (p= parens_assoc | am= atom_assoc );
     // $ANTLR start assoc
     assoc: function() {
         var val = null;
@@ -295,7 +296,7 @@ ANTLR.lang.extend(wittyParser, ANTLR.runtime.Parser, {
          var am = null;
 
         try {
-            // antlr/witty.g:24:21: (p= parens_assoc | am= atom_assoc )
+            // antlr/witty.g:25:21: (p= parens_assoc | am= atom_assoc )
             var alt8=2;
             var LA8_0 = this.input.LA(1);
 
@@ -308,13 +309,13 @@ ANTLR.lang.extend(wittyParser, ANTLR.runtime.Parser, {
             else {
                 if (this.backtracking>0) {this.failed=true; return val;}
                 var nvae =
-                    new ANTLR.runtime.NoViableAltException("23:1: assoc returns [Object val] : (p= parens_assoc | am= atom_assoc );", 8, 0, this.input);
+                    new ANTLR.runtime.NoViableAltException("24:1: assoc returns [Object val] : (p= parens_assoc | am= atom_assoc );", 8, 0, this.input);
 
                 throw nvae;
             }
             switch (alt8) {
                 case 1 :
-                    // antlr/witty.g:24:23: p= parens_assoc
+                    // antlr/witty.g:25:23: p= parens_assoc
                     this.pushFollow(wittyParser.FOLLOW_parens_assoc_in_assoc158);
                     var p = this.parens_assoc();
                     this._fsp--;
@@ -326,7 +327,7 @@ ANTLR.lang.extend(wittyParser, ANTLR.runtime.Parser, {
 
                     break;
                 case 2 :
-                    // antlr/witty.g:25:25: am= atom_assoc
+                    // antlr/witty.g:26:25: am= atom_assoc
                     this.pushFollow(wittyParser.FOLLOW_atom_assoc_in_assoc189);
                     var am = this.atom_assoc();
                     this._fsp--;
@@ -354,7 +355,7 @@ ANTLR.lang.extend(wittyParser, ANTLR.runtime.Parser, {
     },
 
 
-    // antlr/witty.g:27:1: parens_assoc returns [Object val] : '(' s1= stmt ')' (op= ( OPER | UNARY ) s2= stmt )? ;
+    // antlr/witty.g:28:1: parens_assoc returns [Object val] : '(' s1= stmt ')' (op= ( OPER | UNARY ) s2= stmt )? ;
     // $ANTLR start parens_assoc
     parens_assoc: function() {
         var val = null;
@@ -364,15 +365,15 @@ ANTLR.lang.extend(wittyParser, ANTLR.runtime.Parser, {
          var s2 = null;
 
         try {
-            // antlr/witty.g:28:21: ( '(' s1= stmt ')' (op= ( OPER | UNARY ) s2= stmt )? )
-            // antlr/witty.g:28:23: '(' s1= stmt ')' (op= ( OPER | UNARY ) s2= stmt )?
+            // antlr/witty.g:29:21: ( '(' s1= stmt ')' (op= ( OPER | UNARY ) s2= stmt )? )
+            // antlr/witty.g:29:23: '(' s1= stmt ')' (op= ( OPER | UNARY ) s2= stmt )?
             this.match(this.input,21,wittyParser.FOLLOW_21_in_parens_assoc202); if (this.failed) return val;
             this.pushFollow(wittyParser.FOLLOW_stmt_in_parens_assoc206);
             var s1 = this.stmt();
             this._fsp--;
             if (this.failed) return val;
             this.match(this.input,22,wittyParser.FOLLOW_22_in_parens_assoc208); if (this.failed) return val;
-            // antlr/witty.g:28:39: (op= ( OPER | UNARY ) s2= stmt )?
+            // antlr/witty.g:29:39: (op= ( OPER | UNARY ) s2= stmt )?
             var alt9=2;
             var LA9_0 = this.input.LA(1);
 
@@ -381,7 +382,7 @@ ANTLR.lang.extend(wittyParser, ANTLR.runtime.Parser, {
             }
             switch (alt9) {
                 case 1 :
-                    // antlr/witty.g:28:40: op= ( OPER | UNARY ) s2= stmt
+                    // antlr/witty.g:29:40: op= ( OPER | UNARY ) s2= stmt
                     op=this.input.LT(1);
                     if ( (this.input.LA(1)>=OPER && this.input.LA(1)<=UNARY) ) {
                         this.input.consume();
@@ -404,7 +405,13 @@ ANTLR.lang.extend(wittyParser, ANTLR.runtime.Parser, {
             }
 
             if ( this.backtracking===0 ) {
-               val = (s2 || s2 == 0) ? [Block(s1), op.getText(), s2] : Block(s1); 
+               if (s2 || s2 == 0) { 
+                                          var oper = new String(op.getText());
+                                          oper.line = op.getLine(); oper.pos = op.getCharPositionInLine();
+                                          val = [Block(s1), oper, s2] 
+                                        } 
+                                        else val = Block(s1); 
+                                      
             }
 
 
@@ -424,7 +431,7 @@ ANTLR.lang.extend(wittyParser, ANTLR.runtime.Parser, {
     },
 
 
-    // antlr/witty.g:31:1: atom_assoc returns [Object val] : ( ( UNARY atom )=>u2= UNARY a1= atom | a2= atom ) (op= ( OPER | UNARY ) stmt )? ;
+    // antlr/witty.g:38:1: atom_assoc returns [Object val] : ( ( UNARY atom )=>u2= UNARY a1= atom | a2= atom ) (op= ( OPER | UNARY ) stmt )? ;
     // $ANTLR start atom_assoc
     atom_assoc: function() {
         var val = null;
@@ -436,14 +443,14 @@ ANTLR.lang.extend(wittyParser, ANTLR.runtime.Parser, {
          var stmt1 = null;
 
         try {
-            // antlr/witty.g:32:21: ( ( ( UNARY atom )=>u2= UNARY a1= atom | a2= atom ) (op= ( OPER | UNARY ) stmt )? )
-            // antlr/witty.g:32:23: ( ( UNARY atom )=>u2= UNARY a1= atom | a2= atom ) (op= ( OPER | UNARY ) stmt )?
-            // antlr/witty.g:32:23: ( ( UNARY atom )=>u2= UNARY a1= atom | a2= atom )
+            // antlr/witty.g:39:21: ( ( ( UNARY atom )=>u2= UNARY a1= atom | a2= atom ) (op= ( OPER | UNARY ) stmt )? )
+            // antlr/witty.g:39:23: ( ( UNARY atom )=>u2= UNARY a1= atom | a2= atom ) (op= ( OPER | UNARY ) stmt )?
+            // antlr/witty.g:39:23: ( ( UNARY atom )=>u2= UNARY a1= atom | a2= atom )
             var alt10=2;
             alt10 = this.dfa10.predict(this.input);
             switch (alt10) {
                 case 1 :
-                    // antlr/witty.g:32:24: ( UNARY atom )=>u2= UNARY a1= atom
+                    // antlr/witty.g:39:24: ( UNARY atom )=>u2= UNARY a1= atom
                     u2=this.input.LT(1);
                     this.match(this.input,UNARY,wittyParser.FOLLOW_UNARY_in_atom_assoc272); if (this.failed) return val;
                     this.pushFollow(wittyParser.FOLLOW_atom_in_atom_assoc276);
@@ -457,7 +464,7 @@ ANTLR.lang.extend(wittyParser, ANTLR.runtime.Parser, {
 
                     break;
                 case 2 :
-                    // antlr/witty.g:33:25: a2= atom
+                    // antlr/witty.g:40:25: a2= atom
                     this.pushFollow(wittyParser.FOLLOW_atom_in_atom_assoc306);
                     var a2 = this.atom();
                     this._fsp--;
@@ -471,7 +478,7 @@ ANTLR.lang.extend(wittyParser, ANTLR.runtime.Parser, {
 
             }
 
-            // antlr/witty.g:34:23: (op= ( OPER | UNARY ) stmt )?
+            // antlr/witty.g:41:23: (op= ( OPER | UNARY ) stmt )?
             var alt11=2;
             var LA11_0 = this.input.LA(1);
 
@@ -480,7 +487,7 @@ ANTLR.lang.extend(wittyParser, ANTLR.runtime.Parser, {
             }
             switch (alt11) {
                 case 1 :
-                    // antlr/witty.g:34:24: op= ( OPER | UNARY ) stmt
+                    // antlr/witty.g:41:24: op= ( OPER | UNARY ) stmt
                     op=this.input.LT(1);
                     if ( (this.input.LA(1)>=OPER && this.input.LA(1)<=UNARY) ) {
                         this.input.consume();
@@ -497,7 +504,11 @@ ANTLR.lang.extend(wittyParser, ANTLR.runtime.Parser, {
                     this._fsp--;
                     if (this.failed) return val;
                     if ( this.backtracking===0 ) {
-                       val = [val, op.getText(), stmt1]; 
+
+                                              var oper = new String(op.getText());
+                                              oper.line = op.getLine(); oper.pos = op.getCharPositionInLine();
+                                              val = [val, oper, stmt1]; 
+                                            
                     }
 
 
@@ -523,7 +534,7 @@ ANTLR.lang.extend(wittyParser, ANTLR.runtime.Parser, {
     },
 
 
-    // antlr/witty.g:36:1: atom returns [Object val] : (a= ( NUM | STRING | ID | OPER | UNARY ) | hash_lit | list_lit ) ( '(' (b1= block )? ( ',' b2= block )* ')' )* ;
+    // antlr/witty.g:47:1: atom returns [Object val] : (a= ( NUM | STRING | ID | OPER | UNARY ) | hash_lit | list_lit ) ( '(' (b1= block )? ( ',' b2= block )* ')' )* ;
     // $ANTLR start atom
     atom: function() {
         var val = null;
@@ -535,9 +546,9 @@ ANTLR.lang.extend(wittyParser, ANTLR.runtime.Parser, {
          var list_lit3 = null;
 
         try {
-            // antlr/witty.g:37:22: ( (a= ( NUM | STRING | ID | OPER | UNARY ) | hash_lit | list_lit ) ( '(' (b1= block )? ( ',' b2= block )* ')' )* )
-            // antlr/witty.g:37:24: (a= ( NUM | STRING | ID | OPER | UNARY ) | hash_lit | list_lit ) ( '(' (b1= block )? ( ',' b2= block )* ')' )*
-            // antlr/witty.g:37:24: (a= ( NUM | STRING | ID | OPER | UNARY ) | hash_lit | list_lit )
+            // antlr/witty.g:48:22: ( (a= ( NUM | STRING | ID | OPER | UNARY ) | hash_lit | list_lit ) ( '(' (b1= block )? ( ',' b2= block )* ')' )* )
+            // antlr/witty.g:48:24: (a= ( NUM | STRING | ID | OPER | UNARY ) | hash_lit | list_lit ) ( '(' (b1= block )? ( ',' b2= block )* ')' )*
+            // antlr/witty.g:48:24: (a= ( NUM | STRING | ID | OPER | UNARY ) | hash_lit | list_lit )
             var alt12=3;
             switch ( this.input.LA(1) ) {
             case OPER:
@@ -556,14 +567,14 @@ ANTLR.lang.extend(wittyParser, ANTLR.runtime.Parser, {
             default:
                 if (this.backtracking>0) {this.failed=true; return val;}
                 var nvae =
-                    new ANTLR.runtime.NoViableAltException("37:24: (a= ( NUM | STRING | ID | OPER | UNARY ) | hash_lit | list_lit )", 12, 0, this.input);
+                    new ANTLR.runtime.NoViableAltException("48:24: (a= ( NUM | STRING | ID | OPER | UNARY ) | hash_lit | list_lit )", 12, 0, this.input);
 
                 throw nvae;
             }
 
             switch (alt12) {
                 case 1 :
-                    // antlr/witty.g:37:25: a= ( NUM | STRING | ID | OPER | UNARY )
+                    // antlr/witty.g:48:25: a= ( NUM | STRING | ID | OPER | UNARY )
                     a=this.input.LT(1);
                     if ( (this.input.LA(1)>=OPER && this.input.LA(1)<=ID) ) {
                         this.input.consume();
@@ -576,13 +587,13 @@ ANTLR.lang.extend(wittyParser, ANTLR.runtime.Parser, {
                     }
 
                     if ( this.backtracking===0 ) {
-                       val = a.getText(); 
+                       val = new String(a.getText()); val.line = a.getLine(); val.pos = a.getCharPositionInLine(); 
                     }
 
 
                     break;
                 case 2 :
-                    // antlr/witty.g:38:27: hash_lit
+                    // antlr/witty.g:49:27: hash_lit
                     this.pushFollow(wittyParser.FOLLOW_hash_lit_in_atom414);
                     var hash_lit2 = this.hash_lit();
                     this._fsp--;
@@ -594,7 +605,7 @@ ANTLR.lang.extend(wittyParser, ANTLR.runtime.Parser, {
 
                     break;
                 case 3 :
-                    // antlr/witty.g:39:27: list_lit
+                    // antlr/witty.g:50:27: list_lit
                     this.pushFollow(wittyParser.FOLLOW_list_lit_in_atom444);
                     var list_lit3 = this.list_lit();
                     this._fsp--;
@@ -608,7 +619,7 @@ ANTLR.lang.extend(wittyParser, ANTLR.runtime.Parser, {
 
             }
 
-            // antlr/witty.g:40:24: ( '(' (b1= block )? ( ',' b2= block )* ')' )*
+            // antlr/witty.g:51:24: ( '(' (b1= block )? ( ',' b2= block )* ')' )*
             loop15:
             do {
                 var alt15=2;
@@ -621,12 +632,12 @@ ANTLR.lang.extend(wittyParser, ANTLR.runtime.Parser, {
 
                 switch (alt15) {
             	case 1 :
-            	    // antlr/witty.g:40:25: '(' (b1= block )? ( ',' b2= block )* ')'
+            	    // antlr/witty.g:51:25: '(' (b1= block )? ( ',' b2= block )* ')'
             	    this.match(this.input,21,wittyParser.FOLLOW_21_in_atom474); if (this.failed) return val;
             	    if ( this.backtracking===0 ) {
             	       val = Applic(val); 
             	    }
-            	    // antlr/witty.g:41:29: (b1= block )?
+            	    // antlr/witty.g:52:29: (b1= block )?
             	    var alt13=2;
             	    var LA13_0 = this.input.LA(1);
 
@@ -635,7 +646,7 @@ ANTLR.lang.extend(wittyParser, ANTLR.runtime.Parser, {
             	    }
             	    switch (alt13) {
             	        case 1 :
-            	            // antlr/witty.g:41:30: b1= block
+            	            // antlr/witty.g:52:30: b1= block
             	            this.pushFollow(wittyParser.FOLLOW_block_in_atom509);
             	            var b1 = this.block();
             	            this._fsp--;
@@ -649,7 +660,7 @@ ANTLR.lang.extend(wittyParser, ANTLR.runtime.Parser, {
 
             	    }
 
-            	    // antlr/witty.g:42:29: ( ',' b2= block )*
+            	    // antlr/witty.g:53:29: ( ',' b2= block )*
             	    loop14:
             	    do {
             	        var alt14=2;
@@ -662,7 +673,7 @@ ANTLR.lang.extend(wittyParser, ANTLR.runtime.Parser, {
 
             	        switch (alt14) {
             	    	case 1 :
-            	    	    // antlr/witty.g:42:30: ',' b2= block
+            	    	    // antlr/witty.g:53:30: ',' b2= block
             	    	    this.match(this.input,23,wittyParser.FOLLOW_23_in_atom546); if (this.failed) return val;
             	    	    this.pushFollow(wittyParser.FOLLOW_block_in_atom550);
             	    	    var b2 = this.block();
@@ -708,7 +719,7 @@ ANTLR.lang.extend(wittyParser, ANTLR.runtime.Parser, {
     },
 
 
-    // antlr/witty.g:44:1: hash_lit returns [Object val] : '{' (p1= pair )? ( ',' p2= pair )* '}' ;
+    // antlr/witty.g:55:1: hash_lit returns [Object val] : '{' (p1= pair )? ( ',' p2= pair )* '}' ;
     // $ANTLR start hash_lit
     hash_lit: function() {
         var val = null;
@@ -717,13 +728,13 @@ ANTLR.lang.extend(wittyParser, ANTLR.runtime.Parser, {
          var p2 = null;
 
         try {
-            // antlr/witty.g:45:21: ( '{' (p1= pair )? ( ',' p2= pair )* '}' )
-            // antlr/witty.g:45:23: '{' (p1= pair )? ( ',' p2= pair )* '}'
+            // antlr/witty.g:56:21: ( '{' (p1= pair )? ( ',' p2= pair )* '}' )
+            // antlr/witty.g:56:23: '{' (p1= pair )? ( ',' p2= pair )* '}'
             this.match(this.input,24,wittyParser.FOLLOW_24_in_hash_lit571); if (this.failed) return val;
             if ( this.backtracking===0 ) {
                val = Applic("H", List()); 
             }
-            // antlr/witty.g:46:24: (p1= pair )?
+            // antlr/witty.g:57:24: (p1= pair )?
             var alt16=2;
             var LA16_0 = this.input.LA(1);
 
@@ -732,7 +743,7 @@ ANTLR.lang.extend(wittyParser, ANTLR.runtime.Parser, {
             }
             switch (alt16) {
                 case 1 :
-                    // antlr/witty.g:46:25: p1= pair
+                    // antlr/witty.g:57:25: p1= pair
                     this.pushFollow(wittyParser.FOLLOW_pair_in_hash_lit601);
                     var p1 = this.pair();
                     this._fsp--;
@@ -746,7 +757,7 @@ ANTLR.lang.extend(wittyParser, ANTLR.runtime.Parser, {
 
             }
 
-            // antlr/witty.g:47:24: ( ',' p2= pair )*
+            // antlr/witty.g:58:24: ( ',' p2= pair )*
             loop17:
             do {
                 var alt17=2;
@@ -759,7 +770,7 @@ ANTLR.lang.extend(wittyParser, ANTLR.runtime.Parser, {
 
                 switch (alt17) {
             	case 1 :
-            	    // antlr/witty.g:47:25: ',' p2= pair
+            	    // antlr/witty.g:58:25: ',' p2= pair
             	    this.match(this.input,23,wittyParser.FOLLOW_23_in_hash_lit633); if (this.failed) return val;
             	    this.pushFollow(wittyParser.FOLLOW_pair_in_hash_lit637);
             	    var p2 = this.pair();
@@ -796,7 +807,7 @@ ANTLR.lang.extend(wittyParser, ANTLR.runtime.Parser, {
     },
 
 
-    // antlr/witty.g:49:1: pair returns [Object val] : ID ':' block ;
+    // antlr/witty.g:60:1: pair returns [Object val] : ID ':' block ;
     // $ANTLR start pair
     pair: function() {
         var val = null;
@@ -805,8 +816,8 @@ ANTLR.lang.extend(wittyParser, ANTLR.runtime.Parser, {
          var block5 = null;
 
         try {
-            // antlr/witty.g:50:21: ( ID ':' block )
-            // antlr/witty.g:50:23: ID ':' block
+            // antlr/witty.g:61:21: ( ID ':' block )
+            // antlr/witty.g:61:23: ID ':' block
             ID4=this.input.LT(1);
             this.match(this.input,ID,wittyParser.FOLLOW_ID_in_pair655); if (this.failed) return val;
             this.match(this.input,26,wittyParser.FOLLOW_26_in_pair657); if (this.failed) return val;
@@ -835,7 +846,7 @@ ANTLR.lang.extend(wittyParser, ANTLR.runtime.Parser, {
     },
 
 
-    // antlr/witty.g:52:1: list_lit returns [Object val] : '[' (s1= stmt )? ( ',' s2= stmt )* ']' ;
+    // antlr/witty.g:63:1: list_lit returns [Object val] : '[' (s1= stmt )? ( ',' s2= stmt )* ']' ;
     // $ANTLR start list_lit
     list_lit: function() {
         var val = null;
@@ -844,13 +855,13 @@ ANTLR.lang.extend(wittyParser, ANTLR.runtime.Parser, {
          var s2 = null;
 
         try {
-            // antlr/witty.g:53:21: ( '[' (s1= stmt )? ( ',' s2= stmt )* ']' )
-            // antlr/witty.g:53:23: '[' (s1= stmt )? ( ',' s2= stmt )* ']'
+            // antlr/witty.g:64:21: ( '[' (s1= stmt )? ( ',' s2= stmt )* ']' )
+            // antlr/witty.g:64:23: '[' (s1= stmt )? ( ',' s2= stmt )* ']'
             this.match(this.input,27,wittyParser.FOLLOW_27_in_list_lit672); if (this.failed) return val;
             if ( this.backtracking===0 ) {
                val = Applic("L", List()); 
             }
-            // antlr/witty.g:54:24: (s1= stmt )?
+            // antlr/witty.g:65:24: (s1= stmt )?
             var alt18=2;
             var LA18_0 = this.input.LA(1);
 
@@ -859,7 +870,7 @@ ANTLR.lang.extend(wittyParser, ANTLR.runtime.Parser, {
             }
             switch (alt18) {
                 case 1 :
-                    // antlr/witty.g:54:25: s1= stmt
+                    // antlr/witty.g:65:25: s1= stmt
                     this.pushFollow(wittyParser.FOLLOW_stmt_in_list_lit704);
                     var s1 = this.stmt();
                     this._fsp--;
@@ -873,7 +884,7 @@ ANTLR.lang.extend(wittyParser, ANTLR.runtime.Parser, {
 
             }
 
-            // antlr/witty.g:55:24: ( ',' s2= stmt )*
+            // antlr/witty.g:66:24: ( ',' s2= stmt )*
             loop19:
             do {
                 var alt19=2;
@@ -886,7 +897,7 @@ ANTLR.lang.extend(wittyParser, ANTLR.runtime.Parser, {
 
                 switch (alt19) {
             	case 1 :
-            	    // antlr/witty.g:55:25: ',' s2= stmt
+            	    // antlr/witty.g:66:25: ',' s2= stmt
             	    this.match(this.input,23,wittyParser.FOLLOW_23_in_list_lit736); if (this.failed) return val;
             	    this.pushFollow(wittyParser.FOLLOW_stmt_in_list_lit740);
             	    var s2 = this.stmt();
@@ -923,7 +934,7 @@ ANTLR.lang.extend(wittyParser, ANTLR.runtime.Parser, {
     },
 
 
-    // antlr/witty.g:57:1: tokn returns [Object val] : t= ( ID | OPER | UNARY ) ;
+    // antlr/witty.g:68:1: tokn returns [Object val] : t= ( ID | OPER | UNARY ) ;
     // $ANTLR start tokn
     tokn: function() {
         var val = null;
@@ -931,8 +942,8 @@ ANTLR.lang.extend(wittyParser, ANTLR.runtime.Parser, {
         var t = null;
 
         try {
-            // antlr/witty.g:58:21: (t= ( ID | OPER | UNARY ) )
-            // antlr/witty.g:58:23: t= ( ID | OPER | UNARY )
+            // antlr/witty.g:69:21: (t= ( ID | OPER | UNARY ) )
+            // antlr/witty.g:69:23: t= ( ID | OPER | UNARY )
             t=this.input.LT(1);
             if ( (this.input.LA(1)>=OPER && this.input.LA(1)<=UNARY)||this.input.LA(1)==ID ) {
                 this.input.consume();
@@ -945,7 +956,7 @@ ANTLR.lang.extend(wittyParser, ANTLR.runtime.Parser, {
             }
 
             if ( this.backtracking===0 ) {
-               val = t.getText(); 
+               val = new String(t.getText()); val.line = t.getLine(); val.pos = t.getCharPositionInLine(); 
             }
 
 
@@ -966,8 +977,8 @@ ANTLR.lang.extend(wittyParser, ANTLR.runtime.Parser, {
 
     // $ANTLR start synpred1
     synpred1_fragment: function() {   
-        // antlr/witty.g:32:24: ( UNARY atom )
-        // antlr/witty.g:32:25: UNARY atom
+        // antlr/witty.g:39:24: ( UNARY atom )
+        // antlr/witty.g:39:25: UNARY atom
         this.match(this.input,UNARY,wittyParser.FOLLOW_UNARY_in_synpred1265); if (this.failed) return ;
         this.pushFollow(wittyParser.FOLLOW_atom_in_synpred1267);
         this.atom();
@@ -1055,7 +1066,7 @@ wittyParser.DFA3 = function(recognizer) {
 
 ANTLR.lang.extend(wittyParser.DFA3, ANTLR.runtime.DFA, {
     getDescription: function() {
-        return "()* loopback of 16:23: ( ( TERM )+ s2= stmt )*";
+        return "()* loopback of 17:23: ( ( TERM )+ s2= stmt )*";
     },
     dummy: null
 });
@@ -1170,7 +1181,7 @@ wittyParser.DFA10 = function(recognizer) {
 
 ANTLR.lang.extend(wittyParser.DFA10, ANTLR.runtime.DFA, {
     getDescription: function() {
-        return "32:23: ( ( UNARY atom )=>u2= UNARY a1= atom | a2= atom )";
+        return "39:23: ( ( UNARY atom )=>u2= UNARY a1= atom | a2= atom )";
     },
     specialStateTransition: function(s, input) {
     	var _s = s;

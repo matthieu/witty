@@ -1,4 +1,4 @@
-// $ANTLR 3.0.1 antlr/witty.g 2008-09-06 18:50:49
+// $ANTLR 3.0.1 antlr/witty.g 2008-09-07 19:07:55
 
 var wittyLexer = function(input) {
     this.dfa14 = new wittyLexer.DFA14(this);
@@ -171,7 +171,7 @@ ANTLR.lang.extend(wittyLexer, ANTLR.runtime.Lexer, {
     mOPER: function()  {
         try {
             this.type = this.OPER;
-            // antlr/witty.g:60:5: ( SYMBOLS ( SYMBOLS | UNARY )* | UNARY ( SYMBOLS )+ )
+            // antlr/witty.g:71:5: ( SYMBOLS ( SYMBOLS | UNARY )* | UNARY ( SYMBOLS )+ )
             var alt3=2;
             var LA3_0 = this.input.LA(1);
 
@@ -183,15 +183,15 @@ ANTLR.lang.extend(wittyLexer, ANTLR.runtime.Lexer, {
             }
             else {
                 var nvae =
-                    new ANTLR.runtime.NoViableAltException("60:1: OPER : ( SYMBOLS ( SYMBOLS | UNARY )* | UNARY ( SYMBOLS )+ );", 3, 0, this.input);
+                    new ANTLR.runtime.NoViableAltException("71:1: OPER : ( SYMBOLS ( SYMBOLS | UNARY )* | UNARY ( SYMBOLS )+ );", 3, 0, this.input);
 
                 throw nvae;
             }
             switch (alt3) {
                 case 1 :
-                    // antlr/witty.g:60:7: SYMBOLS ( SYMBOLS | UNARY )*
+                    // antlr/witty.g:71:7: SYMBOLS ( SYMBOLS | UNARY )*
                     this.mSYMBOLS(); 
-                    // antlr/witty.g:60:15: ( SYMBOLS | UNARY )*
+                    // antlr/witty.g:71:15: ( SYMBOLS | UNARY )*
                     loop1:
                     do {
                         var alt1=2;
@@ -227,9 +227,9 @@ ANTLR.lang.extend(wittyLexer, ANTLR.runtime.Lexer, {
 
                     break;
                 case 2 :
-                    // antlr/witty.g:60:34: UNARY ( SYMBOLS )+
+                    // antlr/witty.g:71:34: UNARY ( SYMBOLS )+
                     this.mUNARY(); 
-                    // antlr/witty.g:60:40: ( SYMBOLS )+
+                    // antlr/witty.g:71:40: ( SYMBOLS )+
                     var cnt2=0;
                     loop2:
                     do {
@@ -243,7 +243,7 @@ ANTLR.lang.extend(wittyLexer, ANTLR.runtime.Lexer, {
 
                         switch (alt2) {
                     	case 1 :
-                    	    // antlr/witty.g:60:40: SYMBOLS
+                    	    // antlr/witty.g:71:40: SYMBOLS
                     	    this.mSYMBOLS(); 
 
 
@@ -273,8 +273,8 @@ ANTLR.lang.extend(wittyLexer, ANTLR.runtime.Lexer, {
     // $ANTLR start SYMBOLS
     mSYMBOLS: function()  {
         try {
-            // antlr/witty.g:62:17: ( ( '_' | '~' | '@' | '#' | '$' | '%' | '^' | '&' | '<' | '>' | '*' | '+' | '=' | '|' | '\\\\' | '.' | '?' | '/' | '`' | ':' ) )
-            // antlr/witty.g:62:19: ( '_' | '~' | '@' | '#' | '$' | '%' | '^' | '&' | '<' | '>' | '*' | '+' | '=' | '|' | '\\\\' | '.' | '?' | '/' | '`' | ':' )
+            // antlr/witty.g:73:17: ( ( '_' | '~' | '@' | '#' | '$' | '%' | '^' | '&' | '<' | '>' | '*' | '+' | '=' | '|' | '\\\\' | '.' | '?' | '/' | '`' | ':' ) )
+            // antlr/witty.g:73:19: ( '_' | '~' | '@' | '#' | '$' | '%' | '^' | '&' | '<' | '>' | '*' | '+' | '=' | '|' | '\\\\' | '.' | '?' | '/' | '`' | ':' )
             if ( (this.input.LA(1)>='#' && this.input.LA(1)<='&')||(this.input.LA(1)>='*' && this.input.LA(1)<='+')||(this.input.LA(1)>='.' && this.input.LA(1)<='/')||this.input.LA(1)==':'||(this.input.LA(1)>='<' && this.input.LA(1)<='@')||this.input.LA(1)=='\\'||(this.input.LA(1)>='^' && this.input.LA(1)<='`')||this.input.LA(1)=='|'||this.input.LA(1)=='~' ) {
                 this.input.consume();
 
@@ -297,7 +297,7 @@ ANTLR.lang.extend(wittyLexer, ANTLR.runtime.Lexer, {
     mUNARY: function()  {
         try {
             this.type = this.UNARY;
-            // antlr/witty.g:65:6: ( '!' | '-' )
+            // antlr/witty.g:76:6: ( '!' | '-' )
             // antlr/witty.g:
             if ( this.input.LA(1)=='!'||this.input.LA(1)=='-' ) {
                 this.input.consume();
@@ -321,8 +321,8 @@ ANTLR.lang.extend(wittyLexer, ANTLR.runtime.Lexer, {
     mID: function()  {
         try {
             this.type = this.ID;
-            // antlr/witty.g:67:11: ( ( LETTER | NON_OP ) ( LETTER | DIGIT | NON_OP | '!' )* )
-            // antlr/witty.g:67:13: ( LETTER | NON_OP ) ( LETTER | DIGIT | NON_OP | '!' )*
+            // antlr/witty.g:78:11: ( ( LETTER | NON_OP ) ( LETTER | DIGIT | NON_OP | '!' )* )
+            // antlr/witty.g:78:13: ( LETTER | NON_OP ) ( LETTER | DIGIT | NON_OP | '!' )*
             if ( (this.input.LA(1)>='#' && this.input.LA(1)<='$')||this.input.LA(1)=='.'||this.input.LA(1)=='?'||(this.input.LA(1)>='A' && this.input.LA(1)<='Z')||(this.input.LA(1)>='_' && this.input.LA(1)<='z')||this.input.LA(1)=='~' ) {
                 this.input.consume();
 
@@ -332,7 +332,7 @@ ANTLR.lang.extend(wittyLexer, ANTLR.runtime.Lexer, {
                 this.recover(mse);    throw mse;
             }
 
-            // antlr/witty.g:67:31: ( LETTER | DIGIT | NON_OP | '!' )*
+            // antlr/witty.g:78:31: ( LETTER | DIGIT | NON_OP | '!' )*
             loop4:
             do {
                 var alt4=2;
@@ -377,10 +377,10 @@ ANTLR.lang.extend(wittyLexer, ANTLR.runtime.Lexer, {
     mSTRING: function()  {
         try {
             this.type = this.STRING;
-            // antlr/witty.g:68:11: ( '\"' ( ESC_SEQ | ~ ( '\\\\' | '\"' ) )* '\"' )
-            // antlr/witty.g:68:14: '\"' ( ESC_SEQ | ~ ( '\\\\' | '\"' ) )* '\"'
+            // antlr/witty.g:79:11: ( '\"' ( ESC_SEQ | ~ ( '\\\\' | '\"' ) )* '\"' )
+            // antlr/witty.g:79:14: '\"' ( ESC_SEQ | ~ ( '\\\\' | '\"' ) )* '\"'
             this.match('\"'); 
-            // antlr/witty.g:68:18: ( ESC_SEQ | ~ ( '\\\\' | '\"' ) )*
+            // antlr/witty.g:79:18: ( ESC_SEQ | ~ ( '\\\\' | '\"' ) )*
             loop5:
             do {
                 var alt5=3;
@@ -396,13 +396,13 @@ ANTLR.lang.extend(wittyLexer, ANTLR.runtime.Lexer, {
 
                 switch (alt5) {
             	case 1 :
-            	    // antlr/witty.g:68:20: ESC_SEQ
+            	    // antlr/witty.g:79:20: ESC_SEQ
             	    this.mESC_SEQ(); 
 
 
             	    break;
             	case 2 :
-            	    // antlr/witty.g:68:30: ~ ( '\\\\' | '\"' )
+            	    // antlr/witty.g:79:30: ~ ( '\\\\' | '\"' )
             	    if ( (this.input.LA(1)>='\u0000' && this.input.LA(1)<='!')||(this.input.LA(1)>='#' && this.input.LA(1)<='[')||(this.input.LA(1)>=']' && this.input.LA(1)<='\uFFFE') ) {
             	        this.input.consume();
 
@@ -435,9 +435,9 @@ ANTLR.lang.extend(wittyLexer, ANTLR.runtime.Lexer, {
     mNUM: function()  {
         try {
             this.type = this.NUM;
-            // antlr/witty.g:69:11: ( ( DIGIT )+ ( '.' ( DIGIT )+ )? )
-            // antlr/witty.g:69:13: ( DIGIT )+ ( '.' ( DIGIT )+ )?
-            // antlr/witty.g:69:13: ( DIGIT )+
+            // antlr/witty.g:80:11: ( ( DIGIT )+ ( '.' ( DIGIT )+ )? )
+            // antlr/witty.g:80:13: ( DIGIT )+ ( '.' ( DIGIT )+ )?
+            // antlr/witty.g:80:13: ( DIGIT )+
             var cnt6=0;
             loop6:
             do {
@@ -451,7 +451,7 @@ ANTLR.lang.extend(wittyLexer, ANTLR.runtime.Lexer, {
 
                 switch (alt6) {
             	case 1 :
-            	    // antlr/witty.g:69:13: DIGIT
+            	    // antlr/witty.g:80:13: DIGIT
             	    this.mDIGIT(); 
 
 
@@ -467,7 +467,7 @@ ANTLR.lang.extend(wittyLexer, ANTLR.runtime.Lexer, {
                 cnt6++;
             } while (true);
 
-            // antlr/witty.g:69:20: ( '.' ( DIGIT )+ )?
+            // antlr/witty.g:80:20: ( '.' ( DIGIT )+ )?
             var alt8=2;
             var LA8_0 = this.input.LA(1);
 
@@ -476,9 +476,9 @@ ANTLR.lang.extend(wittyLexer, ANTLR.runtime.Lexer, {
             }
             switch (alt8) {
                 case 1 :
-                    // antlr/witty.g:69:21: '.' ( DIGIT )+
+                    // antlr/witty.g:80:21: '.' ( DIGIT )+
                     this.match('.'); 
-                    // antlr/witty.g:69:25: ( DIGIT )+
+                    // antlr/witty.g:80:25: ( DIGIT )+
                     var cnt7=0;
                     loop7:
                     do {
@@ -492,7 +492,7 @@ ANTLR.lang.extend(wittyLexer, ANTLR.runtime.Lexer, {
 
                         switch (alt7) {
                     	case 1 :
-                    	    // antlr/witty.g:69:25: DIGIT
+                    	    // antlr/witty.g:80:25: DIGIT
                     	    this.mDIGIT(); 
 
 
@@ -527,11 +527,11 @@ ANTLR.lang.extend(wittyLexer, ANTLR.runtime.Lexer, {
     mCOMMENT: function()  {
         try {
             this.type = this.COMMENT;
-            // antlr/witty.g:71:11: ( '//' ( . )* CR )
-            // antlr/witty.g:71:13: '//' ( . )* CR
+            // antlr/witty.g:82:11: ( '//' ( . )* CR )
+            // antlr/witty.g:82:13: '//' ( . )* CR
             this.match("//"); 
 
-            // antlr/witty.g:71:18: ( . )*
+            // antlr/witty.g:82:18: ( . )*
             loop9:
             do {
                 var alt9=2;
@@ -550,7 +550,7 @@ ANTLR.lang.extend(wittyLexer, ANTLR.runtime.Lexer, {
 
                 switch (alt9) {
             	case 1 :
-            	    // antlr/witty.g:71:18: .
+            	    // antlr/witty.g:82:18: .
             	    this.matchAny(); 
 
 
@@ -576,9 +576,9 @@ ANTLR.lang.extend(wittyLexer, ANTLR.runtime.Lexer, {
     mTERM: function()  {
         try {
             this.type = this.TERM;
-            // antlr/witty.g:72:11: ( ( CR | ';' )+ )
-            // antlr/witty.g:72:13: ( CR | ';' )+
-            // antlr/witty.g:72:13: ( CR | ';' )+
+            // antlr/witty.g:83:11: ( ( CR | ';' )+ )
+            // antlr/witty.g:83:13: ( CR | ';' )+
+            // antlr/witty.g:83:13: ( CR | ';' )+
             var cnt10=0;
             loop10:
             do {
@@ -595,13 +595,13 @@ ANTLR.lang.extend(wittyLexer, ANTLR.runtime.Lexer, {
 
                 switch (alt10) {
             	case 1 :
-            	    // antlr/witty.g:72:14: CR
+            	    // antlr/witty.g:83:14: CR
             	    this.mCR(); 
 
 
             	    break;
             	case 2 :
-            	    // antlr/witty.g:72:19: ';'
+            	    // antlr/witty.g:83:19: ';'
             	    this.match(';'); 
 
 
@@ -630,8 +630,8 @@ ANTLR.lang.extend(wittyLexer, ANTLR.runtime.Lexer, {
     mWS: function()  {
         try {
             this.type = this.WS;
-            // antlr/witty.g:73:11: ( ( ' ' | '\\t' | '\\u000C' ) )
-            // antlr/witty.g:73:14: ( ' ' | '\\t' | '\\u000C' )
+            // antlr/witty.g:84:11: ( ( ' ' | '\\t' | '\\u000C' ) )
+            // antlr/witty.g:84:14: ( ' ' | '\\t' | '\\u000C' )
             if ( this.input.LA(1)=='\t'||this.input.LA(1)=='\f'||this.input.LA(1)==' ' ) {
                 this.input.consume();
 
@@ -654,7 +654,7 @@ ANTLR.lang.extend(wittyLexer, ANTLR.runtime.Lexer, {
     // $ANTLR start ESC_SEQ
     mESC_SEQ: function()  {
         try {
-            // antlr/witty.g:75:23: ( '\\\\' ( 'b' | 't' | 'n' | 'f' | 'r' | '\\\"' | '\\'' | '\\\\' ) | UNICODE_ESC | OCTAL_ESC )
+            // antlr/witty.g:86:23: ( '\\\\' ( 'b' | 't' | 'n' | 'f' | 'r' | '\\\"' | '\\'' | '\\\\' ) | UNICODE_ESC | OCTAL_ESC )
             var alt11=3;
             var LA11_0 = this.input.LA(1);
 
@@ -685,7 +685,7 @@ ANTLR.lang.extend(wittyLexer, ANTLR.runtime.Lexer, {
                     break;
                 default:
                     var nvae =
-                        new ANTLR.runtime.NoViableAltException("75:10: fragment ESC_SEQ : ( '\\\\' ( 'b' | 't' | 'n' | 'f' | 'r' | '\\\"' | '\\'' | '\\\\' ) | UNICODE_ESC | OCTAL_ESC );", 11, 1, this.input);
+                        new ANTLR.runtime.NoViableAltException("86:10: fragment ESC_SEQ : ( '\\\\' ( 'b' | 't' | 'n' | 'f' | 'r' | '\\\"' | '\\'' | '\\\\' ) | UNICODE_ESC | OCTAL_ESC );", 11, 1, this.input);
 
                     throw nvae;
                 }
@@ -693,13 +693,13 @@ ANTLR.lang.extend(wittyLexer, ANTLR.runtime.Lexer, {
             }
             else {
                 var nvae =
-                    new ANTLR.runtime.NoViableAltException("75:10: fragment ESC_SEQ : ( '\\\\' ( 'b' | 't' | 'n' | 'f' | 'r' | '\\\"' | '\\'' | '\\\\' ) | UNICODE_ESC | OCTAL_ESC );", 11, 0, this.input);
+                    new ANTLR.runtime.NoViableAltException("86:10: fragment ESC_SEQ : ( '\\\\' ( 'b' | 't' | 'n' | 'f' | 'r' | '\\\"' | '\\'' | '\\\\' ) | UNICODE_ESC | OCTAL_ESC );", 11, 0, this.input);
 
                 throw nvae;
             }
             switch (alt11) {
                 case 1 :
-                    // antlr/witty.g:75:27: '\\\\' ( 'b' | 't' | 'n' | 'f' | 'r' | '\\\"' | '\\'' | '\\\\' )
+                    // antlr/witty.g:86:27: '\\\\' ( 'b' | 't' | 'n' | 'f' | 'r' | '\\\"' | '\\'' | '\\\\' )
                     this.match('\\'); 
                     if ( this.input.LA(1)=='\"'||this.input.LA(1)=='\''||this.input.LA(1)=='\\'||this.input.LA(1)=='b'||this.input.LA(1)=='f'||this.input.LA(1)=='n'||this.input.LA(1)=='r'||this.input.LA(1)=='t' ) {
                         this.input.consume();
@@ -714,13 +714,13 @@ ANTLR.lang.extend(wittyLexer, ANTLR.runtime.Lexer, {
 
                     break;
                 case 2 :
-                    // antlr/witty.g:75:71: UNICODE_ESC
+                    // antlr/witty.g:86:71: UNICODE_ESC
                     this.mUNICODE_ESC(); 
 
 
                     break;
                 case 3 :
-                    // antlr/witty.g:75:85: OCTAL_ESC
+                    // antlr/witty.g:86:85: OCTAL_ESC
                     this.mOCTAL_ESC(); 
 
 
@@ -736,7 +736,7 @@ ANTLR.lang.extend(wittyLexer, ANTLR.runtime.Lexer, {
     // $ANTLR start OCTAL_ESC
     mOCTAL_ESC: function()  {
         try {
-            // antlr/witty.g:76:23: ( '\\\\' ( '0' .. '3' ) ( '0' .. '7' ) ( '0' .. '7' ) | '\\\\' ( '0' .. '7' ) ( '0' .. '7' ) | '\\\\' ( '0' .. '7' ) )
+            // antlr/witty.g:87:23: ( '\\\\' ( '0' .. '3' ) ( '0' .. '7' ) ( '0' .. '7' ) | '\\\\' ( '0' .. '7' ) ( '0' .. '7' ) | '\\\\' ( '0' .. '7' ) )
             var alt12=3;
             var LA12_0 = this.input.LA(1);
 
@@ -769,35 +769,35 @@ ANTLR.lang.extend(wittyLexer, ANTLR.runtime.Lexer, {
                 }
                 else {
                     var nvae =
-                        new ANTLR.runtime.NoViableAltException("76:10: fragment OCTAL_ESC : ( '\\\\' ( '0' .. '3' ) ( '0' .. '7' ) ( '0' .. '7' ) | '\\\\' ( '0' .. '7' ) ( '0' .. '7' ) | '\\\\' ( '0' .. '7' ) );", 12, 1, this.input);
+                        new ANTLR.runtime.NoViableAltException("87:10: fragment OCTAL_ESC : ( '\\\\' ( '0' .. '3' ) ( '0' .. '7' ) ( '0' .. '7' ) | '\\\\' ( '0' .. '7' ) ( '0' .. '7' ) | '\\\\' ( '0' .. '7' ) );", 12, 1, this.input);
 
                     throw nvae;
                 }
             }
             else {
                 var nvae =
-                    new ANTLR.runtime.NoViableAltException("76:10: fragment OCTAL_ESC : ( '\\\\' ( '0' .. '3' ) ( '0' .. '7' ) ( '0' .. '7' ) | '\\\\' ( '0' .. '7' ) ( '0' .. '7' ) | '\\\\' ( '0' .. '7' ) );", 12, 0, this.input);
+                    new ANTLR.runtime.NoViableAltException("87:10: fragment OCTAL_ESC : ( '\\\\' ( '0' .. '3' ) ( '0' .. '7' ) ( '0' .. '7' ) | '\\\\' ( '0' .. '7' ) ( '0' .. '7' ) | '\\\\' ( '0' .. '7' ) );", 12, 0, this.input);
 
                 throw nvae;
             }
             switch (alt12) {
                 case 1 :
-                    // antlr/witty.g:76:25: '\\\\' ( '0' .. '3' ) ( '0' .. '7' ) ( '0' .. '7' )
+                    // antlr/witty.g:87:25: '\\\\' ( '0' .. '3' ) ( '0' .. '7' ) ( '0' .. '7' )
                     this.match('\\'); 
-                    // antlr/witty.g:76:30: ( '0' .. '3' )
-                    // antlr/witty.g:76:31: '0' .. '3'
+                    // antlr/witty.g:87:30: ( '0' .. '3' )
+                    // antlr/witty.g:87:31: '0' .. '3'
                     this.matchRange('0','3'); 
 
 
 
-                    // antlr/witty.g:76:41: ( '0' .. '7' )
-                    // antlr/witty.g:76:42: '0' .. '7'
+                    // antlr/witty.g:87:41: ( '0' .. '7' )
+                    // antlr/witty.g:87:42: '0' .. '7'
                     this.matchRange('0','7'); 
 
 
 
-                    // antlr/witty.g:76:52: ( '0' .. '7' )
-                    // antlr/witty.g:76:53: '0' .. '7'
+                    // antlr/witty.g:87:52: ( '0' .. '7' )
+                    // antlr/witty.g:87:53: '0' .. '7'
                     this.matchRange('0','7'); 
 
 
@@ -806,16 +806,16 @@ ANTLR.lang.extend(wittyLexer, ANTLR.runtime.Lexer, {
 
                     break;
                 case 2 :
-                    // antlr/witty.g:76:65: '\\\\' ( '0' .. '7' ) ( '0' .. '7' )
+                    // antlr/witty.g:87:65: '\\\\' ( '0' .. '7' ) ( '0' .. '7' )
                     this.match('\\'); 
-                    // antlr/witty.g:76:70: ( '0' .. '7' )
-                    // antlr/witty.g:76:71: '0' .. '7'
+                    // antlr/witty.g:87:70: ( '0' .. '7' )
+                    // antlr/witty.g:87:71: '0' .. '7'
                     this.matchRange('0','7'); 
 
 
 
-                    // antlr/witty.g:76:81: ( '0' .. '7' )
-                    // antlr/witty.g:76:82: '0' .. '7'
+                    // antlr/witty.g:87:81: ( '0' .. '7' )
+                    // antlr/witty.g:87:82: '0' .. '7'
                     this.matchRange('0','7'); 
 
 
@@ -824,10 +824,10 @@ ANTLR.lang.extend(wittyLexer, ANTLR.runtime.Lexer, {
 
                     break;
                 case 3 :
-                    // antlr/witty.g:76:94: '\\\\' ( '0' .. '7' )
+                    // antlr/witty.g:87:94: '\\\\' ( '0' .. '7' )
                     this.match('\\'); 
-                    // antlr/witty.g:76:99: ( '0' .. '7' )
-                    // antlr/witty.g:76:100: '0' .. '7'
+                    // antlr/witty.g:87:99: ( '0' .. '7' )
+                    // antlr/witty.g:87:100: '0' .. '7'
                     this.matchRange('0','7'); 
 
 
@@ -846,8 +846,8 @@ ANTLR.lang.extend(wittyLexer, ANTLR.runtime.Lexer, {
     // $ANTLR start UNICODE_ESC
     mUNICODE_ESC: function()  {
         try {
-            // antlr/witty.g:77:23: ( '\\\\' 'u' HEX_DIG HEX_DIG HEX_DIG HEX_DIG )
-            // antlr/witty.g:77:27: '\\\\' 'u' HEX_DIG HEX_DIG HEX_DIG HEX_DIG
+            // antlr/witty.g:88:23: ( '\\\\' 'u' HEX_DIG HEX_DIG HEX_DIG HEX_DIG )
+            // antlr/witty.g:88:27: '\\\\' 'u' HEX_DIG HEX_DIG HEX_DIG HEX_DIG
             this.match('\\'); 
             this.match('u'); 
             this.mHEX_DIG(); 
@@ -866,8 +866,8 @@ ANTLR.lang.extend(wittyLexer, ANTLR.runtime.Lexer, {
     // $ANTLR start HEX_DIG
     mHEX_DIG: function()  {
         try {
-            // antlr/witty.g:78:23: ( ( '0' .. '9' | 'a' .. 'f' | 'A' .. 'F' ) )
-            // antlr/witty.g:78:25: ( '0' .. '9' | 'a' .. 'f' | 'A' .. 'F' )
+            // antlr/witty.g:89:23: ( ( '0' .. '9' | 'a' .. 'f' | 'A' .. 'F' ) )
+            // antlr/witty.g:89:25: ( '0' .. '9' | 'a' .. 'f' | 'A' .. 'F' )
             if ( (this.input.LA(1)>='0' && this.input.LA(1)<='9')||(this.input.LA(1)>='A' && this.input.LA(1)<='F')||(this.input.LA(1)>='a' && this.input.LA(1)<='f') ) {
                 this.input.consume();
 
@@ -889,8 +889,8 @@ ANTLR.lang.extend(wittyLexer, ANTLR.runtime.Lexer, {
     // $ANTLR start NON_OP
     mNON_OP: function()  {
         try {
-            // antlr/witty.g:80:23: ( ( '_' | '~' | '#' | '$' | '?' | '`' | '.' ) )
-            // antlr/witty.g:80:25: ( '_' | '~' | '#' | '$' | '?' | '`' | '.' )
+            // antlr/witty.g:91:23: ( ( '_' | '~' | '#' | '$' | '?' | '`' | '.' ) )
+            // antlr/witty.g:91:25: ( '_' | '~' | '#' | '$' | '?' | '`' | '.' )
             if ( (this.input.LA(1)>='#' && this.input.LA(1)<='$')||this.input.LA(1)=='.'||this.input.LA(1)=='?'||(this.input.LA(1)>='_' && this.input.LA(1)<='`')||this.input.LA(1)=='~' ) {
                 this.input.consume();
 
@@ -912,8 +912,8 @@ ANTLR.lang.extend(wittyLexer, ANTLR.runtime.Lexer, {
     // $ANTLR start DIGIT
     mDIGIT: function()  {
         try {
-            // antlr/witty.g:82:19: ( '0' .. '9' )
-            // antlr/witty.g:82:21: '0' .. '9'
+            // antlr/witty.g:93:19: ( '0' .. '9' )
+            // antlr/witty.g:93:21: '0' .. '9'
             this.matchRange('0','9'); 
 
 
@@ -927,7 +927,7 @@ ANTLR.lang.extend(wittyLexer, ANTLR.runtime.Lexer, {
     // $ANTLR start LETTER
     mLETTER: function()  {
         try {
-            // antlr/witty.g:83:19: ( 'a' .. 'z' | 'A' .. 'Z' )
+            // antlr/witty.g:94:19: ( 'a' .. 'z' | 'A' .. 'Z' )
             // antlr/witty.g:
             if ( (this.input.LA(1)>='A' && this.input.LA(1)<='Z')||(this.input.LA(1)>='a' && this.input.LA(1)<='z') ) {
                 this.input.consume();
@@ -950,9 +950,9 @@ ANTLR.lang.extend(wittyLexer, ANTLR.runtime.Lexer, {
     // $ANTLR start CR
     mCR: function()  {
         try {
-            // antlr/witty.g:84:19: ( ( '\\r' )? '\\n' )
-            // antlr/witty.g:84:21: ( '\\r' )? '\\n'
-            // antlr/witty.g:84:21: ( '\\r' )?
+            // antlr/witty.g:95:19: ( ( '\\r' )? '\\n' )
+            // antlr/witty.g:95:21: ( '\\r' )? '\\n'
+            // antlr/witty.g:95:21: ( '\\r' )?
             var alt13=2;
             var LA13_0 = this.input.LA(1);
 
@@ -961,7 +961,7 @@ ANTLR.lang.extend(wittyLexer, ANTLR.runtime.Lexer, {
             }
             switch (alt13) {
                 case 1 :
-                    // antlr/witty.g:84:22: '\\r'
+                    // antlr/witty.g:95:22: '\\r'
                     this.match('\r'); 
 
 

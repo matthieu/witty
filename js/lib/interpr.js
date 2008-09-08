@@ -5,16 +5,17 @@ load("lib/util.js");
 load("lib/json2.js");
 load("lib/macro.js");
 load("lib/dtype.js");
+load("lib/printer.js");
 
 function eval_(exp, env) {
-  // print("eval: " + JSON.stringify(exp) + " :sntx: " + exp.sntx);
-  if (selfEval(exp)) return eval(exp); // JS eval for native type
+  //print("eval: " + JSON.stringify(exp) + " :sntx: " + exp.sntx);
+  if (selfEval(exp)) return eval(exp.valueOf()); // JS eval for native type
   else if (quoted(exp)) return evalQuoted(exp);
   else if (variableRef(exp)) {
     var val =  variableValue(exp, env);
     // In JS undefined == null, strangely
     if (typeof val != "undefined") return val;
-    else throw "Unknown reference: " + exp;
+    else return makeError('ReferenceError', "Unknown reference: " + exp, exp.line, exp.pos);
   }
   else if (list(exp)) return evalList(exp, env);
   else if (sequence(exp)) return evalSeq(exp, env);
@@ -25,30 +26,36 @@ function eval_(exp, env) {
       return eval_(exp, env); // Eval unwinded application
     } else {
       var op = eval_(operator(exp), env);
+      if (error(op)) return op;
       var applic = apply(op, operands(exp), env);
       if (typeof applic == "undefined") return null;
       else return applic;
     }
   }
-  else throw "Unknown expression: " + exp;
+  else if (error(exp)) return exp; // TODO stacktraces
+  else return makeError('ReferenceError', "Unknown expression: " + exp, exp.line, exp.pos);
 }
 
 function evalList(operands, env) {
   if (!operands || operands.isEmpty()) return [];
-  else return [eval_(operands.first(), env)].concat(evalList(operands.tail(), env));
+  else {
+    var firstEval = eval_(operands.first(), env);
+    if (error(firstEval)) return firstEval;
+    else return [firstEval].concat(evalList(operands.tail(), env));
+  }
 }
 
 function selfEval(exp) { return (!isNaN(exp)); }
-function quoted(exp) { return (typeof exp == 'string' || exp instanceof String) && (exp[0] == '"' || exp.alien); }
+function quoted(exp) { return ((typeof exp == 'string') || (exp instanceof String)) && (exp[0] == '"' || exp.alien); }
 function evalQuoted(exp) { 
   if (exp.alien) return exp;
   // JS eval to unescape
-  var str = new String(eval(exp));
+  var str = new String(eval(exp.valueOf()));
   str.alien = true;
   return str;
 }
 
-function variableRef(exp) { return (typeof exp) == 'string'; }
+function variableRef(exp) { return ((typeof exp == 'string') || (exp instanceof String)); }
 function variableValue(exp, env, isMacro) {
   var index = isMacro ? 1 : 0;
   for (var m = 0, frame; frame = env[m]; m++) {
@@ -58,8 +65,8 @@ function variableValue(exp, env, isMacro) {
   return undefined;
 }
 function setVariableValue(name, newval, env) {
-  if(!variableRef(name) || quoted(name) || selfEval(name)) throw "Not a name, can't set " + name;
-  if (typeof newval == "undefined") throw "Unknown reference: " + newval;
+  if(!variableRef(name) || quoted(name) || selfEval(name))
+    return makeError('NameError', "Not a name, can't set " + name, name.line, name.pos);
   var found = false;
   for (var m = 0, frame; frame = env[m]; m++) {
     var value = frame[0][name];
@@ -91,12 +98,16 @@ function list(exp) { return (exp instanceof Array) && exp.sntx == 'L' };
 function sequence(val) { return (val instanceof Array) && val.sntx == 'B'; }
 function evalSeq(exps, env) {
   // Macro expansion
+  // TODO handle macros eval error
   expandMacros(exps, env);
  
   // An application is evaluated as a whole
   if (exps.sntx == 'A') return eval_(exps, env);
 
-  for (var m = 0; m < exps.length-1; m++) eval_(exps[m], env);
+  for (var m = 0; m < exps.length-1; m++) {
+    var ev = eval_(exps[m], env);
+    if (error(ev)) return ev;
+  }
   return eval_(exps[m], env);
 }
 
@@ -173,6 +184,14 @@ function makePackage(name, frame) {
 function packageFrame(p) { return p[2]; }
 function isPackage(p) { return (p instanceof Array) && p[0] == 'package'; }
 
+// Script errors
+//
+
+function makeError(name, description, line, pos) {
+  return ['error', name, description, CURRENT_FILE, line || -1, pos || -1];
+}
+function error(e) { return (e instanceof Array) && e[0] == 'error'; }
+
 // Primitives handling
 //
 function makePrimitive(name, params, body) { return ['primitive', params, null, body, name]; }
@@ -187,16 +206,25 @@ function applyPrimitive(operation, operands, env) {
   else throw "Unrecognized primitive: " + operation[1] + ", most certainly a bug.";
 }
 function opEval(fn) {
-  return function(operands, env) { return fn(evalList(operands, env), env); };
+  return function(operands, env) {
+    var evl = evalList(operands, env);
+    if (error(evl)) return evl;
+    else return fn(evl, env); 
+  };
 }
 function opTailEval(fn) {
-  return function(operands, env) { return fn([operands.first()].concat(evalList(operands.tail(), env)), env); };
+  return function(operands, env) {
+    var evl = evalList(operands.tail(), env);
+    if (error(evl)) return evl;
+    return fn([operands.first()].concat(evl), env); };
 }
 function typeDispatch(op) {
   return function(operands, env) {
     var first = eval_(operands.first(), env), typeFn;
+    if (error(first)) return first;
+
     if (typeof first == 'number') typeFn = wNum[op];
-    else if (typeof first == 'string' || first instanceof String) typeFn = wString[op];
+    else if ((typeof first == 'string') || (first instanceof String)) typeFn = wString[op];
     else if (first instanceof Array) typeFn = wArray[op];
     else if (first instanceof Object) typeFn = wHash[op];
     else throw "Can't dispatch operation " + op + " to " + first + ", unknown type.";
@@ -213,7 +241,10 @@ function addPrimitive(name, params, body) {
 
 addPrimitive('if', ['predicate', 'consequence', 'opposite'],
   function(operands, env) {
-    if (eval_(operands[0], env)) return eval_(operands[1], env);
+    var pred = eval_(operands[0], env);
+    if (error(pred)) return pred;
+
+    if (pred) return eval_(operands[1], env);
     else if (operands.length > 2) return eval_(operands[2], env);
   });
 addPrimitive('lambda', ['parameters*', 'body'], 
@@ -235,7 +266,10 @@ addPrimitive('package', ['name', 'body'],
     var existingPackage = variableValue(name, env);
     var newFrame = (typeof existingPackage != "undefined") ? packageFrame(existingPackage) : [];
     var innerEnv = extendEnv(newFrame, env);
-    eval_(operands[1], innerEnv);
+
+    var evalBody = eval_(operands[1], innerEnv);
+    if (error(evalBody)) return evalBody
+
     var p = makePackage(name, newFrame);
     setVariableValue(name, p, env);
     return null;
@@ -243,7 +277,10 @@ addPrimitive('package', ['name', 'body'],
 addPrimitive('import', ['name'],
   function(operands, env) {
     var p = eval_(operands[0], env);
-    if (!p || !isPackage(p)) throw "Unknown package: " + name;
+    if (error(p)) return p;
+    if (!isPackage(p)) 
+      return makeError('ReferenceError', "Unknown package: " + name, p.line, p.pos);
+
     var pframe = packageFrame(p);
     var mergeFrame = env[0][0];
     pframe.eachPair(function(k, v) { mergeFrame[k] = v; });
@@ -252,24 +289,25 @@ addPrimitive('import', ['name'],
 addPrimitive('::', ['package', 'definition'],
   function(operands, env) {
     var p = eval_(operands[0], env);
-    if (!p || !isPackage(p)) throw "Unknown package: " + name;
+    if (error(p)) return p;
+    if (!isPackage(p)) 
+      return makeError('ReferenceError', "Unknown package: " + name, p.line, p.pos);
+    
     return packageFrame(p)[operands[1]];    
   });
 addPrimitive('print', ['elements*'], 
   function(operands, env) {
     return primitiveBody(primitives.prit)(operands.concat(["\"\\n\""]), env);
   });
-addPrimitive('prit', ['elements*'], 
+addPrimitive('prit', ['elements*'], opEval(
   function(operands, env) {
-    if (operands.isEmpty()) { pr("null"); return; }
-    var f = eval_(operands.first(), env);
+    if (operands.isEmpty()) return;
+    var f = operands.first();
     var str = f != null ? f.toString() : "";
-    for (var m = 1, opr; opr = operands[m]; m++) { 
-      f = eval_(opr, env);
-      str += f.toString(); 
-    };
-    pr(str); return;
-  }),
+    for (var m = 1, opr; opr = operands[m]; m++) { str += opr.toString(); };
+    pr(str); 
+    return;
+  })),
 addPrimitive('eval', ['expr'], 
   function(operands, env) {
     return eval_(parse(eval_(operands.first()), env), env);

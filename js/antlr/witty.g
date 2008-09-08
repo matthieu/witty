@@ -11,8 +11,11 @@ options {
 
 block
 returns [Object val]: TERM* 
-                      s1=stmt { if ($s1.val instanceof Array && $s1.val.sntx != 'A') $val = Block($s1.val);
-                                else $val = $s1.val; var first = true; }
+                      s1=stmt { if ($s1.val instanceof Array && $s1.val.sntx != 'A') 
+                                  $val = Block($s1.val);
+                                else $val = $s1.val; 
+                                var first = true; 
+                              }
                       (TERM+ s2=stmt { if (first) $val = Block($val, Block($s2.val));
                                        else $val.push(Block($s2.val)); } )*
                       TERM* EOF?;
@@ -26,15 +29,25 @@ returns [Object val]: p=parens_assoc { $val = $p.val; }
 
 parens_assoc
 returns [Object val]: '(' s1=stmt ')' (op=(OPER | UNARY) s2=stmt)? 
-                        { $val = ($s2.val || $s2.val == 0) ? [Block($s1.val), $op.text, $s2.val] : Block($s1.val); };
+                        { if ($s2.val || $s2.val == 0) { 
+                            var oper = new String($op.text);
+                            oper.line = $op.line; oper.pos = $op.pos;
+                            $val = [Block($s1.val), oper, $s2.val] 
+                          } 
+                          else $val = Block($s1.val); 
+                        };
 
 atom_assoc
 returns [Object val]: ((UNARY atom)=>u2=UNARY a1=atom { $val = Applic($u2.text, List($a1.val)); }
                       | a2=atom { $val = $a2.val; } )
-                      (op=(OPER | UNARY) stmt { $val = [$val, $op.text, $stmt.val]; } )?;
+                      (op=(OPER | UNARY) stmt {
+                        var oper = new String($op.text);
+                        oper.line = $op.line; oper.pos = $op.pos;
+                        $val = [$val, oper, $stmt.val]; 
+                      } )?;
 
 atom
-returns [Object val] : (a=(NUM | STRING | ID | OPER | UNARY) { $val = $a.text; } 
+returns [Object val] : (a=(NUM | STRING | ID | OPER | UNARY) { $val = new String($a.text); $val.line = $a.line; $val.pos = $a.pos; } 
                         | hash_lit { $val = $hash_lit.val; }
                         | list_lit { $val = $list_lit.val; } )
                        ('(' { $val = Applic($val); }
@@ -55,7 +68,7 @@ returns [Object val]: '[' { $val = Applic("L", List()); }
                        (',' s2=stmt { $val[1].push($s2.val); } )* ']';
 
 tokn
-returns [Object val]: t=(ID | OPER | UNARY) { $val = $t.text; };
+returns [Object val]: t=(ID | OPER | UNARY) { $val = new String($t.text); $val.line = $t.line; $val.pos = $t.pos; };
 
 OPER: SYMBOLS (SYMBOLS|UNARY)* | UNARY SYMBOLS+;
 

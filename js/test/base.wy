@@ -51,7 +51,6 @@ if(length(failures) > 0,
   for(failures, lambda(f, print("  " + f)))
 )
 
-// named lexical scopes (module, package, ...)
 // hygiene
 // generalized variables
 // cond/case

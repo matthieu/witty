@@ -24,6 +24,8 @@ function setup() {
   return env;
 }
 
+var CURRENT_FILE = null;
+
 function repl() {
   var env = setup();
   pr("> ");
@@ -31,11 +33,10 @@ function repl() {
   print("= " + line);
   while (line != 'quit' && line != 'exit') {
     var struct = parse(line);
-    print("-- " + JSON.stringify(struct));
     if (struct) {
       try {
         var res = eval_(struct, env);
-        print("-> " + res);
+        print("-> " + toWyStr(res));
       } catch(e) {
         print("error: " + e);
         if (e.stack) print(e.stack);

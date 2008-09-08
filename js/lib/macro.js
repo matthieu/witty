@@ -1,6 +1,6 @@
 function patternMatch(pattern, datum, frame) {
   if (frame == 'fail') return 'fail';
-  else if (pattern == datum) return frame;
+  else if (pattern.valueOf() == datum.valueOf()) return frame;
   else if (macroVar(pattern)) return extendIfConsistent(pattern, datum, frame);
   else if ((pattern instanceof Array) && (datum instanceof Array)) {
     if (pattern.sntx != datum.sntx) return 'fail';
@@ -24,7 +24,7 @@ function extendIfConsistent(variable, datum, frame) {
   }
 }
 
-function macroVar(pattern) { return !selfEval(pattern) && !quoted(pattern) && (typeof pattern == 'string') && pattern[0] == '`' }
+function macroVar(pattern) { return ((typeof pattern == 'string') || (pattern instanceof String)) && pattern[0] == '`' }
 
 var macroId = 0;
 function macro(expr) { return expr[0] == 'macro'; }
