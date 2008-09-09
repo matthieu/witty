@@ -9,6 +9,7 @@ load("lib/printer.js");
 
 function eval_(exp, env) {
   //print("eval: " + JSON.stringify(exp) + " :sntx: " + exp.sntx);
+  //print("eval: " + exp);
   if (selfEval(exp)) return eval(exp.valueOf()); // JS eval for native type
   else if (quoted(exp)) return evalQuoted(exp);
   else if (variableRef(exp)) {
@@ -27,7 +28,7 @@ function eval_(exp, env) {
     } else {
       var op = eval_(operator(exp), env);
       if (error(op)) return op;
-      var applic = apply(op, operands(exp), env);
+      var applic = apply(op, operands(exp), env, false, exp.line, exp.pos);
       if (typeof applic == "undefined") return null;
       else return applic;
     }
@@ -46,7 +47,9 @@ function evalList(operands, env) {
 }
 
 function selfEval(exp) { return (!isNaN(exp)); }
-function quoted(exp) { return ((typeof exp == 'string') || (exp instanceof String)) && (exp[0] == '"' || exp.alien); }
+function quoted(exp) { 
+  return ((typeof exp == 'string') || (exp instanceof String)) && (exp[0] == '"' || exp.alien); 
+}
 function evalQuoted(exp) { 
   if (exp.alien) return exp;
   // JS eval to unescape
@@ -76,8 +79,10 @@ function setVariableValue(name, newval, env) {
   return newval;
 }
 function extendEnvValues(names, values, env) {
-  if (names.length > values.length) throw "Not enough parameters: " + values;
-  else if (names.length < values.length) throw "Too many parameters: " + values;
+  if (names.length > values.length) 
+    return makeError('CallError', "Not enough parameters: " + values);
+  else if (names.length < values.length) 
+    return makeError('CallError', "Too many parameters: " + values);
   else {
     var frame = {};
     for (var m = 0, name; name = names[m]; m++) { frame[name] = values[m]; };
@@ -112,13 +117,24 @@ function evalSeq(exps, env) {
 }
 
 // TODO Accept variable number of operands, matching the tail (foo, bar . baz)
-function apply(operation, operands, env) {
+function apply(operation, operands, env, peval, line, pos) {
   // Primitives are responsible for evaluating (or not) their operands
   if (primitive(operation))
     return applyPrimitive(operation, leftCurry(operation, operands), env);
-  else
-    return evalSeq(lambdaBody(operation), extendEnvValues(
-        lambdaParams(operation), leftCurry(operation, evalList(operands, env)), lambdaEnv(operation)));
+  else {
+    var previousFile = CURRENT_FILE;
+    CURRENT_FILE = lambdaSrcFile(operation);
+    var newEnv = extendEnvValues(lambdaParams(operation), 
+      leftCurry(operation, peval ? operands : evalList(operands, env)), lambdaEnv(operation));
+
+    if (error(newEnv)) {
+      setLocation(newEnv, line, pos);
+      return newEnv;
+    }
+    var ret =  evalSeq(lambdaBody(operation), newEnv);
+    CURRENT_FILE = previousFile;
+    return ret;
+  }
 }
 
 // Lambda manipulations
@@ -126,10 +142,15 @@ function apply(operation, operands, env) {
 function lambdaParams(lambda) { return lambda[1];  }
 function lambdaCurry(lambda) { return lambda[2];  }
 function lambdaBody(lambda) { return lambda[3];  }
-function lambdaEnv(lambda) { return lambda[4];  }
+function lambdaSrcFile(lambda) { return lambda[4];  }
+function lambdaEnv(lambda) { return lambda[5];  }
 function lambda(l) { return l[0] == 'lambda'; }
-function makeLambda(params, body, env) { return ['lambda', params, null, body, env]; }
-function makeCurriedLambda(l, curry) { return ['lambda', lambdaParams(l), curry, lambdaBody(l), lambdaEnv(l)]; }
+function makeLambda(params, body, srcFile, env) { 
+  return ['lambda', params, null, body, srcFile, env]; 
+}
+function makeCurriedLambda(l, curry) { 
+  return ['lambda', lambdaParams(l), curry, lambdaBody(l), lambdaSrcFile(l), lambdaEnv(l)]; 
+}
 function lambdaStarParams(l) {
   var params = lambdaParams(l);
   for (var m = 0; m < params.length; m++) {
@@ -148,27 +169,29 @@ function leftCurry(l, params) {
   var length = lambdaStarParams(l) ? (params.length + curry.length) : lparams.length;
   for (var m = 0; m < length; m++) 
     if (!curry[m] && curry[m] != 0 && (params[numset] || params[numset] == 0)) curry[m] = params[numset++];
-  if (numset < params.length && !lambdaStarParams(l)) throw "Too many parameters: " + params;
+  if (numset < params.length && !lambdaStarParams(l))
+    return makeError('CallError', "Too many parameters: " + params);
 
   return curry;
 }
 function rightCurry(l, params) {
   if (lambdaStarParams(l)) 
-    throw "Can't right curry a lambda with a variable number of parameters.";
+    return makeError('CallError', "Can't right curry a lambda with a variable number of parameters.");
   var curry = lambdaCurry(l) ? lambdaCurry(l).slice() : [];
   var lparams = lambdaParams(l);
   var numset = 0;
   var rparams = params.slice().reverse();
   for (var m = lparams.length-1; m >= 0; m--)
     if (!curry[m] && curry[m] != 0 && (rparams[numset] || rparams[numset] == 0)) curry[m] = rparams[numset++];
-  if (numset < params.length) throw "Too many parameters: " + params;
+  if (numset < params.length) 
+    return makeError('CallError', "Too many parameters: " + params);
   
   return curry;
 }
 function nCurry(l, n, param) {
   var lparams = lambdaParams(l);
   if (lparams.length <= n && ! lambdaStarParams(l)) 
-    throw "Lambda has only " + lparams.length + "parameters , can't set parameter " + n;
+    return makeError('CallError', "Lambda has only " + lparams.length + "parameters , can't set parameter " + n);
 
   var curry = lambdaCurry(l) ? lambdaCurry(l).slice() : [];
   curry[n] = param;
@@ -189,6 +212,10 @@ function isPackage(p) { return (p instanceof Array) && p[0] == 'package'; }
 
 function makeError(name, description, line, pos) {
   return ['error', name, description, CURRENT_FILE, line || -1, pos || -1];
+}
+function setErrorLocation(err, line, pos) {
+  err[4] = line;
+  err[5] = pos;
 }
 function error(e) { return (e instanceof Array) && e[0] == 'error'; }
 
@@ -249,7 +276,7 @@ addPrimitive('if', ['predicate', 'consequence', 'opposite'],
   });
 addPrimitive('lambda', ['parameters*', 'body'], 
   function(operands, env) {
-    return makeLambda(operands.slice(0, -1), operands.last(), env);
+    return makeLambda(operands.slice(0, -1), operands.last(), CURRENT_FILE, env);
   });
 addPrimitive('macro', ['pattern', 'body'], 
   function(operands, env) {
@@ -322,8 +349,12 @@ addPrimitive('throw', ['error'], opEval(
   }));
 addPrimitive('load', ['file'], opEval(
   function(operands, env) {
-    var ctnt = readfile(operands.first());
-    return eval_(parse(ctnt), env);
+    var previousFile = CURRENT_FILE;
+    CURRENT_FILE = operands.first();
+    var ctnt = readfile(CURRENT_FILE);
+    var res =  eval_(parse(ctnt), env);
+    CURRENT_FILE = previousFile;
+    return res;
   }));
 addPrimitive('defined?', ['name'],
   function(operands, env) {
@@ -355,9 +386,10 @@ addPrimitive('for', ['listOrInit', 'lambdaOrStopCond', 'incrementExpr', 'body'],
       for (var m = 0; m < list.length; m++) {
         var params = [list[m]];
         if (idx) params.push(m);
-        ret = evalSeq(lambdaBody(lambda), extendEnvValues(
-                  lambdaParams(lambda), leftCurry(lambda, params), lambdaEnv(lambda)));
-        //apply(lambda, params, env);
+        var line = operands[1].line;
+        var pos = operands[1].pos;
+        var ret = apply(lambda, params, env, true, line, pos);
+        if (error(ret)) return ret;
       }
       return ret;
     } else {
@@ -366,13 +398,9 @@ addPrimitive('for', ['listOrInit', 'lambdaOrStopCond', 'incrementExpr', 'body'],
       var stop = operands[1];
       var inc = operands[2];
       var body = operands.last();
-      // TODO don't create a new frame, for loops aren't isolated scopes
-      var innerEnv = extendEnv({}, env);
-      eval_(init, innerEnv);
       var ret = null;
-      while (eval_(stop, innerEnv)) {
-        ret = eval_(body, innerEnv);
-        eval_(inc, innerEnv);
+      for (eval_(init, env); eval_(stop, env); eval_(inc, env)) {
+        ret = eval_(body, env);
       }
       return ret;
     }
@@ -479,14 +507,20 @@ addPrimitive('push', ['array', 'element'], opTailEval(typeDispatch('push')));
 addPrimitive('unshift', ['array', 'element'], opTailEval(typeDispatch('unshift')));
 addPrimitive('pop', ['array', 'element'], opTailEval(typeDispatch('pop')));
 addPrimitive('shift', ['array', 'element'], opTailEval(typeDispatch('shift')));
-addPrimitive('map', ['list', 'function'], opEval(
+addPrimitive('map', ['list', 'function'],
   function(operands, env) {
-    var list = operands.first();
-    var lambda = operands[1];
+    var list = eval_(operands.first(), env);
+    var lambda = eval_(operands[1], env);
     var newlist = [];
     newlist.sntx = list.sntx;
-    list.forEach(function(e) { newlist.push(apply(lambda, [e], env)); });
+    for (var m = 0; m < list.length; m++) {
+      var line = operands[1].line;
+      var pos = operands[1].pos;
+      var res = apply(lambda, [list[m]], env, true, line, pos);
+      if (error(res)) return res;
+      newlist.push(res); 
+    }
     return newlist;
-  }));
+  });
 addPrimitive('split', ['string', 'separator', 'maxSplit'], opTailEval(typeDispatch('split')));
 

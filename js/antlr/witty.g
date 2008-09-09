@@ -50,7 +50,7 @@ atom
 returns [Object val] : (a=(NUM | STRING | ID | OPER | UNARY) { $val = new String($a.text); $val.line = $a.line; $val.pos = $a.pos; } 
                         | hash_lit { $val = $hash_lit.val; }
                         | list_lit { $val = $list_lit.val; } )
-                       ('(' { $val = Applic($val); }
+                       (p='(' { $val = Applic($val); $val.line = $p.line; $val.pos = $p.pos; }
                             (b1=block { $val.push(List($b1.val)); } )? 
                             (',' b2=block { $val[1].push($b2.val); } )* ')' )*;
 

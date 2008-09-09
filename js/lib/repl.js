@@ -24,6 +24,8 @@ function setup() {
   return env;
 }
 
+// The file in from which the currently executing code comes from is the only
+// global state at the moment. This should probably get revisited at some point.
 var CURRENT_FILE = null;
 
 function repl() {
@@ -82,6 +84,8 @@ if (arguments.length == 0) {
   repl();
 } else {
   var env = setup();
-  var script = readfile(arguments[0]);
-  eval_(parse(script), env);
+  CURRENT_FILE = arguments[0];
+  var script = readfile(CURRENT_FILE);
+  var res = eval_(parse(script), env);
+  if (error(res)) print(toWyStr(res));
 }
