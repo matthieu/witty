@@ -246,7 +246,7 @@ function opEval(fn) {
   return function(operands, env, ctx) {
     var evl = evalList(operands, env, ctx);
     if (error(evl)) return evl;
-    else return fn(evl, env); 
+    else return fn(evl, env, ctx); 
   };
 }
 function opTailEval(fn) {

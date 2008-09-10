@@ -51,6 +51,7 @@ if(length(failures) > 0,
   for(failures, lambda(f, print("  " + f)))
 )
 
+// the @ vs . problem
 // hygiene
 // generalized variables
 // cond/case
