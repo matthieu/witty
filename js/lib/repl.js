@@ -20,7 +20,7 @@ function setup() {
   var env = setupEnv();
 
   var stdlib = readfile("lib/stdlib.wy");
-  eval_(parse(stdlib), env);
+  eval_(parse(stdlib), env, []);
   return env;
 }
 
@@ -37,7 +37,7 @@ function repl() {
     var struct = parse(line);
     if (struct) {
       try {
-        var res = eval_(struct, env);
+        var res = eval_(struct, env, []);
         print("-> " + toWyStr(res));
       } catch(e) {
         print("error: " + e);
@@ -86,6 +86,6 @@ if (arguments.length == 0) {
   var env = setup();
   CURRENT_FILE = arguments[0];
   var script = readfile(CURRENT_FILE);
-  var res = eval_(parse(script), env);
+  var res = eval_(parse(script), env, []);
   if (error(res)) print(toWyStr(res));
 }

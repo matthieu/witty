@@ -7,42 +7,42 @@ load("lib/macro.js");
 load("lib/dtype.js");
 load("lib/printer.js");
 
-function eval_(exp, env) {
+function eval_(exp, env, ctx) {
   //print("eval: " + JSON.stringify(exp) + " :sntx: " + exp.sntx);
-  //print("eval: " + exp);
+  //print("eval: " + exp + " " + (typeof ctx));
   if (selfEval(exp)) return eval(exp.valueOf()); // JS eval for native type
   else if (quoted(exp)) return evalQuoted(exp);
   else if (variableRef(exp)) {
     var val =  variableValue(exp, env);
     // In JS undefined == null, strangely
     if (typeof val != "undefined") return val;
-    else return makeError('ReferenceError', "Unknown reference: " + exp, exp.line, exp.pos);
+    else return makeError('ReferenceError', "Unknown reference: " + exp, setContext(ctx, exp.line, exp.pos));
   }
-  else if (list(exp)) return evalList(exp, env);
-  else if (sequence(exp)) return evalSeq(exp, env);
+  else if (list(exp)) return evalList(exp, env, ctx);
+  else if (sequence(exp)) return evalSeq(exp, env, ctx);
   else if (application(exp)) {
     var expanded = expandMacros(exp, env);
     // Operands evaluation is differed to apply
     if (expanded) {
-      return eval_(exp, env); // Eval unwinded application
+      return eval_(exp, env, ctx); // Eval unwinded application
     } else {
-      var op = eval_(operator(exp), env);
+      var op = eval_(operator(exp), env, ctx);
       if (error(op)) return op;
-      var applic = apply(op, operands(exp), env, false, exp.line, exp.pos);
+      var applic = apply(op, operands(exp), env, false, stackContext(ctx, exp.line, exp.pos));
       if (typeof applic == "undefined") return null;
       else return applic;
     }
   }
   else if (error(exp)) return exp; // TODO stacktraces
-  else return makeError('ReferenceError', "Unknown expression: " + exp, exp.line, exp.pos);
+  else return makeError('ReferenceError', "Unknown expression: " + exp, setContext(ctx, exp.line, exp.pos));
 }
 
-function evalList(operands, env) {
+function evalList(operands, env, ctx) {
   if (!operands || operands.isEmpty()) return [];
   else {
-    var firstEval = eval_(operands.first(), env);
+    var firstEval = eval_(operands.first(), env, ctx);
     if (error(firstEval)) return firstEval;
-    else return [firstEval].concat(evalList(operands.tail(), env));
+    else return [firstEval].concat(evalList(operands.tail(), env, ctx));
   }
 }
 
@@ -67,9 +67,9 @@ function variableValue(exp, env, isMacro) {
   }
   return undefined;
 }
-function setVariableValue(name, newval, env) {
+function setVariableValue(name, newval, env, ctx) {
   if(!variableRef(name) || quoted(name) || selfEval(name))
-    return makeError('NameError', "Not a name, can't set " + name, name.line, name.pos);
+    return makeError('NameError', "Not a name, can't set " + name, setContext(ctx, name.line, name.pos));
   var found = false;
   for (var m = 0, frame; frame = env[m]; m++) {
     var value = frame[0][name];
@@ -78,11 +78,11 @@ function setVariableValue(name, newval, env) {
   if (!found) env.first()[0][name] = newval;
   return newval;
 }
-function extendEnvValues(names, values, env) {
+function extendEnvValues(names, values, env, ctx) {
   if (names.length > values.length) 
-    return makeError('CallError', "Not enough parameters: " + values);
+    return makeError('CallError', "Not enough parameters: " + values, ctx);
   else if (names.length < values.length) 
-    return makeError('CallError', "Too many parameters: " + values);
+    return makeError('CallError', "Too many parameters: " + values, ctx);
   else {
     var frame = {};
     for (var m = 0, name; name = names[m]; m++) { frame[name] = values[m]; };
@@ -101,37 +101,38 @@ function list(exp) { return (exp instanceof Array) && exp.sntx == 'L' };
 
 // We want to return the result of the last expression
 function sequence(val) { return (val instanceof Array) && val.sntx == 'B'; }
-function evalSeq(exps, env) {
+function evalSeq(exps, env, ctx) {
   // Macro expansion
   // TODO handle macros eval error
   expandMacros(exps, env);
  
   // An application is evaluated as a whole
-  if (exps.sntx == 'A') return eval_(exps, env);
+  if (exps.sntx == 'A') return eval_(exps, env, ctx);
 
   for (var m = 0; m < exps.length-1; m++) {
-    var ev = eval_(exps[m], env);
+    var ev = eval_(exps[m], env, ctx);
     if (error(ev)) return ev;
   }
-  return eval_(exps[m], env);
+  return eval_(exps[m], env, ctx);
 }
 
 // TODO Accept variable number of operands, matching the tail (foo, bar . baz)
-function apply(operation, operands, env, peval, line, pos) {
+function apply(operation, operands, env, peval, ctx) {
   // Primitives are responsible for evaluating (or not) their operands
   if (primitive(operation))
-    return applyPrimitive(operation, leftCurry(operation, operands), env);
+    return applyPrimitive(operation, leftCurry(operation, operands), env, ctx);
   else {
     var previousFile = CURRENT_FILE;
     CURRENT_FILE = lambdaSrcFile(operation);
     var newEnv = extendEnvValues(lambdaParams(operation), 
-      leftCurry(operation, peval ? operands : evalList(operands, env)), lambdaEnv(operation));
+          leftCurry(operation, peval ? operands : evalList(operands, env, ctx)), 
+          lambdaEnv(operation), ctx);
 
     if (error(newEnv)) {
-      setLocation(newEnv, line, pos);
+      setLocation(newEnv, ctx);
       return newEnv;
     }
-    var ret =  evalSeq(lambdaBody(operation), newEnv);
+    var ret =  evalSeq(lambdaBody(operation), newEnv, ctx);
     CURRENT_FILE = previousFile;
     return ret;
   }
@@ -161,7 +162,7 @@ function lambdaStarParams(l) {
 }
 
 // TODO I should be able to write these as macros eventually
-function leftCurry(l, params) {
+function leftCurry(l, params, ctx) {
   if (!params) params = [];
   var curry = lambdaCurry(l) ? lambdaCurry(l).slice() : [];
   var lparams = lambdaParams(l);
@@ -170,13 +171,13 @@ function leftCurry(l, params) {
   for (var m = 0; m < length; m++) 
     if (!curry[m] && curry[m] != 0 && (params[numset] || params[numset] == 0)) curry[m] = params[numset++];
   if (numset < params.length && !lambdaStarParams(l))
-    return makeError('CallError', "Too many parameters: " + params);
+    return makeError('CallError', "Too many parameters: " + params, ctx);
 
   return curry;
 }
-function rightCurry(l, params) {
+function rightCurry(l, params, ctx) {
   if (lambdaStarParams(l)) 
-    return makeError('CallError', "Can't right curry a lambda with a variable number of parameters.");
+    return makeError('CallError', "Can't right curry a lambda with a variable number of parameters.", ctx);
   var curry = lambdaCurry(l) ? lambdaCurry(l).slice() : [];
   var lparams = lambdaParams(l);
   var numset = 0;
@@ -184,14 +185,14 @@ function rightCurry(l, params) {
   for (var m = lparams.length-1; m >= 0; m--)
     if (!curry[m] && curry[m] != 0 && (rparams[numset] || rparams[numset] == 0)) curry[m] = rparams[numset++];
   if (numset < params.length) 
-    return makeError('CallError', "Too many parameters: " + params);
+    return makeError('CallError', "Too many parameters: " + params, ctx);
   
   return curry;
 }
-function nCurry(l, n, param) {
+function nCurry(l, n, param, ctx) {
   var lparams = lambdaParams(l);
   if (lparams.length <= n && ! lambdaStarParams(l)) 
-    return makeError('CallError', "Lambda has only " + lparams.length + "parameters , can't set parameter " + n);
+    return makeError('CallError', "Lambda has only " + lparams.length + "parameters , can't set parameter " + n, ctx);
 
   var curry = lambdaCurry(l) ? lambdaCurry(l).slice() : [];
   curry[n] = param;
@@ -210,14 +211,23 @@ function isPackage(p) { return (p instanceof Array) && p[0] == 'package'; }
 // Script errors
 //
 
-function makeError(name, description, line, pos) {
-  return ['error', name, description, CURRENT_FILE, line || -1, pos || -1];
-}
-function setErrorLocation(err, line, pos) {
-  err[4] = line;
-  err[5] = pos;
+function makeError(name, description, ctx) {
+  var latest = ctx[0];
+  return ['error', name, description, CURRENT_FILE, latest[0] || -1, latest[1] || -1, ctx];
 }
 function error(e) { return (e instanceof Array) && e[0] == 'error'; }
+function stackContext(ctx, line, pos) {
+  return [[line,pos]].concat(ctx);
+}
+function setContext(ctx, line, pos) {
+  var latest = ctx[0];
+  if (latest) {
+    latest[0] = line;
+    latest[1] = pos;
+  } else ctx.push([line, pos]);
+  return ctx;
+}
+
 
 // Primitives handling
 //
@@ -227,27 +237,27 @@ function primitive(operation) { return operation[0] == 'primitive'; }
 function primitiveBody(operation) { return operation[3]; }
 function primitiveParams(operation) { return operation[1]; }
 
-function applyPrimitive(operation, operands, env) {
+function applyPrimitive(operation, operands, env, ctx) {
   var primFn = primitiveBody(operation);
-  if (typeof primFn == "function") return primFn.call(null, operands, env);
+  if (typeof primFn == "function") return primFn.call(null, operands, env, ctx);
   else throw "Unrecognized primitive: " + operation[1] + ", most certainly a bug.";
 }
 function opEval(fn) {
-  return function(operands, env) {
-    var evl = evalList(operands, env);
+  return function(operands, env, ctx) {
+    var evl = evalList(operands, env, ctx);
     if (error(evl)) return evl;
     else return fn(evl, env); 
   };
 }
 function opTailEval(fn) {
-  return function(operands, env) {
-    var evl = evalList(operands.tail(), env);
+  return function(operands, env, ctx) {
+    var evl = evalList(operands.tail(), env, ctx);
     if (error(evl)) return evl;
-    return fn([operands.first()].concat(evl), env); };
+    return fn([operands.first()].concat(evl), env, ctx); };
 }
 function typeDispatch(op) {
-  return function(operands, env) {
-    var first = eval_(operands.first(), env), typeFn;
+  return function(operands, env, ctx) {
+    var first = eval_(operands.first(), env, ctx), typeFn;
     if (error(first)) return first;
 
     if (typeof first == 'number') typeFn = wNum[op];
@@ -257,7 +267,7 @@ function typeDispatch(op) {
     else throw "Can't dispatch operation " + op + " to " + first + ", unknown type.";
 
     if (!typeFn) throw "Unknown function " + op + " for " + first;
-    return typeFn([first].concat(operands.tail()), env);
+    return typeFn([first].concat(operands.tail()), env, ctx);
   }
 }
 
@@ -267,19 +277,19 @@ function addPrimitive(name, params, body) {
 }
 
 addPrimitive('if', ['predicate', 'consequence', 'opposite'],
-  function(operands, env) {
-    var pred = eval_(operands[0], env);
+  function(operands, env, ctx) {
+    var pred = eval_(operands[0], env, ctx);
     if (error(pred)) return pred;
 
-    if (pred) return eval_(operands[1], env);
-    else if (operands.length > 2) return eval_(operands[2], env);
+    if (pred) return eval_(operands[1], env, ctx);
+    else if (operands.length > 2) return eval_(operands[2], env, ctx);
   });
 addPrimitive('lambda', ['parameters*', 'body'], 
-  function(operands, env) {
-    return makeLambda(operands.slice(0, -1), operands.last(), CURRENT_FILE, env);
+  function(operands, env, ctx) {
+    return makeLambda(operands.slice(0, -1), operands.last(), CURRENT_FILE, env, ctx);
   });
 addPrimitive('macro', ['pattern', 'body'], 
-  function(operands, env) {
+  function(operands, env, ctx) {
     var pattern = operands.first();
     var key = patternKey(pattern);
     var mframe = env.first()[1];
@@ -288,25 +298,26 @@ addPrimitive('macro', ['pattern', 'body'],
     return key;
   });
 addPrimitive('package', ['name', 'body'],
-  function(operands, env) {
+  function(operands, env, ctx) {
     var name = operands[0]; // TODO should delegate back to eval_, just need error handling
     var existingPackage = variableValue(name, env);
     var newFrame = (typeof existingPackage != "undefined") ? packageFrame(existingPackage) : [];
     var innerEnv = extendEnv(newFrame, env);
 
-    var evalBody = eval_(operands[1], innerEnv);
+    var evalBody = eval_(operands[1], innerEnv, ctx);
     if (error(evalBody)) return evalBody
 
     var p = makePackage(name, newFrame);
-    setVariableValue(name, p, env);
+    setVariableValue(name, p, env, ctx);
     return null;
   });
 addPrimitive('import', ['name'],
-  function(operands, env) {
-    var p = eval_(operands[0], env);
+  function(operands, env, ctx) {
+    var name = operands[0];
+    var p = eval_(name, env, ctx);
     if (error(p)) return p;
     if (!isPackage(p)) 
-      return makeError('ReferenceError', "Unknown package: " + name, p.line, p.pos);
+      return makeError('ReferenceError', "Unknown package: " + name, setContext(ctx, name.line, name.pos));
 
     var pframe = packageFrame(p);
     var mergeFrame = env[0][0];
@@ -314,20 +325,20 @@ addPrimitive('import', ['name'],
     return true;
   });
 addPrimitive('::', ['package', 'definition'],
-  function(operands, env) {
-    var p = eval_(operands[0], env);
+  function(operands, env, ctx) {
+    var name = operands[0];
+    var p = eval_(name, env, ctx);
     if (error(p)) return p;
     if (!isPackage(p)) 
-      return makeError('ReferenceError', "Unknown package: " + name, p.line, p.pos);
-    
+      return makeError('ReferenceError', "Unknown package: " + name, setContext(ctx, name.line, name.pos));
     return packageFrame(p)[operands[1]];    
   });
 addPrimitive('print', ['elements*'], 
-  function(operands, env) {
-    return primitiveBody(primitives.prit)(operands.concat(["\"\\n\""]), env);
+  function(operands, env, ctx) {
+    return primitiveBody(primitives.prit)(operands.concat(["\"\\n\""]), env, ctx);
   });
 addPrimitive('prit', ['elements*'], opEval(
-  function(operands, env) {
+  function(operands, env, ctx) {
     if (operands.isEmpty()) return;
     var f = operands.first();
     var str = f != null ? f.toString() : "";
@@ -336,23 +347,23 @@ addPrimitive('prit', ['elements*'], opEval(
     return;
   })),
 addPrimitive('eval', ['expr'], 
-  function(operands, env) {
-    return eval_(parse(eval_(operands.first()), env), env);
+  function(operands, env, ctx) {
+    return eval_(parse(eval_(operands.first()), env), env, ctx);
   });
 addPrimitive('`', ['expr'], 
-  function(operands, env) {
-    return escapeEval(operands.first(), env);
+  function(operands, env, ctx) {
+    return escapeEval(operands.first(), env, ctx);
   });
 addPrimitive('throw', ['error'], opEval(
-  function(operands, env) {
-    throw operands.first();
+  function(operands, env, ctx) {
+    return makeError(operands.first(), operands[1], ctx);
   }));
 addPrimitive('load', ['file'], opEval(
-  function(operands, env) {
+  function(operands, env, ctx) {
     var previousFile = CURRENT_FILE;
     CURRENT_FILE = operands.first();
     var ctnt = readfile(CURRENT_FILE);
-    var res =  eval_(parse(ctnt), env);
+    var res =  eval_(parse(ctnt), env, ctx);
     CURRENT_FILE = previousFile;
     return res;
   }));
@@ -367,117 +378,115 @@ addPrimitive('L', ['elements*'], opEval(
     return arr;
   }));
 addPrimitive('H', ['elements*'],
-  function(operands, env) {
+  function(operands, env, ctx) {
     var h = {};
-    if (operands.length % 2 == 1) throw "Odd number of parameters in hash creation.";
+    if (operands.length % 2 == 1) 
+      makeError('CallError', "Odd number of parameters in hash creation.", ctx);
     for(var m = 0; m < operands.length; m = m + 2)
-      h[eval_(operands[m], env)] = eval_(operands[m+1], env);
+      h[eval_(operands[m], env)] = eval_(operands[m+1], env, ctx);
     h.length = operands.length / 2;
     return h;
   });
 addPrimitive('for', ['listOrInit', 'lambdaOrStopCond', 'incrementExpr', 'body'], 
-  function(operands, env) {
+  function(operands, env, ctx) {
     if (operands.length == 2) {
       // First form iterating through a list
-      var list = eval_(operands.first(), env);
-      var lambda = eval_(operands[1], env);
+      var list = eval_(operands.first(), env, ctx);
+      var lambda = eval_(operands[1], env, ctx);
       var idx = (lambdaParams(lambda).length == 2);
       var ret = null;
       for (var m = 0; m < list.length; m++) {
         var params = [list[m]];
         if (idx) params.push(m);
-        var line = operands[1].line;
-        var pos = operands[1].pos;
-        var ret = apply(lambda, params, env, true, line, pos);
+        var ret = apply(lambda, params, env, true, ctx);
         if (error(ret)) return ret;
       }
       return ret;
     } else {
       // Second form with start and end conditions
-      var init = operands.first();
-      var stop = operands[1];
-      var inc = operands[2];
+      var init = operands.first(), stop = operands[1], inc = operands[2];
       var body = operands.last();
       var ret = null;
-      for (eval_(init, env); eval_(stop, env); eval_(inc, env)) {
-        ret = eval_(body, env);
+      for (eval_(init, env, ctx); eval_(stop, env, ctx); eval_(inc, env, ctx)) {
+        ret = eval_(body, env, ctx);
       }
       return ret;
     }
   });
 addPrimitive('at', ['list', 'index'],
-  function(operands, env) {
-    return typeDispatch('at')(operands, env);
+  function(operands, env, ctx) {
+    return typeDispatch('at')(operands, env, ctx);
   });
 addPrimitive('@', ['list', 'index'],
-  function(operands, env) {
-    return typeDispatch('@')(operands, env);
+  function(operands, env, ctx) {
+    return typeDispatch('@')(operands, env, ctx);
   });
 addPrimitive('@!', ['list', 'index', 'value'],
-  function(operands, env) {
-    return typeDispatch('@!')(operands, env);
+  function(operands, env, ctx) {
+    return typeDispatch('@!')(operands, env, ctx);
   });
 addPrimitive('applic?', ['expr'],
-  function(operands, env) {
-    return application(eval_(operands.first(), env));
+  function(operands, env, ctx) {
+    return application(eval_(operands.first(), env, ctx));
   });
 addPrimitive('fnName', ['applic'],
-  function(operands, env) {
-    var f = eval_(operands.first(), env);
+  function(operands, env, ctx) {
+    var f = eval_(operands.first(), env, ctx);
     if (application(f)) return operator(f);
     else return null;
   });
 addPrimitive('params?', ['applic'],
-  function(operands, env) {
-    var f = eval_(operands.first(), env);
+  function(operands, env, ctx) {
+    var f = eval_(operands.first(), env, ctx);
     if (application(f)) {
       if (f[1] && f[1].length > 0) return true;
       else return false;
     } else return null;
   });
 addPrimitive('params', ['applic'],
-  function(operands, env) {
-    var f = eval_(operands.first(), env);
+  function(operands, env, ctx) {
+    var f = eval_(operands.first(), env, ctx);
     if (application(f) && (typeof f[1] != "undefined")) return f[1];
     else return null;
   });
 addPrimitive('nthParam', ['applic', 'idx'],
-  function(operands, env) {
-    var f = eval_(operands.first(), env);
-    var idx = eval_(operands[1], env);
+  function(operands, env, ctx) {
+    var f = eval_(operands.first(), env, ctx);
+    var idx = eval_(operands[1], env, ctx);
     if (application(f) && (typeof f[1] != "undefined")) return f[1][idx];
     else return null;
   });
 addPrimitive('lcurry', ['lambda', 'parameters*'], opEval(
-  function(operands, env) {
+  function(operands, env, ctx) {
     var fn = operands.first();
-    if (lambda(fn)) return makeCurriedLambda(fn, leftCurry(fn, operands.tail()));
-    else if (primitive(fn)) return makeCurriedPrimitive(fn, leftCurry(fn, operands.tail()));
-    else throw "The first parameter of leftCurry should be a function."
+    if (lambda(fn)) return makeCurriedLambda(fn, leftCurry(fn, operands.tail(), ctx));
+    else if (primitive(fn)) return makeCurriedPrimitive(fn, leftCurry(fn, operands.tail(), ctx));
+    else makeError('CallError', "The first parameter of leftCurry should be a function.", ctx);
   }));
 addPrimitive('rcurry', ['lambda', 'parameters*'], opEval(
-  function(operands, env) {
+  function(operands, env, ctx) {
     var fn = operands.first();
-    if (lambda(fn)) return makeCurriedLambda(fn, rightCurry(fn, operands.tail()));
-    else if (primitive(fn)) return makeCurriedPrimitive(fn, rightCurry(fn, operands.tail()));
-    else throw "The first parameter of rightCurry should be a function."
+    if (lambda(fn)) return makeCurriedLambda(fn, rightCurry(fn, operands.tail(), ctx));
+    else if (primitive(fn)) return makeCurriedPrimitive(fn, rightCurry(fn, operands.tail(), ctx));
+    else makeError('CallError', "The first parameter of rightCurry should be a function.", ctx);
   }));
 addPrimitive('ncurry', ['lambda', 'index', 'parameter'], opEval(
-  function(operands, env) {
+  function(operands, env, ctx) {
     var fn = operands.first();
     var idx = operands[1];
     if (typeof idx != "number") throw "Second parameter of ncurry must be a number."
-    if (lambda(fn)) return makeCurriedLambda(fn, nCurry(fn, idx, operands[2]));
-    else if (primitive(fn)) return makeCurriedPrimitive(fn, nCurry(fn, idx, operands[2]));
-    else throw "The first parameter of nurry should be a function."
+    if (lambda(fn)) return makeCurriedLambda(fn, nCurry(fn, idx, operands[2], ctx));
+    else if (primitive(fn)) return makeCurriedPrimitive(fn, nCurry(fn, idx, operands[2], ctx));
+    else makeError('CallError', "The first parameter of nurry should be a function.", ctx);
   }));
-addPrimitive('=', ['symbol', 'value'], function(operands, env) {
+addPrimitive('=', ['symbol', 'value'], 
+  function(operands, env, ctx) {
     var name = operands[0];
-    var newval = eval_(operands[1], env);
-    return setVariableValue(name, newval, env);
+    var newval = eval_(operands[1], env, ctx);
+    return setVariableValue(name, newval, env, ctx);
   });
 addPrimitive('==', ['loperand', 'roperand'], opEval(
-  function(operands, env) {
+  function(operands, env, ctx) {
     if (!operands[0] || !operands[1]) return operands[0] == operands[1];
     else if (operands[0] instanceof Array) operands[0].toString() == operands[1].toString();
     else return operands[0].valueOf() == operands[1].valueOf(); 
@@ -508,15 +517,13 @@ addPrimitive('unshift', ['array', 'element'], opTailEval(typeDispatch('unshift')
 addPrimitive('pop', ['array', 'element'], opTailEval(typeDispatch('pop')));
 addPrimitive('shift', ['array', 'element'], opTailEval(typeDispatch('shift')));
 addPrimitive('map', ['list', 'function'],
-  function(operands, env) {
-    var list = eval_(operands.first(), env);
-    var lambda = eval_(operands[1], env);
+  function(operands, env, ctx) {
+    var list = eval_(operands.first(), env, ctx);
+    var lambda = eval_(operands[1], env, ctx);
     var newlist = [];
     newlist.sntx = list.sntx;
     for (var m = 0; m < list.length; m++) {
-      var line = operands[1].line;
-      var pos = operands[1].pos;
-      var res = apply(lambda, [list[m]], env, true, line, pos);
+      var res = apply(lambda, [list[m]], env, true, ctx);
       if (error(res)) return res;
       newlist.push(res); 
     }
