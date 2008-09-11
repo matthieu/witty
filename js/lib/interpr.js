@@ -215,6 +215,7 @@ function makeError(name, description, ctx) {
   var latest = ctx[0];
   return ['error', name, description, CURRENT_FILE, latest[0] || -1, latest[1] || -1, ctx];
 }
+function errorName(err) { return err[1]; }
 function error(e) { return (e instanceof Array) && e[0] == 'error'; }
 function stackContext(ctx, line, pos) {
   return [[line,pos]].concat(ctx);
@@ -354,10 +355,44 @@ addPrimitive('`', ['expr'],
   function(operands, env, ctx) {
     return escapeEval(operands.first(), env, ctx);
   });
-addPrimitive('throw', ['error'], opEval(
+addPrimitive('throw', ['error'],
   function(operands, env, ctx) {
-    return makeError(operands.first(), operands[1], ctx);
-  }));
+    var param = null;
+    if (operands.length > 1) {
+      param = eval_(operands[1], env, ctx);
+      if (error(param)) return param;
+    }
+    return makeError(operands.first(), param, ctx);
+  });
+addPrimitive('try', ['body', 'catches*'],
+  function(operands, env, ctx) {
+    var res = eval_(operands[0], env, ctx);
+    // TODO finally
+    // TODO named variables for second parameter of throw
+    if (error(res)) {
+      var evalOps = [];
+      for (var m = 1; m < operands.length; m++) {
+        var catsh = eval_(operands[m], env, ctx);
+        if (error(catsh)) return catsh;
+        if (catsh[0] != 'catch') 
+          makeError('TypeError', "After the first block, all try operands should be a catch.", ctx);
+
+        if (catsh[1] == null || catsh[1].valueOf() == errorName(res).valueOf()) {
+          if (catsh[2]) return eval_(catsh[2], catsh[3], ctx);
+          else return null;
+        }
+      }
+      return res;
+    }
+    else return res;
+  });
+addPrimitive('catch', ['name', 'body'],
+  function(operands, env, ctx) {
+    var name = operands[0];
+    if (variableRef(name) && !quoted(name) && !selfEval(name))
+      return ['catch', name, operands[1], env, CURRENT_FILE];
+    else return ['catch', null, operands[0], env, CURRENT_FILE];
+  });
 addPrimitive('load', ['file'], opEval(
   function(operands, env, ctx) {
     var previousFile = CURRENT_FILE;

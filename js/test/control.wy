@@ -46,3 +46,38 @@ describe("Iterated for loops",
   )
   it("should iterate on each element with setting the counter appropriately", str2 == "203142")
 )
+
+describe("Try/catch blocks",
+  it("should return try last body statement when no error occurs",
+    try(2+3, catch(Foo, "caught")) == 5
+  )
+  it("should allow try with no catch",
+    try(2+3) == 5
+  )
+  it("should catch standard errors",
+    try(10/0, catch(CallError, "caught")) == "caught"
+  )
+  it("should catch directly thrown errors",
+    try(throw(Foo), catch(Foo, "caught")) == "caught"
+  )
+  it("should allow catch predefinition",
+    c = catch(Foo, "caught")
+    try(throw(Foo), c) == "caught"
+  )
+  it("should realize a closure on a predefined catch body",
+    val = "before"
+    c = catch(Foo, val)
+    val = "caught"
+    try(throw(Foo), c) == "caught"
+  )
+  it("should catch errors from levels down",
+    errLambda = lambda(throw(Foo))
+    try(errLambda(), catch(Foo, "caught")) == "caught"
+  )
+  it("should catch all when anonymous",
+    try(10/0, catch("caught")) == "caught"
+  )
+  it("should allow empty catch to swallow",
+    try(10/0, catch()) == null
+  )
+)

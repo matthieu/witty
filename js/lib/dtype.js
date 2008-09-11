@@ -9,8 +9,12 @@ var wNum = {
   '*': opEval(function(operands, env) {
     return operands.reduceFirst(function(acc, el) { return acc * el; });
   }), 
-  '/': opEval(function(operands, env) {
-    return operands.reduceFirst(function(acc, el) { return acc / el; });
+  '/': opEval(function(operands, env, ctx) {
+    return operands.reduceFirst(function(acc, el) { 
+      if (error(acc)) return acc;
+      if (el == 0) return makeError('CallError', "Division by 0", ctx);
+      return acc / el; 
+    });
   })
 };
 

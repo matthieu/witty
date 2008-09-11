@@ -52,6 +52,7 @@ if(length(failures) > 0,
 )
 
 // the @ vs . problem
+// think of how to make functions like toString or + work on user provided structures
 // hygiene
 // generalized variables
 // cond/case
