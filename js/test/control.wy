@@ -80,4 +80,9 @@ describe("Try/catch blocks",
   it("should allow empty catch to swallow",
     try(10/0, catch()) == null
   )
+  it("should bind error variables",
+    val = null
+    try(throw(Foo, "caught"), catch(Foo, e, val = e))
+    val == "caught"
+  )
 )

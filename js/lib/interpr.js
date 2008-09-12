@@ -128,10 +128,8 @@ function apply(operation, operands, env, peval, ctx) {
           leftCurry(operation, peval ? operands : evalList(operands, env, ctx)), 
           lambdaEnv(operation), ctx);
 
-    if (error(newEnv)) {
-      setLocation(newEnv, ctx);
-      return newEnv;
-    }
+    if (error(newEnv)) return newEnv;
+    
     var ret =  evalSeq(lambdaBody(operation), newEnv, ctx);
     CURRENT_FILE = previousFile;
     return ret;
@@ -216,6 +214,7 @@ function makeError(name, description, ctx) {
   return ['error', name, description, CURRENT_FILE, latest[0] || -1, latest[1] || -1, ctx];
 }
 function errorName(err) { return err[1]; }
+function errorDesc(err) { return err[2]; }
 function error(e) { return (e instanceof Array) && e[0] == 'error'; }
 function stackContext(ctx, line, pos) {
   return [[line,pos]].concat(ctx);
@@ -355,7 +354,7 @@ addPrimitive('`', ['expr'],
   function(operands, env, ctx) {
     return escapeEval(operands.first(), env, ctx);
   });
-addPrimitive('throw', ['error'],
+addPrimitive('throw', ['error', 'msg?'],
   function(operands, env, ctx) {
     var param = null;
     if (operands.length > 1) {
@@ -378,20 +377,27 @@ addPrimitive('try', ['body', 'catches*'],
           makeError('TypeError', "After the first block, all try operands should be a catch.", ctx);
 
         if (catsh[1] == null || catsh[1].valueOf() == errorName(res).valueOf()) {
-          if (catsh[2]) return eval_(catsh[2], catsh[3], ctx);
-          else return null;
+          if (catsh[3]) {
+            if (catsh[2]) setVariableValue(catsh[2], errorDesc(res), catsh[4], ctx);
+            return eval_(catsh[3], catsh[4], ctx);
+          } else return null;
         }
       }
       return res;
     }
     else return res;
   });
-addPrimitive('catch', ['name', 'body'],
+addPrimitive('catch', ['name', 'var?', 'body'],
   function(operands, env, ctx) {
     var name = operands[0];
-    if (variableRef(name) && !quoted(name) && !selfEval(name))
-      return ['catch', name, operands[1], env, CURRENT_FILE];
-    else return ['catch', null, operands[0], env, CURRENT_FILE];
+    if (variableRef(name) && !quoted(name) && !selfEval(name)) {
+      var bound = operands[1];
+      if (variableRef(bound) && !quoted(bound) && !selfEval(bound) && operands.length > 2)
+        return ['catch', name, bound, operands[2], env, CURRENT_FILE];
+      else
+        return ['catch', name, null, operands[1], env, CURRENT_FILE];
+    }
+    else return ['catch', null, null, operands[0], env, CURRENT_FILE];
   });
 addPrimitive('load', ['file'], opEval(
   function(operands, env, ctx) {
