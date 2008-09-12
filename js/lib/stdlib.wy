@@ -1,3 +1,7 @@
+// Defining macrox as a shorthand form of macro where
+// the body is always escaped.
+macro(macrox(`exp, `body), `(macro($exp, `($body))))
+
 // Operators, order is establishing precedence
 macro(`a = `b,
   if(applic?(a),
@@ -7,22 +11,22 @@ macro(`a = `b,
   )
 )
 
-macro(`a && `b, `(&&($a, $b)))
-macro(`a || `b, `(||($a, $b)))
+macrox(`a && `b, &&($a, $b))
+macrox(`a || `b, ||($a, $b))
 
-macro(`a == `b, `(==($a, $b)))
-macro(`a != `b, `(!=($a, $b)))
-macro(`a < `b, `(<($a, $b)))
-macro(`a <= `b, `(<=($a, $b)))
-macro(`a > `b, `(>($a, $b)))
-macro(`a >= `b, `(>=($a, $b)))
+macrox(`a == `b, ==($a, $b))
+macrox(`a != `b, !=($a, $b))
+macrox(`a < `b, <($a, $b))
+macrox(`a <= `b, <=($a, $b))
+macrox(`a > `b, >($a, $b))
+macrox(`a >= `b, >=($a, $b))
 
-macro(`a += `b, `(=($a, +($a, $b))))
-macro(`a -= `b, `(=($a, -($a, $b))))
-macro(`a + `b, `(+($a, $b)))
-macro(`a - `b, `(-($a, $b)))
-macro(`a * `b, `(*($a, $b)))
-macro(`a / `b, `(/($a, $b)))
+macrox(`a += `b, =($a, +($a, $b)))
+macrox(`a -= `b, =($a, -($a, $b)))
+macrox(`a + `b, +($a, $b))
+macrox(`a - `b, -($a, $b))
+macrox(`a * `b, *($a, $b))
+macrox(`a / `b, /($a, $b))
 
 // Standard parsing for foo@bar(baz) is foo@(bar(baz)). We want (foo@bar)(baz).
 macro(`arr @ `idx, 
