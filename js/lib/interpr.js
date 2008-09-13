@@ -350,6 +350,13 @@ addPrimitive('eval', ['expr'],
   function(operands, env, ctx) {
     return eval_(parse(eval_(operands.first()), env), env, ctx);
   });
+addPrimitive('apply', ['function', 'params*'], opEval(
+  function(operands, env, ctx) {
+    if (operands.length == 2)
+      return apply(operands.first(), operands[1], env, true, ctx);
+    else
+      return apply(operands.first(), operands.tail(), env, true, ctx);
+  })),
 addPrimitive('`', ['expr'], 
   function(operands, env, ctx) {
     return escapeEval(operands.first(), env, ctx);

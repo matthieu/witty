@@ -30,7 +30,7 @@ load("test/package.wy")
 failures = L()
 testCount = 0
 for(descriptions, lambda(desc,
-  print(desc@1)
+//  print(desc@1)
   for(desc@3, lambda(case,
     caseBody = case@1
     if (desc@2,
@@ -38,7 +38,7 @@ for(descriptions, lambda(desc,
       bef()
     )
     success = caseBody()
-    print("  " + case@0 + " -> " + if(success, "OK", "FAILED"))
+//    print("  " + case@0 + " -> " + if(success, "OK", "FAILED"))
     testCount += 1
     if(!success, push(failures, desc@1 + " " + case@0))
   ))
@@ -52,6 +52,7 @@ if(length(failures) > 0,
 )
 
 // the @ vs . problem
+// clean up primitives, getting messy and they should be defined in language
 // think of how to make functions like toString or + work on user provided structures
 // hygiene
 // generalized variables
@@ -71,3 +72,5 @@ if(length(failures) > 0,
 // recursive macros
 // function composition
 // delay and force
+// tail calls
+// destructured assignment
