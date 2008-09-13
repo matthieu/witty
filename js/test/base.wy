@@ -1,3 +1,4 @@
+verbose = arguments()@0 == "-v"
 descriptions = L()
 
 macro(describe(`str, `descBody), `(
@@ -30,7 +31,7 @@ load("test/package.wy")
 failures = L()
 testCount = 0
 for(descriptions, lambda(desc,
-//  print(desc@1)
+  if(verbose, print(desc@1))
   for(desc@3, lambda(case,
     caseBody = case@1
     if (desc@2,
@@ -38,7 +39,7 @@ for(descriptions, lambda(desc,
       bef()
     )
     success = caseBody()
-//    print("  " + case@0 + " -> " + if(success, "OK", "FAILED"))
+    if(verbose, print("  " + case@0 + " -> " + if(success, "OK", "FAILED")))
     testCount += 1
     if(!success, push(failures, desc@1 + " " + case@0))
   ))
@@ -51,6 +52,7 @@ if(length(failures) > 0,
   for(failures, lambda(f, print("  " + f)))
 )
 
+// catch a list of errors
 // the @ vs . problem
 // clean up primitives, getting messy and they should be defined in language
 // think of how to make functions like toString or + work on user provided structures

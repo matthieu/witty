@@ -246,7 +246,7 @@ function opEval(fn) {
   return function(operands, env, ctx) {
     var evl = evalList(operands, env, ctx);
     if (error(evl)) return evl;
-    else return fn(evl, env, ctx);
+    else return fn(evl, env, ctx)
   };
 }
 function opTailEval(fn) {
@@ -527,6 +527,12 @@ addPrimitive('ncurry', ['lambda', 'index', 'parameter'], opEval(
     else if (primitive(fn)) return makeCurriedPrimitive(fn, nCurry(fn, idx, operands[2], ctx));
     else makeError('CallError', "The first parameter of nurry should be a function.", ctx);
   }));
+addPrimitive('arguments', [],
+  function(operands, env) {
+    var arr = parameters().split(" ").slice(1, -1);
+    arr.sntx = 'L';
+    return arr;
+  });
 addPrimitive('=', ['symbol', 'value'], 
   function(operands, env, ctx) {
     var name = operands[0];
