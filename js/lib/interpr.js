@@ -119,9 +119,9 @@ function evalSeq(exps, env, ctx) {
 // TODO Accept variable number of operands, matching the tail (foo, bar . baz)
 function apply(operation, operands, env, peval, ctx) {
   // Primitives are responsible for evaluating (or not) their operands
-  if (primitive(operation))
+  if (primitive(operation)) {
     return applyPrimitive(operation, leftCurry(operation, operands), env, ctx);
-  else {
+  } else {
     var previousFile = CURRENT_FILE;
     CURRENT_FILE = lambdaSrcFile(operation);
     var newEnv = extendEnvValues(lambdaParams(operation), 
@@ -246,7 +246,7 @@ function opEval(fn) {
   return function(operands, env, ctx) {
     var evl = evalList(operands, env, ctx);
     if (error(evl)) return evl;
-    else return fn(evl, env, ctx); 
+    else return fn(evl, env, ctx);
   };
 }
 function opTailEval(fn) {
@@ -536,7 +536,7 @@ addPrimitive('=', ['symbol', 'value'],
 addPrimitive('==', ['loperand', 'roperand'], opEval(
   function(operands, env, ctx) {
     if (!operands[0] || !operands[1]) return operands[0] == operands[1];
-    else if (operands[0] instanceof Array) operands[0].toString() == operands[1].toString();
+    else if (operands[0] instanceof Array) return operands[0].toString() == operands[1].toString();
     else return operands[0].valueOf() == operands[1].valueOf(); 
   })); // TODO accept n parameters
 addPrimitive('!=', ['loperand', 'roperand'], opEval(

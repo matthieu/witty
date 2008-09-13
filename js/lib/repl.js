@@ -32,7 +32,6 @@ function repl() {
   var env = setup();
   pr("> ");
   var line = new String(readline());
-  print("= " + line);
   while (line != 'quit' && line != 'exit') {
     var struct = parse(line);
     if (struct) {
