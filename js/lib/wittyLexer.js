@@ -1,4 +1,4 @@
-// $ANTLR 3.0.1 antlr/witty.g 2008-09-08 20:19:05
+// $ANTLR 3.0.1 antlr/witty.g 2008-09-14 20:56:43
 
 var wittyLexer = function(input) {
     this.dfa14 = new wittyLexer.DFA14(this);

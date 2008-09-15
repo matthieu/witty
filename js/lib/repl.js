@@ -66,6 +66,10 @@ function flattnArrays(arr) {
     }
   }
   mod.sntx = arr.sntx;
+  if (arr.line) {
+    mod.line = arr.line;
+    mod.pos = arr.pos;
+  }
   return mod;
 }
 

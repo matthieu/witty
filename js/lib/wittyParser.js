@@ -1,4 +1,4 @@
-// $ANTLR 3.0.1 antlr/witty.g 2008-09-08 20:19:04
+// $ANTLR 3.0.1 antlr/witty.g 2008-09-14 20:56:42
 
   Applic = function() { var na = Array.prototype.slice.call(arguments); na.sntx = 'A'; return na; }
   Block = function() { var na = Array.prototype.slice.call(arguments); na.sntx = 'B'; return na; }

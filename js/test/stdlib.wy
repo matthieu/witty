@@ -21,3 +21,5 @@ describe("Function isa",
   if("should be false for number and string", isa("abc", 7) == false)
   if("should be false for string and function", isa("abc", print) == false)
 )
+
+// Test throw

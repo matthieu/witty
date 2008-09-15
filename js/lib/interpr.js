@@ -210,7 +210,7 @@ function isPackage(p) { return (p instanceof Array) && p[0] == 'package'; }
 //
 
 function makeError(name, description, ctx) {
-  var latest = ctx ? ctx[0] : [];
+  var latest = ctx[0];
   return ['error', name, description, CURRENT_FILE, latest[0] || -1, latest[1] || -1, ctx];
 }
 function errorName(err) { return err[1]; }
