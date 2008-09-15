@@ -294,7 +294,7 @@ function isa(p1, p2) {
 }
 
 function equal(p1, p2) {
-  if (!operands[0] || !operands[1]) return operands[0] === operands[1];
+  if (!p1 || !p2) return operands[0] === operands[1];
   else if (errorType(p1)) {
     if (errorType(p2) && errorTypeName(p2) === errorTypeName(p1)) return true;
     if (error(p2) && errorName(p2) === errorTypeName(p1)) return true;
@@ -303,16 +303,22 @@ function equal(p1, p2) {
     if (errorType(p1) && errorTypeName(p2) === errorTypeName(p1)) return true;
     if (error(p1) && errorName(p1) === errorTypeName(p2)) return true;
     return false;
-  } else if (operands[0] instanceof Array) {
-    if (operands[1] instanceof Array) 
-      return operands[0].toString() === operands[1].toString();
+  } else if (error(p1)) {
+    if (error(p2)) return errorName(p1) === errorName(p2);
+    else return errorName(p1).valueOf() === p2.valueOf();
+  } else if (error(p2)) {
+    if (error(p1)) return errorName(p1) === errorName(p2);
+    else return errorName(p2).valueOf() === p1.valueOf();
+  } else if (p1 instanceof Array) {
+    if (p2 instanceof Array) 
+      return p1.toString() === p2.toString();
     else 
       return false;
-  } else if (operands[1] instanceof Array) {
-    if (operands[0] instanceof Array) 
-      return operands[0].toString() === operands[1].toString();
+  } else if (p2 instanceof Array) {
+    if (p1 instanceof Array) 
+      return p1.toString() === p2.toString();
     else return false;
-  } else return operands[0].valueOf() === operands[1].valueOf(); 
+  } else return p1.valueOf() === p2.valueOf();
 }
 
 addPrimitive('if', ['predicate', 'consequence', 'opposite'],
@@ -402,7 +408,11 @@ addPrimitive('`', ['expr'],
   });
 addPrimitive('throw', ['error', 'msg?'], opEval(
   function(operands, env, ctx) {
-    return makeError(operands.first(), operands[1], ctx);
+    var err = operands.first();
+    if (errorType(err))
+      return makeError(errorTypeName(err), operands[1], ctx);
+    else
+      return makeError(operands.first(), operands[1], ctx);
   }));
 addPrimitive('try', ['body', 'catches*'],
   function(operands, env, ctx) {
@@ -416,7 +426,7 @@ addPrimitive('try', ['body', 'catches*'],
         if (catsh[0] != 'catch') 
           return makeError('TypeError', "After the first block, all try operands should be a catch.", ctx);
 
-        if (catsh[1] == null || equal(catsh[1],  errorName(res))) {
+        if (catsh[1] == null || equal(catsh[1],  res)) {
           if (catsh[3]) {
             if (catsh[2]) setVariableValue(catsh[2], errorDesc(res), catsh[4], ctx);
             return eval_(catsh[3], catsh[4], ctx);

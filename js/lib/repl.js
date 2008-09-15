@@ -17,6 +17,7 @@ function setupEnv() {
   baseFrame['NameError'] = makeErrorType('NameError');
   baseFrame['CallError'] = makeErrorType('CallError');
   baseFrame['TypeError'] = makeErrorType('TypeError');
+  baseFrame['UserError'] = makeErrorType('UserError');
   return [[baseFrame, {}]];
 }
   

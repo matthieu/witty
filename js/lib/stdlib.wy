@@ -52,3 +52,4 @@ macro(`pack :: `def,
 // TODO let with variable number of var/val pairs
 macro(let(`var, `val, `block), `(lambda($var, $block)($val)))
 
+LanguageErrors = [ReferenceError, NameError, CallError, TypeError]

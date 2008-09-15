@@ -22,4 +22,14 @@ describe("Function isa",
   if("should be false for string and function", isa("abc", print) == false)
 )
 
-// Test throw
+describe("Error throwing",
+  it("should throw standard errors",
+    try(throw(UserError), catch(UserError, "caught")) == "caught"
+  )
+  it("should throw numbers",
+    try(throw(404), catch(404, "caught")) == "caught"
+  )
+  it("should throw strings",
+    try(throw("foo"), catch("foo", "caught")) == "caught"
+  )
+)
