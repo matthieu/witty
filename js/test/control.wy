@@ -49,7 +49,7 @@ describe("Iterated for loops",
 
 describe("Try/catch blocks",
   it("should return try last body statement when no error occurs",
-    try(2+3, catch(Foo, "caught")) == 5
+    try(2+3, catch("Foo", "caught")) == 5
   )
   it("should allow try with no catch",
     try(2+3) == 5
@@ -58,31 +58,31 @@ describe("Try/catch blocks",
     try(10/0, catch(CallError, "caught")) == "caught"
   )
   it("should catch directly thrown errors",
-    try(throw(Foo), catch(Foo, "caught")) == "caught"
+    try(throw("Foo"), catch("Foo", "caught")) == "caught"
   )
   it("should allow catch predefinition",
-    c = catch(Foo, "caught")
-    try(throw(Foo), c) == "caught"
+    c = catch("Foo", "caught")
+    try(throw("Foo"), c) == "caught"
   )
   it("should realize a closure on a predefined catch body",
     val = "before"
-    c = catch(Foo, val)
+    c = catch("Foo", x, val)
     val = "caught"
-    try(throw(Foo), c) == "caught"
+    try(throw("Foo"), c) == "caught"
   )
   it("should catch errors from levels down",
-    errLambda = lambda(throw(Foo))
-    try(errLambda(), catch(Foo, "caught")) == "caught"
+    errLambda = lambda(throw("Foo"))
+    try(errLambda(), catch("Foo", "caught")) == "caught"
   )
   it("should catch all when anonymous",
-    try(10/0, catch("caught")) == "caught"
+    try(10/0, catchAll("caught")) == "caught"
   )
   it("should allow empty catch to swallow",
-    try(10/0, catch()) == null
+    try(10/0, catchAll()) == null
   )
   it("should bind error variables",
     val = null
-    try(throw(Foo, "caught"), catch(Foo, e, val = e))
+    try(throw("Foo", "caught"), catch("Foo", e, val = e))
     val == "caught"
   )
 )

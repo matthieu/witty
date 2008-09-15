@@ -13,6 +13,10 @@ function setupEnv() {
   baseFrame['true'] = true;
   baseFrame['false'] = false;
   baseFrame['null'] = null;
+  baseFrame['ReferenceError'] = makeErrorType('ReferenceError');
+  baseFrame['NameError'] = makeErrorType('NameError');
+  baseFrame['CallError'] = makeErrorType('CallError');
+  baseFrame['TypeError'] = makeErrorType('TypeError');
   return [[baseFrame, {}]];
 }
   

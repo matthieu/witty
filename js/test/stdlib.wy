@@ -9,3 +9,15 @@ describe("Function apply",
   it("should execute variable parameter functions", apply(L, [1,2,3]) == [1,2,3])
   it("should accept direct parameters", apply(-, 7, 3) == 4)
 )
+
+describe("Function isa",
+  it("should return true for two strings", isa("abc", "cde"))
+  it("should return true for two numbers", isa(3.7, 18))
+  it("should return true for two functions", isa(+, print))
+  it("should return true for primitive and non primitive functions", 
+    fn = lambda(x, x+1)
+    isa(fn, print)
+  )
+  if("should be false for number and string", isa("abc", 7) == false)
+  if("should be false for string and function", isa("abc", print) == false)
+)
