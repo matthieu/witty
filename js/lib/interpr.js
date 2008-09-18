@@ -122,17 +122,15 @@ function apply(operation, operands, env, peval, ctx) {
   if (primitive(operation)) {
     return applyPrimitive(operation, leftCurry(operation, operands), env, ctx);
   } else {
-    var previousFile = CURRENT_FILE;
-    CURRENT_FILE = lambdaSrcFile(operation);
-    var newEnv = extendEnvValues(lambdaParams(operation), 
+    return callInFile(lambdaSrcFile(operation),
+      function() {
+        var newEnv = extendEnvValues(lambdaParams(operation), 
           leftCurry(operation, peval ? operands : evalList(operands, env, ctx)), 
           lambdaEnv(operation), ctx);
 
-    if (error(newEnv)) return newEnv;
-    
-    var ret =  evalSeq(lambdaBody(operation), newEnv, ctx);
-    CURRENT_FILE = previousFile;
-    return ret;
+        if (error(newEnv)) return newEnv;    
+        return evalSeq(lambdaBody(operation), newEnv, ctx);
+      });
   }
 }
 
@@ -205,37 +203,6 @@ function makePackage(name, frame) {
 }
 function packageFrame(p) { return p[2]; }
 function isPackage(p) { return (p instanceof Array) && p[0] == 'package'; }
-
-// Script errors
-//
-
-function makeError(name, description, ctx) {
-  var latest = ctx[0];
-  return ['error', name, description, CURRENT_FILE, latest[0] || -1, latest[1] || -1, ctx];
-}
-function errorName(err) { return err[1]; }
-function errorDesc(err) { return err[2]; }
-function error(e) { return (e instanceof Array) && e[0] == 'error'; }
-function stackContext(ctx, line, pos) {
-  return [[line,pos]].concat(ctx);
-}
-function setContext(ctx, line, pos) {
-  var latest = ctx[0];
-  if (latest) {
-    latest[0] = line;
-    latest[1] = pos;
-  } else ctx.push([line, pos]);
-  return ctx;
-}
-function makeErrorType(name) {
-  return ['errorType', name];
-}
-function errorType(err) {
-  return err[0] == 'errorType';
-}
-function errorTypeName(err) {
-  return err[1];
-}
 
 // Primitives handling
 //
@@ -406,84 +373,14 @@ addPrimitive('`', ['expr'],
   function(operands, env, ctx) {
     return escapeEval(operands.first(), env, ctx);
   });
-addPrimitive('throw', ['error', 'msg?'], opEval(
-  function(operands, env, ctx) {
-    var err = operands.first();
-    if (errorType(err))
-      return makeError(errorTypeName(err), operands[1], ctx);
-    else
-      return makeError(operands.first(), operands[1], ctx);
-  }));
-addPrimitive('try', ['body', 'catches*'],
-  function(operands, env, ctx) {
-    var res = eval_(operands[0], env, ctx);
-    // TODO finally
-    if (error(res)) {
-      var evalOps = [];
-      for (var m = 1; m < operands.length; m++) {
-        var catsh = eval_(operands[m], env, ctx);
-        if (error(catsh)) return catsh;
-        if (catsh[0] != 'catch') 
-          return makeError('TypeError', "After the first block, all try operands should be a catch.", ctx);
-
-        if (catsh[1] == null || equal(catsh[1],  res)) {
-          if (catsh[3]) {
-            if (catsh[2]) setVariableValue(catsh[2], errorDesc(res), catsh[4], ctx);
-            return eval_(catsh[3], catsh[4], ctx);
-          } else return null;
-        }
-      }
-      return res;
-    }
-    else return res;
-  });
-addPrimitive('catch', ['err', 'var?', 'body?'],
-  function(operands, env, ctx) {
-    if (!operands[0]) 
-      return makeError('CallError', "Catch needs at least an error parameter.", ctx);
-
-    var err = eval_(operands[0], env, ctx);
-    if (operands[1]) {
-      // We have either a variable and a body or just a body
-      var varName = operands[1];
-      if (variableRef(varName) && !quoted(varName) && !selfEval(varName)) {
-        if (!operands[2]) 
-          return makeError('CallError', "Catch with variable name needs a body.", ctx);
-        return ['catch', err, varName, operands[2], env, CURRENT_FILE];
-      } else {
-        return ['catch', err, null, operands[1], env, CURRENT_FILE];
-      }        
-    } else {
-      // No body, err will be swallowed
-      return ['catch', err, null, null, null, CURRENT_FILE];
-    }
-  });
-addPrimitive('catchAll', ['var?', 'body?'],
-  function(operands, env, ctx) {
-    if (operands[0]) {
-      var firstOp = operands[0];
-      if (variableRef(firstOp) && !quoted(firstOp) && !selfEval(firstOp)) {
-        // We have a variable and need a body
-        if (!operands[1]) 
-          return makeError('CallError', "Catch all with variable name needs a body.", ctx);
-        return ['catch', null, firstOp, operands[1], env, CURRENT_FILE];
-      } else {
-        // Just a body
-        return ['catch', null, null, firstOp, env, CURRENT_FILE];
-      }
-    } else {
-      // No body, all will be swallowed
-      return ['catch', null, null, null, null, CURRENT_FILE];
-    }
-  });
 addPrimitive('load', ['file'], opEval(
   function(operands, env, ctx) {
-    var previousFile = CURRENT_FILE;
-    CURRENT_FILE = operands.first();
-    var ctnt = readfile(CURRENT_FILE);
-    var res =  eval_(parse(ctnt), env, ctx);
-    CURRENT_FILE = previousFile;
-    return res;
+    var toread = operands.first();
+    return callInFile(toread,
+      function() {
+        var ctnt = readfile(toread);
+        return eval_(parse(ctnt), env, ctx);
+      });
   }));
 addPrimitive('defined?', ['name'],
   function(operands, env) {
@@ -658,4 +555,139 @@ addPrimitive('map', ['list', 'function'],
     return newlist;
   });
 addPrimitive('split', ['string', 'separator', 'maxSplit'], opTailEval(typeDispatch('split')));
+
+//
+// Script error handling
+//
+
+function makeError(name, description, ctx) {
+  var latest = ctx[0];
+  return ['error', name, description, CURRENT_FILE, latest[0] || -1, latest[1] || -1, ctx];
+}
+function errorName(err) { return err[1]; }
+function errorDesc(err) { return err[2]; }
+function error(e) { return (e instanceof Array) && e[0] == 'error'; }
+function stackContext(ctx, line, pos) {
+  return [[line,pos]].concat(ctx);
+}
+function setContext(ctx, line, pos) {
+  var latest = ctx[0];
+  if (latest) {
+    latest[0] = line;
+    latest[1] = pos;
+  } else ctx.push([line, pos]);
+  return ctx;
+}
+function makeErrorType(name) {
+  return ['errorType', name];
+}
+function errorType(err) {
+  return err[0] == 'errorType';
+}
+function errorTypeName(err) {
+  return err[1];
+}
+
+function callInFile(file, fn) {
+  var oldfile = CURRENT_FILE;
+  CURRENT_FILE = file;
+  var res =  fn();
+  CURRENT_FILE = oldfile;
+  return res;
+}
+
+addPrimitive('throw', ['error', 'msg?'], opEval(
+  function(operands, env, ctx) {
+    var err = operands.first();
+    if (errorType(err))
+      return makeError(errorTypeName(err), operands[1], ctx);
+    else
+      return makeError(operands.first(), operands[1], ctx);
+  }));
+addPrimitive('try', ['body', 'catches*'],
+  function(operands, env, ctx) {
+    var res = eval_(operands[0], env, ctx);
+    // TODO finally
+    if (error(res)) {
+      for (var m = 1; m < operands.length; m++) {
+        var catsh = eval_(operands[m], env, ctx);
+        if (error(catsh)) return catsh;
+        if (!isCatch(catsh)) 
+          return makeError('TypeError', "After the first block, all try operands should be a catch.", ctx);
+
+        var catchRes = runCatch(catsh, res, ctx);
+        if (!(catchRes === undefined)) return catchRes;
+      }
+    }
+    return res;
+  });
+
+addPrimitive('catch', ['err', 'var?', 'body?'],
+  function(operands, env, ctx) {
+    if (!operands[0]) 
+      return makeError('CallError', "Catch needs at least an error parameter.", ctx);
+
+    var err = eval_(operands[0], env, ctx);
+    if (operands[1]) {
+      // We have either a variable and a body or just a body
+      var varName = operands[1];
+      if (variableRef(varName) && !quoted(varName) && !selfEval(varName)) {
+        if (!operands[2]) 
+          return makeError('CallError', "Catch with variable name needs a body.", ctx);
+        return ['catch', err, varName, operands[2], env, CURRENT_FILE];
+      } else {
+        return ['catch', err, null, operands[1], env, CURRENT_FILE];
+      }        
+    } else {
+      // No body, err will be swallowed
+      return ['catch', err, null, null, null, CURRENT_FILE];
+    }
+  });
+addPrimitive('catchAll', ['var?', 'body?'],
+  function(operands, env, ctx) {
+    if (operands[0]) {
+      var firstOp = operands[0];
+      if (variableRef(firstOp) && !quoted(firstOp) && !selfEval(firstOp)) {
+        // We have a variable and need a body
+        if (!operands[1]) 
+          return makeError('CallError', "Catch all with variable name needs a body.", ctx);
+        return ['catch', null, firstOp, operands[1], env, CURRENT_FILE];
+      } else {
+        // Just a body
+        return ['catch', null, null, firstOp, env, CURRENT_FILE];
+      }
+    } else {
+      // No body, all will be swallowed
+      return ['catch', null, null, null, null, CURRENT_FILE];
+    }
+  });
+
+// Try and catch helper functions
+function makeCatch(err, varName, body, env, file) {
+  return ['catch', err, varName, body, env, CURRENT_FILE];
+}
+function isCatch(c) { return c[0] == 'catch'; }
+function runCatch(catsh, val, ctx) {
+  // See if it matches either an error type or an array of them or a direct value.
+  // If not return undefined.
+  var match = (catsh[1] == null) || matchErrorType(catsh[1], val);
+  if (!match) match = equal(catsh[1], val);
+  if (!match) return;
+
+  // We have a match eventully set the error var and eventually execute the body
+  if (catsh[3]) {
+    if (catsh[2]) setVariableValue(catsh[2], errorDesc(val), catsh[4], ctx);
+    return callInFile(catsh[5], function() { return eval_(catsh[3], catsh[4], ctx); });
+  } else return null;
+}
+function matchErrorType(err, val) {
+  // Resursively goes through err to match an error type. Returns
+  // false as soon as we get something else (blending isn't supported).
+  if (errorType(err)) return equal(err, val);
+  else if (err instanceof Array) {
+    if (err.length == 0) return false;
+    return matchErrorType(err[0]) || matchErrorType(err.tail());
+  }
+  else return false;
+}
 
