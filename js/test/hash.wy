@@ -1,11 +1,11 @@
 describe("Hash creation",
   it("should work with the H function",
     h = H("foo",4,"bar",6)
-    h@bar == 6
+    h.bar == 6
   )
   it("should work with the {} syntax sugar",
     h = {foo: 4, bar: 6}
-    h@foo == 4
+    h.foo == 4
   )
 )
 
@@ -16,7 +16,7 @@ describe("Hash length",
   )
   it("should keep an updated number of keys",
     h = H("foo",4,"bar",6)
-    h@baz = 8
+    h.baz = 8
     length(h) == 3
   )
 )
@@ -24,28 +24,28 @@ describe("Hash length",
 describe("Hash mutator",
   it("should update an existing value",
     h = {foo: 4, bar: 6}
-    h@bar = "abc"
-    h@bar == "abc"
+    h.bar = "abc"
+    h.bar == "abc"
   )
   it("should add a non-existent value",
     h = {foo: 4, bar: 6}
-    h@baz = "cde"
-    h@baz == "cde"
+    h.baz = "cde"
+    h.baz == "cde"
   )
   if("should be composable",
     h = {}
-    h@foo = {}
-    h@foo@bar = 2
-    h@foo@baz = "abc"
-    h@foo2bar == 2 && h@foo@baz == "abc"
+    h.foo = {}
+    h.foo.bar = 2
+    h.foo.baz = "abc"
+    h.foo2bar == 2 && h.foo.baz == "abc"
   )
 )
 
 describe("Hash element applications",
   h = {foo: lambda(p, "f"+p), bar: lambda("b" + "ar"), baz: lambda(a,b, "z"+(a+b)) }
-  it("should execute a one parameter lambda", h@foo(3) == "f3")
-  it("should execute a zero parameter lambda", h@bar() == "bar")
-  it("should execute a multi-parameter lambda", h@baz(3,7) == "z10")
+  it("should execute a one parameter lambda", h.foo(3) == "f3")
+  it("should execute a zero parameter lambda", h.bar() == "bar")
+  it("should execute a multi-parameter lambda", h.baz(3,7) == "z10")
 )
 
 describe("Hash empty",

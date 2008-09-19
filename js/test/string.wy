@@ -1,7 +1,7 @@
 describe("String split",
   it("should split a simple string", 
     sp = split("abc", "b")
-    sp@0 == "a" && sp@1 == "c"
+    sp.0 == "a" && sp.1 == "c"
   )
 )
 

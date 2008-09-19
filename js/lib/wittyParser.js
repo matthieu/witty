@@ -1,4 +1,4 @@
-// $ANTLR 3.0.1 antlr/witty.g 2008-09-14 20:56:42
+// $ANTLR 3.0.1 antlr/witty.g 2008-09-18 19:59:50
 
   Applic = function() { var na = Array.prototype.slice.call(arguments); na.sntx = 'A'; return na; }
   Block = function() { var na = Array.prototype.slice.call(arguments); na.sntx = 'B'; return na; }
@@ -18,24 +18,24 @@ var wittyParser = function(input) {
 
 (function(){
 // public class variables
-var TERM= 4,
-    LETTER= 12,
+var CR= 16,
     UNICODE_ESC= 18,
-    OCTAL_ESC= 19,
-    HEX_DIG= 20,
-    ID= 10,
-    EOF= -1,
-    NON_OP= 13,
-    NUM= 8,
-    OPER= 6,
+    LETTER= 12,
     WS= 5,
-    ESC_SEQ= 15,
-    DIGIT= 14,
-    SYMBOLS= 11,
-    UNARY= 7,
+    OPER= 6,
+    STRING= 9,
+    NON_OP= 13,
     COMMENT= 17,
-    CR= 16,
-    STRING= 9;
+    HEX_DIG= 20,
+    ESC_SEQ= 15,
+    UNARY= 7,
+    EOF= -1,
+    NUM= 8,
+    SYMBOLS= 11,
+    DIGIT= 14,
+    OCTAL_ESC= 19,
+    TERM= 4,
+    ID= 10;
 
 // public instance methods/vars
 ANTLR.lang.extend(wittyParser, ANTLR.runtime.Parser, {
@@ -1091,8 +1091,8 @@ ANTLR.lang.augmentObject(wittyParser, {
         "\u0002\uffff\u0001\u0002\u0001\uffff\u0003\u0001\u0004\uffff\u0007"+
     "\u0001\u0006\uffff\u0002\u0001\u0009\uffff\u0003\u0001",
     DFA10_specialS:
-        "\u0001\uffff\u0001\u0002\u0001\uffff\u0001\u0001\u0003\uffff\u0001"+
-    "\u0004\u0001\u0003\u0001\uffff\u0001\u0000\u001b\uffff}>",
+        "\u0001\uffff\u0001\u0004\u0001\uffff\u0001\u0000\u0003\uffff\u0001"+
+    "\u0001\u0001\u0002\u0001\uffff\u0001\u0003\u001b\uffff}>",
     DFA10_transitionS: [
             "\u0001\u0002\u0001\u0001\u0003\u0002\u000d\uffff\u0001\u0002"+
             "\u0002\uffff\u0001\u0002",
@@ -1193,33 +1193,6 @@ ANTLR.lang.extend(wittyParser.DFA10, ANTLR.runtime.DFA, {
         var retval = (function(s, input) {
             switch ( s ) {
                         case 0 : 
-                            var LA10_10 = input.LA(1);
-
-                             
-                            var index10_10 = input.index();
-                            input.rewind();
-                            s = -1;
-                            if ( (LA10_10==WS) ) {s = 29;}
-
-                            else if ( (LA10_10==21) ) {s = 30;}
-
-                            else if ( (LA10_10==UNARY) ) {s = 33;}
-
-                            else if ( (LA10_10==OPER) ) {s = 34;}
-
-                            else if ( (LA10_10==24) && (this.synpred1())) {s = 35;}
-
-                            else if ( (LA10_10==27) && (this.synpred1())) {s = 36;}
-
-                            else if ( ((LA10_10>=NUM && LA10_10<=ID)) && (this.synpred1())) {s = 37;}
-
-                            else if ( (LA10_10==EOF||LA10_10==TERM||(LA10_10>=22 && LA10_10<=23)||LA10_10==25||LA10_10==28) ) {s = 2;}
-
-                             
-                            input.seek(index10_10);
-                            if ( s>=0 ) return s;
-                            break;
-                        case 1 : 
                             var LA10_3 = input.LA(1);
 
                              
@@ -1252,28 +1225,34 @@ ANTLR.lang.extend(wittyParser.DFA10, ANTLR.runtime.DFA, {
                             input.seek(index10_3);
                             if ( s>=0 ) return s;
                             break;
-                        case 2 : 
-                            var LA10_1 = input.LA(1);
+                        case 1 : 
+                            var LA10_7 = input.LA(1);
 
                              
-                            var index10_1 = input.index();
+                            var index10_7 = input.index();
                             input.rewind();
                             s = -1;
-                            if ( ((LA10_1>=OPER && LA10_1<=UNARY)) ) {s = 3;}
+                            if ( (LA10_7==TERM) && (this.synpred1())) {s = 11;}
 
-                            else if ( (LA10_1==24) && (this.synpred1())) {s = 4;}
+                            else if ( (LA10_7==EOF) && (this.synpred1())) {s = 12;}
 
-                            else if ( (LA10_1==27) && (this.synpred1())) {s = 5;}
+                            else if ( (LA10_7==23) && (this.synpred1())) {s = 13;}
 
-                            else if ( (LA10_1==EOF||(LA10_1>=TERM && LA10_1<=WS)||(LA10_1>=21 && LA10_1<=23)||LA10_1==25||LA10_1==28) ) {s = 2;}
+                            else if ( (LA10_7==22) && (this.synpred1())) {s = 14;}
 
-                            else if ( ((LA10_1>=NUM && LA10_1<=ID)) && (this.synpred1())) {s = 6;}
+                            else if ( (LA10_7==25) && (this.synpred1())) {s = 15;}
+
+                            else if ( (LA10_7==WS) ) {s = 7;}
+
+                            else if ( (LA10_7==28) && (this.synpred1())) {s = 16;}
+
+                            else if ( ((LA10_7>=OPER && LA10_7<=ID)||LA10_7==21||LA10_7==24||LA10_7==27) ) {s = 2;}
 
                              
-                            input.seek(index10_1);
+                            input.seek(index10_7);
                             if ( s>=0 ) return s;
                             break;
-                        case 3 : 
+                        case 2 : 
                             var LA10_8 = input.LA(1);
 
                              
@@ -1302,31 +1281,52 @@ ANTLR.lang.extend(wittyParser.DFA10, ANTLR.runtime.DFA, {
                             input.seek(index10_8);
                             if ( s>=0 ) return s;
                             break;
-                        case 4 : 
-                            var LA10_7 = input.LA(1);
+                        case 3 : 
+                            var LA10_10 = input.LA(1);
 
                              
-                            var index10_7 = input.index();
+                            var index10_10 = input.index();
                             input.rewind();
                             s = -1;
-                            if ( (LA10_7==TERM) && (this.synpred1())) {s = 11;}
+                            if ( (LA10_10==WS) ) {s = 29;}
 
-                            else if ( (LA10_7==EOF) && (this.synpred1())) {s = 12;}
+                            else if ( (LA10_10==21) ) {s = 30;}
 
-                            else if ( (LA10_7==23) && (this.synpred1())) {s = 13;}
+                            else if ( (LA10_10==UNARY) ) {s = 33;}
 
-                            else if ( (LA10_7==22) && (this.synpred1())) {s = 14;}
+                            else if ( (LA10_10==OPER) ) {s = 34;}
 
-                            else if ( (LA10_7==25) && (this.synpred1())) {s = 15;}
+                            else if ( (LA10_10==24) && (this.synpred1())) {s = 35;}
 
-                            else if ( (LA10_7==WS) ) {s = 7;}
+                            else if ( (LA10_10==27) && (this.synpred1())) {s = 36;}
 
-                            else if ( (LA10_7==28) && (this.synpred1())) {s = 16;}
+                            else if ( ((LA10_10>=NUM && LA10_10<=ID)) && (this.synpred1())) {s = 37;}
 
-                            else if ( ((LA10_7>=OPER && LA10_7<=ID)||LA10_7==21||LA10_7==24||LA10_7==27) ) {s = 2;}
+                            else if ( (LA10_10==EOF||LA10_10==TERM||(LA10_10>=22 && LA10_10<=23)||LA10_10==25||LA10_10==28) ) {s = 2;}
 
                              
-                            input.seek(index10_7);
+                            input.seek(index10_10);
+                            if ( s>=0 ) return s;
+                            break;
+                        case 4 : 
+                            var LA10_1 = input.LA(1);
+
+                             
+                            var index10_1 = input.index();
+                            input.rewind();
+                            s = -1;
+                            if ( ((LA10_1>=OPER && LA10_1<=UNARY)) ) {s = 3;}
+
+                            else if ( (LA10_1==24) && (this.synpred1())) {s = 4;}
+
+                            else if ( (LA10_1==27) && (this.synpred1())) {s = 5;}
+
+                            else if ( (LA10_1==EOF||(LA10_1>=TERM && LA10_1<=WS)||(LA10_1>=21 && LA10_1<=23)||LA10_1==25||LA10_1==28) ) {s = 2;}
+
+                            else if ( ((LA10_1>=NUM && LA10_1<=ID)) && (this.synpred1())) {s = 6;}
+
+                             
+                            input.seek(index10_1);
                             if ( s>=0 ) return s;
                             break;
             }

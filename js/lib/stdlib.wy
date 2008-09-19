@@ -29,7 +29,7 @@ macrox(`a * `b, *($a, $b))
 macrox(`a / `b, /($a, $b))
 
 // Standard parsing for foo@bar(baz) is foo@(bar(baz)). We want (foo@bar)(baz).
-macro(`arr @ `idx, 
+macro(`arr . `idx, 
   if(applic?(idx),
     if(params?(idx),
       `( @($arr, $(fnName(idx)))($<(params(idx))) ),
