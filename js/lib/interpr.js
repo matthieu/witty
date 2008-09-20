@@ -8,7 +8,7 @@ load("lib/dtype.js");
 load("lib/printer.js");
 
 function eval_(exp, env, ctx) {
-  //print("eval: " + JSON.stringify(exp) + " :sntx: " + exp.sntx);
+  print("eval: " + JSON.stringify(exp) + " :sntx: " + exp.sntx);
   //print("eval: " + exp + " " + (typeof ctx));
   if (selfEval(exp)) return eval(exp.valueOf()); // JS eval for native type
   else if (quoted(exp)) return evalQuoted(exp);
@@ -238,6 +238,7 @@ function typeDispatch(op) {
     if (typeof first == 'number') typeFn = wNum[op];
     else if ((typeof first == 'string') || (first instanceof String)) typeFn = wString[op];
     else if (first instanceof Array) typeFn = wArray[op];
+    else if (first instanceof RegExp) typeFn = wRegExp[op];
     else if (first instanceof Object) typeFn = wHash[op];
     else throw "Can't dispatch operation " + op + " to " + first + ", unknown type.";
 
@@ -406,6 +407,10 @@ addPrimitive('H', ['elements*'],
     h.length = operands.length / 2;
     return h;
   });
+addPrimitive('X', ['regexp', 'flags?'], opEval(
+  function(operands, env) {
+    return new RegExp(operands[0]);
+  }));
 addPrimitive('for', ['listOrInit', 'lambdaOrStopCond', 'incrementExpr', 'body'], 
   function(operands, env, ctx) {
     if (operands.length == 2) {
@@ -554,7 +559,13 @@ addPrimitive('map', ['list', 'function'],
     }
     return newlist;
   });
-addPrimitive('split', ['string', 'separator', 'maxSplit'], opTailEval(typeDispatch('split')));
+addPrimitive('split', ['string', 'sepiarator', 'maxSplit'], opTailEval(typeDispatch('split')));
+
+addPrimitive('=~', ['string', 'regexp'], opTailEval(typeDispatch('=~')));
+// First match data
+addPrimitive('search', ['string', 'regexp'], opTailEval(typeDispatch('search')));
+// All match data
+addPrimitive('match', ['string', 'regexp'], opTailEval(typeDispatch('match')));
 
 //
 // Script error handling

@@ -33,3 +33,16 @@ describe("Error throwing",
     try(throw("foo"), catch("foo", "caught")) == "caught"
   )
 )
+
+describe("RegExp operator",
+  it("should return the match index", ("abcd" =~ X("b.d")) == 1)
+  it("should return null when there's no match", ("acbd" =~ X("bc")) == null)
+  it("should convert string to regexp when no regexp provided", ("aabcd" =~ "bc") == 2)
+)
+
+describe("Search regexp function",
+  it("should return the match", search("abcd", X("bc")) == "bc")
+  it("should work with strings", search("abcd", "bc") == "bc")
+  it("should return null when no match is found", search("abcd", "cb") == null)
+  it("should match subgroups", search("abcd", "b(c)").1 == "c")
+)

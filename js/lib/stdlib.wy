@@ -20,6 +20,7 @@ macrox(`a < `b, <($a, $b))
 macrox(`a <= `b, <=($a, $b))
 macrox(`a > `b, >($a, $b))
 macrox(`a >= `b, >=($a, $b))
+macrox(`a =~ `b, =~($a, $b))
 
 macrox(`a += `b, =($a, +($a, $b)))
 macrox(`a -= `b, =($a, -($a, $b)))

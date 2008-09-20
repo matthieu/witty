@@ -32,7 +32,10 @@ var wArray = {
     return arr;
   },
   '@': function(operands, env) {
+    print("innat");
     var k = eval_(operands[1], env);
+    print("1 "+k);
+    print(operands);
     return operands[0][k];
   },
   '@!': function(operands, env) {
@@ -113,6 +116,29 @@ var wString = {
     var max = operands[2];
     return str.split(sep, max);
   },
-  'empty?': wArray['empty?']
+  'empty?': wArray['empty?'],
+  '=~': function(operands, env) {
+    var str = operands[0];
+    var res = str.search(operands[1]);
+    if (res < 0) return null;
+    else return res;
+  },
+  'search': function(operands, env) {
+    var rx = operands[1];
+    if (!(rx instanceof RegExp)) rx = new RegExp(rx);
+    return rx.exec(operands[0]);
+  },
+  'match': function(operands, env) {
+    var str = operands[0];
+    return str.match(operands[1]);
+  }
 };
 
+var wRegExp = {
+  '=~': function(operands, env) {
+    var str = operands[1];
+    var res = str.search(operands[0]);
+    if (res < 0) return null;
+    else return res;
+  }
+};
