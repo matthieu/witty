@@ -32,10 +32,7 @@ var wArray = {
     return arr;
   },
   '@': function(operands, env) {
-    print("innat");
     var k = eval_(operands[1], env);
-    print("1 "+k);
-    print(operands);
     return operands[0][k];
   },
   '@!': function(operands, env) {
@@ -130,7 +127,9 @@ var wString = {
   },
   'match': function(operands, env) {
     var str = operands[0];
-    return str.match(operands[1]);
+    var exp = operands[1];
+    if (!(exp instanceof RegExp)) exp = new RegExp(exp, "g");
+    return str.match(exp);
   }
 };
 

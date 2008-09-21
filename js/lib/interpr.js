@@ -8,7 +8,7 @@ load("lib/dtype.js");
 load("lib/printer.js");
 
 function eval_(exp, env, ctx) {
-  print("eval: " + JSON.stringify(exp) + " :sntx: " + exp.sntx);
+  //print("eval: " + JSON.stringify(exp) + " :sntx: " + exp.sntx);
   //print("eval: " + exp + " " + (typeof ctx));
   if (selfEval(exp)) return eval(exp.valueOf()); // JS eval for native type
   else if (quoted(exp)) return evalQuoted(exp);
@@ -409,7 +409,10 @@ addPrimitive('H', ['elements*'],
   });
 addPrimitive('X', ['regexp', 'flags?'], opEval(
   function(operands, env) {
-    return new RegExp(operands[0]);
+    var exp = operands[0];
+    var flags = operands[1];
+    if (!flags) flags = "g";
+    return new RegExp(exp, flags);
   }));
 addPrimitive('for', ['listOrInit', 'lambdaOrStopCond', 'incrementExpr', 'body'], 
   function(operands, env, ctx) {

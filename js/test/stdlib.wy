@@ -45,4 +45,11 @@ describe("Search regexp function",
   it("should work with strings", search("abcd", "bc") == "bc")
   it("should return null when no match is found", search("abcd", "cb") == null)
   it("should match subgroups", search("abcd", "b(c)").1 == "c")
+  it("shouldn't return subsequent matches", length(search("aabccdabdf", "ab")) == 1)
+)
+
+describe("Match regexp function",
+  it("should return all matches", length(match("aabccdabdf", X("ab"))) == 2)
+  it("should work with strings", length(match("aabccdabdf", "ab")) == 2)
+  it("should return matched strings", match("aabccdabdf", "a.[cd]").1 == "abd")
 )
