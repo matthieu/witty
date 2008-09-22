@@ -1,3 +1,9 @@
+describe("String definition",
+  it("should allow single quoted strings", length('abc')==3)
+  it("should allow double quoted strings", length("abc")==3)
+  it("should be equal for a single and a double quoted string", "abc"=='abc')
+)
+
 describe("String split",
   it("should split a simple string", 
     sp = split("abc", "b")

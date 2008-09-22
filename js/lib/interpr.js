@@ -48,7 +48,7 @@ function evalList(operands, env, ctx) {
 
 function selfEval(exp) { return (!isNaN(exp)); }
 function quoted(exp) { 
-  return ((typeof exp == 'string') || (exp instanceof String)) && (exp[0] == '"' || exp.alien); 
+  return ((typeof exp == 'string') || (exp instanceof String)) && (exp[0] == '"' || exp[0] == "'" || exp.alien); 
 }
 function evalQuoted(exp) { 
   if (exp.alien) return exp;

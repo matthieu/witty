@@ -1,4 +1,4 @@
-// $ANTLR 3.0.1 antlr/witty.g 2008-09-18 19:59:50
+// $ANTLR 3.0.1 antlr/witty.g 2008-09-21 19:44:33
 
   Applic = function() { var na = Array.prototype.slice.call(arguments); na.sntx = 'A'; return na; }
   Block = function() { var na = Array.prototype.slice.call(arguments); na.sntx = 'B'; return na; }
@@ -18,24 +18,25 @@ var wittyParser = function(input) {
 
 (function(){
 // public class variables
-var CR= 16,
-    UNICODE_ESC= 18,
-    LETTER= 12,
+var CR= 17,
+    UNICODE_ESC= 19,
+    LETTER= 13,
     WS= 5,
     OPER= 6,
     STRING= 9,
-    NON_OP= 13,
-    COMMENT= 17,
-    HEX_DIG= 20,
-    ESC_SEQ= 15,
+    NON_OP= 14,
+    COMMENT= 18,
+    HEX_DIG= 21,
+    ESC_SEQ= 16,
     UNARY= 7,
     EOF= -1,
     NUM= 8,
-    SYMBOLS= 11,
-    DIGIT= 14,
-    OCTAL_ESC= 19,
+    SYMBOLS= 12,
+    DIGIT= 15,
+    OCTAL_ESC= 20,
+    SSTRING= 10,
     TERM= 4,
-    ID= 10;
+    ID= 11;
 
 // public instance methods/vars
 ANTLR.lang.extend(wittyParser, ANTLR.runtime.Parser, {
@@ -302,10 +303,10 @@ ANTLR.lang.extend(wittyParser, ANTLR.runtime.Parser, {
             var alt8=2;
             var LA8_0 = this.input.LA(1);
 
-            if ( (LA8_0==21) ) {
+            if ( (LA8_0==22) ) {
                 alt8=1;
             }
-            else if ( ((LA8_0>=OPER && LA8_0<=ID)||LA8_0==24||LA8_0==27) ) {
+            else if ( ((LA8_0>=OPER && LA8_0<=ID)||LA8_0==25||LA8_0==28) ) {
                 alt8=2;
             }
             else {
@@ -369,12 +370,12 @@ ANTLR.lang.extend(wittyParser, ANTLR.runtime.Parser, {
         try {
             // antlr/witty.g:31:21: ( '(' s1= stmt ')' (op= ( OPER | UNARY ) s2= stmt )? )
             // antlr/witty.g:31:23: '(' s1= stmt ')' (op= ( OPER | UNARY ) s2= stmt )?
-            this.match(this.input,21,wittyParser.FOLLOW_21_in_parens_assoc202); if (this.failed) return val;
+            this.match(this.input,22,wittyParser.FOLLOW_22_in_parens_assoc202); if (this.failed) return val;
             this.pushFollow(wittyParser.FOLLOW_stmt_in_parens_assoc206);
             var s1 = this.stmt();
             this._fsp--;
             if (this.failed) return val;
-            this.match(this.input,22,wittyParser.FOLLOW_22_in_parens_assoc208); if (this.failed) return val;
+            this.match(this.input,23,wittyParser.FOLLOW_23_in_parens_assoc208); if (this.failed) return val;
             // antlr/witty.g:31:39: (op= ( OPER | UNARY ) s2= stmt )?
             var alt9=2;
             var LA9_0 = this.input.LA(1);
@@ -536,7 +537,7 @@ ANTLR.lang.extend(wittyParser, ANTLR.runtime.Parser, {
     },
 
 
-    // antlr/witty.g:49:1: atom returns [Object val] : (a= ( NUM | STRING | ID | OPER | UNARY ) | hash_lit | list_lit ) (p= '(' (b1= block )? ( ',' b2= block )* ')' )* ;
+    // antlr/witty.g:49:1: atom returns [Object val] : (a= ( NUM | STRING | SSTRING | ID | OPER | UNARY ) | hash_lit | list_lit ) (p= '(' (b1= block )? ( ',' b2= block )* ')' )* ;
     // $ANTLR start atom
     atom: function() {
         var val = null;
@@ -549,35 +550,36 @@ ANTLR.lang.extend(wittyParser, ANTLR.runtime.Parser, {
          var list_lit3 = null;
 
         try {
-            // antlr/witty.g:50:22: ( (a= ( NUM | STRING | ID | OPER | UNARY ) | hash_lit | list_lit ) (p= '(' (b1= block )? ( ',' b2= block )* ')' )* )
-            // antlr/witty.g:50:24: (a= ( NUM | STRING | ID | OPER | UNARY ) | hash_lit | list_lit ) (p= '(' (b1= block )? ( ',' b2= block )* ')' )*
-            // antlr/witty.g:50:24: (a= ( NUM | STRING | ID | OPER | UNARY ) | hash_lit | list_lit )
+            // antlr/witty.g:50:22: ( (a= ( NUM | STRING | SSTRING | ID | OPER | UNARY ) | hash_lit | list_lit ) (p= '(' (b1= block )? ( ',' b2= block )* ')' )* )
+            // antlr/witty.g:50:24: (a= ( NUM | STRING | SSTRING | ID | OPER | UNARY ) | hash_lit | list_lit ) (p= '(' (b1= block )? ( ',' b2= block )* ')' )*
+            // antlr/witty.g:50:24: (a= ( NUM | STRING | SSTRING | ID | OPER | UNARY ) | hash_lit | list_lit )
             var alt12=3;
             switch ( this.input.LA(1) ) {
             case OPER:
             case UNARY:
             case NUM:
             case STRING:
+            case SSTRING:
             case ID:
                 alt12=1;
                 break;
-            case 24:
+            case 25:
                 alt12=2;
                 break;
-            case 27:
+            case 28:
                 alt12=3;
                 break;
             default:
                 if (this.backtracking>0) {this.failed=true; return val;}
                 var nvae =
-                    new ANTLR.runtime.NoViableAltException("50:24: (a= ( NUM | STRING | ID | OPER | UNARY ) | hash_lit | list_lit )", 12, 0, this.input);
+                    new ANTLR.runtime.NoViableAltException("50:24: (a= ( NUM | STRING | SSTRING | ID | OPER | UNARY ) | hash_lit | list_lit )", 12, 0, this.input);
 
                 throw nvae;
             }
 
             switch (alt12) {
                 case 1 :
-                    // antlr/witty.g:50:25: a= ( NUM | STRING | ID | OPER | UNARY )
+                    // antlr/witty.g:50:25: a= ( NUM | STRING | SSTRING | ID | OPER | UNARY )
                     a=this.input.LT(1);
                     if ( (this.input.LA(1)>=OPER && this.input.LA(1)<=ID) ) {
                         this.input.consume();
@@ -596,8 +598,8 @@ ANTLR.lang.extend(wittyParser, ANTLR.runtime.Parser, {
 
                     break;
                 case 2 :
-                    // antlr/witty.g:51:27: hash_lit
-                    this.pushFollow(wittyParser.FOLLOW_hash_lit_in_atom414);
+                    // antlr/witty.g:52:27: hash_lit
+                    this.pushFollow(wittyParser.FOLLOW_hash_lit_in_atom445);
                     var hash_lit2 = this.hash_lit();
                     this._fsp--;
                     if (this.failed) return val;
@@ -608,8 +610,8 @@ ANTLR.lang.extend(wittyParser, ANTLR.runtime.Parser, {
 
                     break;
                 case 3 :
-                    // antlr/witty.g:52:27: list_lit
-                    this.pushFollow(wittyParser.FOLLOW_list_lit_in_atom444);
+                    // antlr/witty.g:53:27: list_lit
+                    this.pushFollow(wittyParser.FOLLOW_list_lit_in_atom475);
                     var list_lit3 = this.list_lit();
                     this._fsp--;
                     if (this.failed) return val;
@@ -622,36 +624,36 @@ ANTLR.lang.extend(wittyParser, ANTLR.runtime.Parser, {
 
             }
 
-            // antlr/witty.g:53:24: (p= '(' (b1= block )? ( ',' b2= block )* ')' )*
+            // antlr/witty.g:54:24: (p= '(' (b1= block )? ( ',' b2= block )* ')' )*
             loop15:
             do {
                 var alt15=2;
                 var LA15_0 = this.input.LA(1);
 
-                if ( (LA15_0==21) ) {
+                if ( (LA15_0==22) ) {
                     alt15=1;
                 }
 
 
                 switch (alt15) {
             	case 1 :
-            	    // antlr/witty.g:53:25: p= '(' (b1= block )? ( ',' b2= block )* ')'
+            	    // antlr/witty.g:54:25: p= '(' (b1= block )? ( ',' b2= block )* ')'
             	    p=this.input.LT(1);
-            	    this.match(this.input,21,wittyParser.FOLLOW_21_in_atom476); if (this.failed) return val;
+            	    this.match(this.input,22,wittyParser.FOLLOW_22_in_atom507); if (this.failed) return val;
             	    if ( this.backtracking===0 ) {
             	       val = Applic(val); val.line = p.getLine(); val.pos = p.getCharPositionInLine(); 
             	    }
-            	    // antlr/witty.g:54:29: (b1= block )?
+            	    // antlr/witty.g:55:29: (b1= block )?
             	    var alt13=2;
             	    var LA13_0 = this.input.LA(1);
 
-            	    if ( ((LA13_0>=TERM && LA13_0<=ID)||LA13_0==21||LA13_0==24||LA13_0==27) ) {
+            	    if ( ((LA13_0>=TERM && LA13_0<=ID)||LA13_0==22||LA13_0==25||LA13_0==28) ) {
             	        alt13=1;
             	    }
             	    switch (alt13) {
             	        case 1 :
-            	            // antlr/witty.g:54:30: b1= block
-            	            this.pushFollow(wittyParser.FOLLOW_block_in_atom511);
+            	            // antlr/witty.g:55:30: b1= block
+            	            this.pushFollow(wittyParser.FOLLOW_block_in_atom542);
             	            var b1 = this.block();
             	            this._fsp--;
             	            if (this.failed) return val;
@@ -664,22 +666,22 @@ ANTLR.lang.extend(wittyParser, ANTLR.runtime.Parser, {
 
             	    }
 
-            	    // antlr/witty.g:55:29: ( ',' b2= block )*
+            	    // antlr/witty.g:56:29: ( ',' b2= block )*
             	    loop14:
             	    do {
             	        var alt14=2;
             	        var LA14_0 = this.input.LA(1);
 
-            	        if ( (LA14_0==23) ) {
+            	        if ( (LA14_0==24) ) {
             	            alt14=1;
             	        }
 
 
             	        switch (alt14) {
             	    	case 1 :
-            	    	    // antlr/witty.g:55:30: ',' b2= block
-            	    	    this.match(this.input,23,wittyParser.FOLLOW_23_in_atom548); if (this.failed) return val;
-            	    	    this.pushFollow(wittyParser.FOLLOW_block_in_atom552);
+            	    	    // antlr/witty.g:56:30: ',' b2= block
+            	    	    this.match(this.input,24,wittyParser.FOLLOW_24_in_atom579); if (this.failed) return val;
+            	    	    this.pushFollow(wittyParser.FOLLOW_block_in_atom583);
             	    	    var b2 = this.block();
             	    	    this._fsp--;
             	    	    if (this.failed) return val;
@@ -695,7 +697,7 @@ ANTLR.lang.extend(wittyParser, ANTLR.runtime.Parser, {
             	        }
             	    } while (true);
 
-            	    this.match(this.input,22,wittyParser.FOLLOW_22_in_atom559); if (this.failed) return val;
+            	    this.match(this.input,23,wittyParser.FOLLOW_23_in_atom590); if (this.failed) return val;
 
 
             	    break;
@@ -723,7 +725,7 @@ ANTLR.lang.extend(wittyParser, ANTLR.runtime.Parser, {
     },
 
 
-    // antlr/witty.g:57:1: hash_lit returns [Object val] : '{' (p1= pair )? ( ',' p2= pair )* '}' ;
+    // antlr/witty.g:58:1: hash_lit returns [Object val] : '{' (p1= pair )? ( ',' p2= pair )* '}' ;
     // $ANTLR start hash_lit
     hash_lit: function() {
         var val = null;
@@ -732,13 +734,13 @@ ANTLR.lang.extend(wittyParser, ANTLR.runtime.Parser, {
          var p2 = null;
 
         try {
-            // antlr/witty.g:58:21: ( '{' (p1= pair )? ( ',' p2= pair )* '}' )
-            // antlr/witty.g:58:23: '{' (p1= pair )? ( ',' p2= pair )* '}'
-            this.match(this.input,24,wittyParser.FOLLOW_24_in_hash_lit573); if (this.failed) return val;
+            // antlr/witty.g:59:21: ( '{' (p1= pair )? ( ',' p2= pair )* '}' )
+            // antlr/witty.g:59:23: '{' (p1= pair )? ( ',' p2= pair )* '}'
+            this.match(this.input,25,wittyParser.FOLLOW_25_in_hash_lit604); if (this.failed) return val;
             if ( this.backtracking===0 ) {
                val = Applic("H", List()); 
             }
-            // antlr/witty.g:59:24: (p1= pair )?
+            // antlr/witty.g:60:24: (p1= pair )?
             var alt16=2;
             var LA16_0 = this.input.LA(1);
 
@@ -747,8 +749,8 @@ ANTLR.lang.extend(wittyParser, ANTLR.runtime.Parser, {
             }
             switch (alt16) {
                 case 1 :
-                    // antlr/witty.g:59:25: p1= pair
-                    this.pushFollow(wittyParser.FOLLOW_pair_in_hash_lit603);
+                    // antlr/witty.g:60:25: p1= pair
+                    this.pushFollow(wittyParser.FOLLOW_pair_in_hash_lit634);
                     var p1 = this.pair();
                     this._fsp--;
                     if (this.failed) return val;
@@ -761,22 +763,22 @@ ANTLR.lang.extend(wittyParser, ANTLR.runtime.Parser, {
 
             }
 
-            // antlr/witty.g:60:24: ( ',' p2= pair )*
+            // antlr/witty.g:61:24: ( ',' p2= pair )*
             loop17:
             do {
                 var alt17=2;
                 var LA17_0 = this.input.LA(1);
 
-                if ( (LA17_0==23) ) {
+                if ( (LA17_0==24) ) {
                     alt17=1;
                 }
 
 
                 switch (alt17) {
             	case 1 :
-            	    // antlr/witty.g:60:25: ',' p2= pair
-            	    this.match(this.input,23,wittyParser.FOLLOW_23_in_hash_lit635); if (this.failed) return val;
-            	    this.pushFollow(wittyParser.FOLLOW_pair_in_hash_lit639);
+            	    // antlr/witty.g:61:25: ',' p2= pair
+            	    this.match(this.input,24,wittyParser.FOLLOW_24_in_hash_lit666); if (this.failed) return val;
+            	    this.pushFollow(wittyParser.FOLLOW_pair_in_hash_lit670);
             	    var p2 = this.pair();
             	    this._fsp--;
             	    if (this.failed) return val;
@@ -792,7 +794,7 @@ ANTLR.lang.extend(wittyParser, ANTLR.runtime.Parser, {
                 }
             } while (true);
 
-            this.match(this.input,25,wittyParser.FOLLOW_25_in_hash_lit646); if (this.failed) return val;
+            this.match(this.input,26,wittyParser.FOLLOW_26_in_hash_lit677); if (this.failed) return val;
 
 
 
@@ -811,7 +813,7 @@ ANTLR.lang.extend(wittyParser, ANTLR.runtime.Parser, {
     },
 
 
-    // antlr/witty.g:62:1: pair returns [Object val] : ID ':' block ;
+    // antlr/witty.g:63:1: pair returns [Object val] : ID ':' block ;
     // $ANTLR start pair
     pair: function() {
         var val = null;
@@ -820,12 +822,12 @@ ANTLR.lang.extend(wittyParser, ANTLR.runtime.Parser, {
          var block5 = null;
 
         try {
-            // antlr/witty.g:63:21: ( ID ':' block )
-            // antlr/witty.g:63:23: ID ':' block
+            // antlr/witty.g:64:21: ( ID ':' block )
+            // antlr/witty.g:64:23: ID ':' block
             ID4=this.input.LT(1);
-            this.match(this.input,ID,wittyParser.FOLLOW_ID_in_pair657); if (this.failed) return val;
-            this.match(this.input,26,wittyParser.FOLLOW_26_in_pair659); if (this.failed) return val;
-            this.pushFollow(wittyParser.FOLLOW_block_in_pair661);
+            this.match(this.input,ID,wittyParser.FOLLOW_ID_in_pair688); if (this.failed) return val;
+            this.match(this.input,27,wittyParser.FOLLOW_27_in_pair690); if (this.failed) return val;
+            this.pushFollow(wittyParser.FOLLOW_block_in_pair692);
             var block5 = this.block();
             this._fsp--;
             if (this.failed) return val;
@@ -850,7 +852,7 @@ ANTLR.lang.extend(wittyParser, ANTLR.runtime.Parser, {
     },
 
 
-    // antlr/witty.g:65:1: list_lit returns [Object val] : '[' (s1= stmt )? ( ',' s2= stmt )* ']' ;
+    // antlr/witty.g:66:1: list_lit returns [Object val] : '[' (s1= stmt )? ( ',' s2= stmt )* ']' ;
     // $ANTLR start list_lit
     list_lit: function() {
         var val = null;
@@ -859,23 +861,23 @@ ANTLR.lang.extend(wittyParser, ANTLR.runtime.Parser, {
          var s2 = null;
 
         try {
-            // antlr/witty.g:66:21: ( '[' (s1= stmt )? ( ',' s2= stmt )* ']' )
-            // antlr/witty.g:66:23: '[' (s1= stmt )? ( ',' s2= stmt )* ']'
-            this.match(this.input,27,wittyParser.FOLLOW_27_in_list_lit674); if (this.failed) return val;
+            // antlr/witty.g:67:21: ( '[' (s1= stmt )? ( ',' s2= stmt )* ']' )
+            // antlr/witty.g:67:23: '[' (s1= stmt )? ( ',' s2= stmt )* ']'
+            this.match(this.input,28,wittyParser.FOLLOW_28_in_list_lit705); if (this.failed) return val;
             if ( this.backtracking===0 ) {
                val = Applic("L", List()); 
             }
-            // antlr/witty.g:67:24: (s1= stmt )?
+            // antlr/witty.g:68:24: (s1= stmt )?
             var alt18=2;
             var LA18_0 = this.input.LA(1);
 
-            if ( ((LA18_0>=WS && LA18_0<=ID)||LA18_0==21||LA18_0==24||LA18_0==27) ) {
+            if ( ((LA18_0>=WS && LA18_0<=ID)||LA18_0==22||LA18_0==25||LA18_0==28) ) {
                 alt18=1;
             }
             switch (alt18) {
                 case 1 :
-                    // antlr/witty.g:67:25: s1= stmt
-                    this.pushFollow(wittyParser.FOLLOW_stmt_in_list_lit706);
+                    // antlr/witty.g:68:25: s1= stmt
+                    this.pushFollow(wittyParser.FOLLOW_stmt_in_list_lit737);
                     var s1 = this.stmt();
                     this._fsp--;
                     if (this.failed) return val;
@@ -888,22 +890,22 @@ ANTLR.lang.extend(wittyParser, ANTLR.runtime.Parser, {
 
             }
 
-            // antlr/witty.g:68:24: ( ',' s2= stmt )*
+            // antlr/witty.g:69:24: ( ',' s2= stmt )*
             loop19:
             do {
                 var alt19=2;
                 var LA19_0 = this.input.LA(1);
 
-                if ( (LA19_0==23) ) {
+                if ( (LA19_0==24) ) {
                     alt19=1;
                 }
 
 
                 switch (alt19) {
             	case 1 :
-            	    // antlr/witty.g:68:25: ',' s2= stmt
-            	    this.match(this.input,23,wittyParser.FOLLOW_23_in_list_lit738); if (this.failed) return val;
-            	    this.pushFollow(wittyParser.FOLLOW_stmt_in_list_lit742);
+            	    // antlr/witty.g:69:25: ',' s2= stmt
+            	    this.match(this.input,24,wittyParser.FOLLOW_24_in_list_lit769); if (this.failed) return val;
+            	    this.pushFollow(wittyParser.FOLLOW_stmt_in_list_lit773);
             	    var s2 = this.stmt();
             	    this._fsp--;
             	    if (this.failed) return val;
@@ -919,7 +921,7 @@ ANTLR.lang.extend(wittyParser, ANTLR.runtime.Parser, {
                 }
             } while (true);
 
-            this.match(this.input,28,wittyParser.FOLLOW_28_in_list_lit749); if (this.failed) return val;
+            this.match(this.input,29,wittyParser.FOLLOW_29_in_list_lit780); if (this.failed) return val;
 
 
 
@@ -938,7 +940,7 @@ ANTLR.lang.extend(wittyParser, ANTLR.runtime.Parser, {
     },
 
 
-    // antlr/witty.g:70:1: tokn returns [Object val] : t= ( ID | OPER | UNARY ) ;
+    // antlr/witty.g:71:1: tokn returns [Object val] : t= ( ID | OPER | UNARY ) ;
     // $ANTLR start tokn
     tokn: function() {
         var val = null;
@@ -946,8 +948,8 @@ ANTLR.lang.extend(wittyParser, ANTLR.runtime.Parser, {
         var t = null;
 
         try {
-            // antlr/witty.g:71:21: (t= ( ID | OPER | UNARY ) )
-            // antlr/witty.g:71:23: t= ( ID | OPER | UNARY )
+            // antlr/witty.g:72:21: (t= ( ID | OPER | UNARY ) )
+            // antlr/witty.g:72:23: t= ( ID | OPER | UNARY )
             t=this.input.LT(1);
             if ( (this.input.LA(1)>=OPER && this.input.LA(1)<=UNARY)||this.input.LA(1)==ID ) {
                 this.input.consume();
@@ -956,7 +958,7 @@ ANTLR.lang.extend(wittyParser, ANTLR.runtime.Parser, {
             else {
                 if (this.backtracking>0) {this.failed=true; return val;}
                 var mse = new ANTLR.runtime.MismatchedSetException(null,this.input);
-                this.recoverFromMismatchedSet(this.input,mse,wittyParser.FOLLOW_set_in_tokn762);    throw mse;
+                this.recoverFromMismatchedSet(this.input,mse,wittyParser.FOLLOW_set_in_tokn793);    throw mse;
             }
 
             if ( this.backtracking===0 ) {
@@ -1018,14 +1020,14 @@ ANTLR.lang.augmentObject(wittyParser, {
     DFA3_minS:
         "\u0002\u0004\u0002\uffff",
     DFA3_maxS:
-        "\u0001\u0019\u0001\u001b\u0002\uffff",
+        "\u0001\u001a\u0001\u001c\u0002\uffff",
     DFA3_acceptS:
         "\u0002\uffff\u0001\u0002\u0001\u0001",
     DFA3_specialS:
         "\u0004\uffff}>",
     DFA3_transitionS: [
-            "\u0001\u0001\u0011\uffff\u0002\u0002\u0001\uffff\u0001\u0002",
-            "\u0001\u0001\u0006\u0003\u000a\uffff\u0001\u0003\u0002\u0002"+
+            "\u0001\u0001\u0012\uffff\u0002\u0002\u0001\uffff\u0001\u0002",
+            "\u0001\u0001\u0007\u0003\u000a\uffff\u0001\u0003\u0002\u0002"+
             "\u0001\u0003\u0001\u0002\u0001\uffff\u0001\u0003",
             "",
             ""
@@ -1084,8 +1086,8 @@ ANTLR.lang.augmentObject(wittyParser, {
         "\u0001\u0006\u0001\u0004\u0001\uffff\u0001\u0004\u0003\uffff\u0004"+
     "\u0004\u0007\uffff\u0006\u0000\u0002\uffff\u0009\u0000\u0003\uffff",
     DFA10_maxS:
-        "\u0001\u001b\u0001\u001c\u0001\uffff\u0001\u001c\u0003\uffff\u0001"+
-    "\u001c\u0001\u001b\u0002\u001c\u0007\uffff\u0006\u0000\u0002\uffff\u0009"+
+        "\u0001\u001c\u0001\u001d\u0001\uffff\u0001\u001d\u0003\uffff\u0001"+
+    "\u001d\u0001\u001c\u0002\u001d\u0007\uffff\u0006\u0000\u0002\uffff\u0009"+
     "\u0000\u0003\uffff",
     DFA10_acceptS:
         "\u0002\uffff\u0001\u0002\u0001\uffff\u0003\u0001\u0004\uffff\u0007"+
@@ -1094,27 +1096,27 @@ ANTLR.lang.augmentObject(wittyParser, {
         "\u0001\uffff\u0001\u0004\u0001\uffff\u0001\u0000\u0003\uffff\u0001"+
     "\u0001\u0001\u0002\u0001\uffff\u0001\u0003\u001b\uffff}>",
     DFA10_transitionS: [
-            "\u0001\u0002\u0001\u0001\u0003\u0002\u000d\uffff\u0001\u0002"+
+            "\u0001\u0002\u0001\u0001\u0004\u0002\u000d\uffff\u0001\u0002"+
             "\u0002\uffff\u0001\u0002",
-            "\u0002\u0002\u0002\u0003\u0003\u0006\u000a\uffff\u0003\u0002"+
+            "\u0002\u0002\u0002\u0003\u0004\u0006\u000a\uffff\u0003\u0002"+
             "\u0001\u0004\u0001\u0002\u0001\uffff\u0001\u0005\u0001\u0002",
             "",
-            "\u0001\u000b\u0001\u0007\u0001\u000a\u0001\u0009\u0003\u0002"+
+            "\u0001\u000b\u0001\u0007\u0001\u000a\u0001\u0009\u0004\u0002"+
             "\u000a\uffff\u0001\u0008\u0001\u000e\u0001\u000d\u0001\u0002"+
             "\u0001\u000f\u0001\uffff\u0001\u0002\u0001\u0010",
             "",
             "",
             "",
-            "\u0001\u000b\u0001\u0007\u0005\u0002\u000a\uffff\u0001\u0002"+
+            "\u0001\u000b\u0001\u0007\u0006\u0002\u000a\uffff\u0001\u0002"+
             "\u0001\u000e\u0001\u000d\u0001\u0002\u0001\u000f\u0001\uffff"+
             "\u0001\u0002\u0001\u0010",
-            "\u0001\u0011\u0001\u0012\u0001\u0015\u0001\u0014\u0003\u0015"+
+            "\u0001\u0011\u0001\u0012\u0001\u0015\u0001\u0014\u0004\u0015"+
             "\u000a\uffff\u0001\u0013\u0001\u0019\u0001\u0018\u0001\u0016"+
             "\u0002\uffff\u0001\u0017",
-            "\u0001\u0002\u0001\u001d\u0001\u001f\u0001\u001a\u0003\u0020"+
+            "\u0001\u0002\u0001\u001d\u0001\u001f\u0001\u001a\u0004\u0020"+
             "\u000a\uffff\u0001\u001e\u0002\u0002\u0001\u001b\u0001\u0002"+
             "\u0001\uffff\u0001\u001c\u0001\u0002",
-            "\u0001\u0002\u0001\u001d\u0001\u0022\u0001\u0021\u0003\u0025"+
+            "\u0001\u0002\u0001\u001d\u0001\u0022\u0001\u0021\u0004\u0025"+
             "\u000a\uffff\u0001\u001e\u0002\u0002\u0001\u0023\u0001\u0002"+
             "\u0001\uffff\u0001\u0024\u0001\u0002",
             "",
@@ -1201,25 +1203,25 @@ ANTLR.lang.extend(wittyParser.DFA10, ANTLR.runtime.DFA, {
                             s = -1;
                             if ( (LA10_3==WS) ) {s = 7;}
 
-                            else if ( (LA10_3==21) ) {s = 8;}
+                            else if ( (LA10_3==22) ) {s = 8;}
 
                             else if ( (LA10_3==UNARY) ) {s = 9;}
 
                             else if ( (LA10_3==OPER) ) {s = 10;}
 
-                            else if ( ((LA10_3>=NUM && LA10_3<=ID)||LA10_3==24||LA10_3==27) ) {s = 2;}
+                            else if ( ((LA10_3>=NUM && LA10_3<=ID)||LA10_3==25||LA10_3==28) ) {s = 2;}
 
                             else if ( (LA10_3==TERM) && (this.synpred1())) {s = 11;}
 
                             else if ( (LA10_3==EOF) && (this.synpred1())) {s = 12;}
 
-                            else if ( (LA10_3==23) && (this.synpred1())) {s = 13;}
+                            else if ( (LA10_3==24) && (this.synpred1())) {s = 13;}
 
-                            else if ( (LA10_3==22) && (this.synpred1())) {s = 14;}
+                            else if ( (LA10_3==23) && (this.synpred1())) {s = 14;}
 
-                            else if ( (LA10_3==25) && (this.synpred1())) {s = 15;}
+                            else if ( (LA10_3==26) && (this.synpred1())) {s = 15;}
 
-                            else if ( (LA10_3==28) && (this.synpred1())) {s = 16;}
+                            else if ( (LA10_3==29) && (this.synpred1())) {s = 16;}
 
                              
                             input.seek(index10_3);
@@ -1236,17 +1238,17 @@ ANTLR.lang.extend(wittyParser.DFA10, ANTLR.runtime.DFA, {
 
                             else if ( (LA10_7==EOF) && (this.synpred1())) {s = 12;}
 
-                            else if ( (LA10_7==23) && (this.synpred1())) {s = 13;}
+                            else if ( (LA10_7==24) && (this.synpred1())) {s = 13;}
 
-                            else if ( (LA10_7==22) && (this.synpred1())) {s = 14;}
+                            else if ( (LA10_7==23) && (this.synpred1())) {s = 14;}
 
-                            else if ( (LA10_7==25) && (this.synpred1())) {s = 15;}
+                            else if ( (LA10_7==26) && (this.synpred1())) {s = 15;}
 
                             else if ( (LA10_7==WS) ) {s = 7;}
 
-                            else if ( (LA10_7==28) && (this.synpred1())) {s = 16;}
+                            else if ( (LA10_7==29) && (this.synpred1())) {s = 16;}
 
-                            else if ( ((LA10_7>=OPER && LA10_7<=ID)||LA10_7==21||LA10_7==24||LA10_7==27) ) {s = 2;}
+                            else if ( ((LA10_7>=OPER && LA10_7<=ID)||LA10_7==22||LA10_7==25||LA10_7==28) ) {s = 2;}
 
                              
                             input.seek(index10_7);
@@ -1263,19 +1265,19 @@ ANTLR.lang.extend(wittyParser.DFA10, ANTLR.runtime.DFA, {
 
                             else if ( (LA10_8==WS) ) {s = 18;}
 
-                            else if ( (LA10_8==21) ) {s = 19;}
+                            else if ( (LA10_8==22) ) {s = 19;}
 
                             else if ( (LA10_8==UNARY) ) {s = 20;}
 
                             else if ( (LA10_8==OPER||(LA10_8>=NUM && LA10_8<=ID)) ) {s = 21;}
 
-                            else if ( (LA10_8==24) ) {s = 22;}
+                            else if ( (LA10_8==25) ) {s = 22;}
 
-                            else if ( (LA10_8==27) ) {s = 23;}
+                            else if ( (LA10_8==28) ) {s = 23;}
 
-                            else if ( (LA10_8==23) && (this.synpred1())) {s = 24;}
+                            else if ( (LA10_8==24) && (this.synpred1())) {s = 24;}
 
-                            else if ( (LA10_8==22) && (this.synpred1())) {s = 25;}
+                            else if ( (LA10_8==23) && (this.synpred1())) {s = 25;}
 
                              
                             input.seek(index10_8);
@@ -1290,19 +1292,19 @@ ANTLR.lang.extend(wittyParser.DFA10, ANTLR.runtime.DFA, {
                             s = -1;
                             if ( (LA10_10==WS) ) {s = 29;}
 
-                            else if ( (LA10_10==21) ) {s = 30;}
+                            else if ( (LA10_10==22) ) {s = 30;}
 
                             else if ( (LA10_10==UNARY) ) {s = 33;}
 
                             else if ( (LA10_10==OPER) ) {s = 34;}
 
-                            else if ( (LA10_10==24) && (this.synpred1())) {s = 35;}
+                            else if ( (LA10_10==25) && (this.synpred1())) {s = 35;}
 
-                            else if ( (LA10_10==27) && (this.synpred1())) {s = 36;}
+                            else if ( (LA10_10==28) && (this.synpred1())) {s = 36;}
 
                             else if ( ((LA10_10>=NUM && LA10_10<=ID)) && (this.synpred1())) {s = 37;}
 
-                            else if ( (LA10_10==EOF||LA10_10==TERM||(LA10_10>=22 && LA10_10<=23)||LA10_10==25||LA10_10==28) ) {s = 2;}
+                            else if ( (LA10_10==EOF||LA10_10==TERM||(LA10_10>=23 && LA10_10<=24)||LA10_10==26||LA10_10==29) ) {s = 2;}
 
                              
                             input.seek(index10_10);
@@ -1317,11 +1319,11 @@ ANTLR.lang.extend(wittyParser.DFA10, ANTLR.runtime.DFA, {
                             s = -1;
                             if ( ((LA10_1>=OPER && LA10_1<=UNARY)) ) {s = 3;}
 
-                            else if ( (LA10_1==24) && (this.synpred1())) {s = 4;}
+                            else if ( (LA10_1==25) && (this.synpred1())) {s = 4;}
 
-                            else if ( (LA10_1==27) && (this.synpred1())) {s = 5;}
+                            else if ( (LA10_1==28) && (this.synpred1())) {s = 5;}
 
-                            else if ( (LA10_1==EOF||(LA10_1>=TERM && LA10_1<=WS)||(LA10_1>=21 && LA10_1<=23)||LA10_1==25||LA10_1==28) ) {s = 2;}
+                            else if ( (LA10_1==EOF||(LA10_1>=TERM && LA10_1<=WS)||(LA10_1>=22 && LA10_1<=24)||LA10_1==26||LA10_1==29) ) {s = 2;}
 
                             else if ( ((LA10_1>=NUM && LA10_1<=ID)) && (this.synpred1())) {s = 6;}
 
@@ -1346,51 +1348,51 @@ ANTLR.lang.extend(wittyParser.DFA10, ANTLR.runtime.DFA, {
 
 // public class variables
 ANTLR.lang.augmentObject(wittyParser, {
-    tokenNames: ["<invalid>", "<EOR>", "<DOWN>", "<UP>", "TERM", "WS", "OPER", "UNARY", "NUM", "STRING", "ID", "SYMBOLS", "LETTER", "NON_OP", "DIGIT", "ESC_SEQ", "CR", "COMMENT", "UNICODE_ESC", "OCTAL_ESC", "HEX_DIG", "'('", "')'", "','", "'{'", "'}'", "':'", "'['", "']'"],
-    FOLLOW_TERM_in_block30: new ANTLR.misc.BitSet([0x092007F0,0x00000000]),
+    tokenNames: ["<invalid>", "<EOR>", "<DOWN>", "<UP>", "TERM", "WS", "OPER", "UNARY", "NUM", "STRING", "SSTRING", "ID", "SYMBOLS", "LETTER", "NON_OP", "DIGIT", "ESC_SEQ", "CR", "COMMENT", "UNICODE_ESC", "OCTAL_ESC", "HEX_DIG", "'('", "')'", "','", "'{'", "'}'", "':'", "'['", "']'"],
+    FOLLOW_TERM_in_block30: new ANTLR.misc.BitSet([0x12400FF0,0x00000000]),
     FOLLOW_stmt_in_block58: new ANTLR.misc.BitSet([0x00000012,0x00000000]),
-    FOLLOW_TERM_in_block85: new ANTLR.misc.BitSet([0x092007F0,0x00000000]),
+    FOLLOW_TERM_in_block85: new ANTLR.misc.BitSet([0x12400FF0,0x00000000]),
     FOLLOW_stmt_in_block90: new ANTLR.misc.BitSet([0x00000012,0x00000000]),
     FOLLOW_TERM_in_block119: new ANTLR.misc.BitSet([0x00000012,0x00000000]),
     FOLLOW_EOF_in_block122: new ANTLR.misc.BitSet([0x00000002,0x00000000]),
-    FOLLOW_WS_in_stmt134: new ANTLR.misc.BitSet([0x092007E0,0x00000000]),
+    FOLLOW_WS_in_stmt134: new ANTLR.misc.BitSet([0x12400FE0,0x00000000]),
     FOLLOW_assoc_in_stmt139: new ANTLR.misc.BitSet([0x00000022,0x00000000]),
     FOLLOW_WS_in_stmt143: new ANTLR.misc.BitSet([0x00000022,0x00000000]),
     FOLLOW_parens_assoc_in_assoc158: new ANTLR.misc.BitSet([0x00000002,0x00000000]),
     FOLLOW_atom_assoc_in_assoc189: new ANTLR.misc.BitSet([0x00000002,0x00000000]),
-    FOLLOW_21_in_parens_assoc202: new ANTLR.misc.BitSet([0x092007E0,0x00000000]),
-    FOLLOW_stmt_in_parens_assoc206: new ANTLR.misc.BitSet([0x00400000,0x00000000]),
-    FOLLOW_22_in_parens_assoc208: new ANTLR.misc.BitSet([0x000000C2,0x00000000]),
-    FOLLOW_set_in_parens_assoc213: new ANTLR.misc.BitSet([0x092007E0,0x00000000]),
+    FOLLOW_22_in_parens_assoc202: new ANTLR.misc.BitSet([0x12400FE0,0x00000000]),
+    FOLLOW_stmt_in_parens_assoc206: new ANTLR.misc.BitSet([0x00800000,0x00000000]),
+    FOLLOW_23_in_parens_assoc208: new ANTLR.misc.BitSet([0x000000C2,0x00000000]),
+    FOLLOW_set_in_parens_assoc213: new ANTLR.misc.BitSet([0x12400FE0,0x00000000]),
     FOLLOW_stmt_in_parens_assoc223: new ANTLR.misc.BitSet([0x00000002,0x00000000]),
-    FOLLOW_UNARY_in_atom_assoc272: new ANTLR.misc.BitSet([0x090007C0,0x00000000]),
+    FOLLOW_UNARY_in_atom_assoc272: new ANTLR.misc.BitSet([0x12000FC0,0x00000000]),
     FOLLOW_atom_in_atom_assoc276: new ANTLR.misc.BitSet([0x000000C2,0x00000000]),
     FOLLOW_atom_in_atom_assoc306: new ANTLR.misc.BitSet([0x000000C2,0x00000000]),
-    FOLLOW_set_in_atom_assoc337: new ANTLR.misc.BitSet([0x092007E0,0x00000000]),
+    FOLLOW_set_in_atom_assoc337: new ANTLR.misc.BitSet([0x12400FE0,0x00000000]),
     FOLLOW_stmt_in_atom_assoc345: new ANTLR.misc.BitSet([0x00000002,0x00000000]),
-    FOLLOW_set_in_atom365: new ANTLR.misc.BitSet([0x00200002,0x00000000]),
-    FOLLOW_hash_lit_in_atom414: new ANTLR.misc.BitSet([0x00200002,0x00000000]),
-    FOLLOW_list_lit_in_atom444: new ANTLR.misc.BitSet([0x00200002,0x00000000]),
-    FOLLOW_21_in_atom476: new ANTLR.misc.BitSet([0x09E007F0,0x00000000]),
-    FOLLOW_block_in_atom511: new ANTLR.misc.BitSet([0x00C00000,0x00000000]),
-    FOLLOW_23_in_atom548: new ANTLR.misc.BitSet([0x092007F0,0x00000000]),
-    FOLLOW_block_in_atom552: new ANTLR.misc.BitSet([0x00C00000,0x00000000]),
-    FOLLOW_22_in_atom559: new ANTLR.misc.BitSet([0x00200002,0x00000000]),
-    FOLLOW_24_in_hash_lit573: new ANTLR.misc.BitSet([0x02800400,0x00000000]),
-    FOLLOW_pair_in_hash_lit603: new ANTLR.misc.BitSet([0x02800000,0x00000000]),
-    FOLLOW_23_in_hash_lit635: new ANTLR.misc.BitSet([0x00000400,0x00000000]),
-    FOLLOW_pair_in_hash_lit639: new ANTLR.misc.BitSet([0x02800000,0x00000000]),
-    FOLLOW_25_in_hash_lit646: new ANTLR.misc.BitSet([0x00000002,0x00000000]),
-    FOLLOW_ID_in_pair657: new ANTLR.misc.BitSet([0x04000000,0x00000000]),
-    FOLLOW_26_in_pair659: new ANTLR.misc.BitSet([0x092007F0,0x00000000]),
-    FOLLOW_block_in_pair661: new ANTLR.misc.BitSet([0x00000002,0x00000000]),
-    FOLLOW_27_in_list_lit674: new ANTLR.misc.BitSet([0x19A007E0,0x00000000]),
-    FOLLOW_stmt_in_list_lit706: new ANTLR.misc.BitSet([0x10800000,0x00000000]),
-    FOLLOW_23_in_list_lit738: new ANTLR.misc.BitSet([0x092007E0,0x00000000]),
-    FOLLOW_stmt_in_list_lit742: new ANTLR.misc.BitSet([0x10800000,0x00000000]),
-    FOLLOW_28_in_list_lit749: new ANTLR.misc.BitSet([0x00000002,0x00000000]),
-    FOLLOW_set_in_tokn762: new ANTLR.misc.BitSet([0x00000002,0x00000000]),
-    FOLLOW_UNARY_in_synpred1265: new ANTLR.misc.BitSet([0x090007C0,0x00000000]),
+    FOLLOW_set_in_atom365: new ANTLR.misc.BitSet([0x00400002,0x00000000]),
+    FOLLOW_hash_lit_in_atom445: new ANTLR.misc.BitSet([0x00400002,0x00000000]),
+    FOLLOW_list_lit_in_atom475: new ANTLR.misc.BitSet([0x00400002,0x00000000]),
+    FOLLOW_22_in_atom507: new ANTLR.misc.BitSet([0x13C00FF0,0x00000000]),
+    FOLLOW_block_in_atom542: new ANTLR.misc.BitSet([0x01800000,0x00000000]),
+    FOLLOW_24_in_atom579: new ANTLR.misc.BitSet([0x12400FF0,0x00000000]),
+    FOLLOW_block_in_atom583: new ANTLR.misc.BitSet([0x01800000,0x00000000]),
+    FOLLOW_23_in_atom590: new ANTLR.misc.BitSet([0x00400002,0x00000000]),
+    FOLLOW_25_in_hash_lit604: new ANTLR.misc.BitSet([0x05000800,0x00000000]),
+    FOLLOW_pair_in_hash_lit634: new ANTLR.misc.BitSet([0x05000000,0x00000000]),
+    FOLLOW_24_in_hash_lit666: new ANTLR.misc.BitSet([0x00000800,0x00000000]),
+    FOLLOW_pair_in_hash_lit670: new ANTLR.misc.BitSet([0x05000000,0x00000000]),
+    FOLLOW_26_in_hash_lit677: new ANTLR.misc.BitSet([0x00000002,0x00000000]),
+    FOLLOW_ID_in_pair688: new ANTLR.misc.BitSet([0x08000000,0x00000000]),
+    FOLLOW_27_in_pair690: new ANTLR.misc.BitSet([0x12400FF0,0x00000000]),
+    FOLLOW_block_in_pair692: new ANTLR.misc.BitSet([0x00000002,0x00000000]),
+    FOLLOW_28_in_list_lit705: new ANTLR.misc.BitSet([0x33400FE0,0x00000000]),
+    FOLLOW_stmt_in_list_lit737: new ANTLR.misc.BitSet([0x21000000,0x00000000]),
+    FOLLOW_24_in_list_lit769: new ANTLR.misc.BitSet([0x12400FE0,0x00000000]),
+    FOLLOW_stmt_in_list_lit773: new ANTLR.misc.BitSet([0x21000000,0x00000000]),
+    FOLLOW_29_in_list_lit780: new ANTLR.misc.BitSet([0x00000002,0x00000000]),
+    FOLLOW_set_in_tokn793: new ANTLR.misc.BitSet([0x00000002,0x00000000]),
+    FOLLOW_UNARY_in_synpred1265: new ANTLR.misc.BitSet([0x12000FC0,0x00000000]),
     FOLLOW_atom_in_synpred1267: new ANTLR.misc.BitSet([0x00000002,0x00000000])
 });
 

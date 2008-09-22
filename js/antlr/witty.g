@@ -47,7 +47,8 @@ returns [Object val]: ((UNARY atom)=>u2=UNARY a1=atom { $val = Applic($u2.text, 
                       } )?;
 
 atom
-returns [Object val] : (a=(NUM | STRING | ID | OPER | UNARY) { $val = new String($a.text); $val.line = $a.line; $val.pos = $a.pos; } 
+returns [Object val] : (a=(NUM | STRING | SSTRING | ID | OPER | UNARY) 
+                          { $val = new String($a.text); $val.line = $a.line; $val.pos = $a.pos; } 
                         | hash_lit { $val = $hash_lit.val; }
                         | list_lit { $val = $list_lit.val; } )
                        (p='(' { $val = Applic($val); $val.line = $p.line; $val.pos = $p.pos; }
@@ -79,6 +80,7 @@ UNARY: '!' | '-';
 
 ID        : (LETTER | NON_OP) (LETTER | DIGIT | NON_OP | '!')*;
 STRING    :  '"' ( ESC_SEQ | ~('\\'|'"') )* '"';
+SSTRING   :  '\'' ( ESC_SEQ | ~('\\'|'\'') )* '\'';
 NUM       : {var dotBefore = (this.input.LT(-1) == '.'); } 
             DIGIT+ 
             ({!dotBefore}?=> ('.' DIGIT+)?
