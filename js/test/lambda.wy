@@ -6,9 +6,7 @@ describe("Simple lambda definitions",
   it("should allow a working definition of a add(5,10) function based on +", ==(add(5,10), 15))
   it("should allow a working definition of factorial(5)", fact(5) == 120)
   it("should allow a working definition of factorial(8)", fact(8) == 40320)
-)
-
-describe("Primitive redefinition",
+  it("should allow direct application", (lambda(n, n * 10)(4)) == 40)
   it("should allow overriding the + operator behavior", 
     old_plus = +
     + = lambda(a, b, a - b)
@@ -16,11 +14,23 @@ describe("Primitive redefinition",
     + = old_plus
     res + 3 == 6
   )
+  it("should redefine previous assignments",
+    add2 = lambda(a, a+2)
+    lambda(add2 = lambda(a, a+3))()
+    add2(3) == 6
+  )
 )
 
-describe("Direct lambda application",
-  it("should work after applying a curried +", (lambda(n, n + 3)(4)) == 7)
-  it("should work after applying a curried *", (lambda(n, n * 10)(4)) == 40)
+describe("Direct def",
+  it("should defined a new named lambda",
+    def(add2, val, val + 2)
+    add2(3) == 5
+  )
+  it("should be defined in the local scope, masking instead of redefining",
+    def(add2, val, val + 2)
+    lambda(def(add2, val, val + 3))()
+    add2(3) == 5
+  )
 )
 
 describe("Lambda currying",

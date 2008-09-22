@@ -301,6 +301,12 @@ addPrimitive('lambda', ['parameters*', 'body'],
   function(operands, env, ctx) {
     return makeLambda(operands.slice(0, -1), operands.last(), CURRENT_FILE, env, ctx);
   });
+addPrimitive('def', ['name', 'parameters*', 'body'],
+  function(operands, env, ctx) {
+    var lambda = makeLambda(operands.slice(1, -1), operands.last(), CURRENT_FILE, env, ctx);
+    env.first()[0][operands[0]] = lambda;
+    return lambda;
+  });
 addPrimitive('macro', ['pattern', 'body'], 
   function(operands, env, ctx) {
     var pattern = operands.first();
