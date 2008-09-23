@@ -1,11 +1,11 @@
-load("lib/runtime.js");
-load("lib/wittyLexer.js");
-load("lib/wittyParser.js");
-load("lib/util.js");
-load("lib/json2.js");
-load("lib/macro.js");
-load("lib/dtype.js");
-load("lib/printer.js");
+load("src/runtime.js");
+load("src/wittyLexer.js");
+load("src/wittyParser.js");
+load("src/util.js");
+load("src/json2.js");
+load("src/macro.js");
+load("src/dtype.js");
+load("src/printer.js");
 
 function eval_(exp, env, ctx) {
   //print("eval: " + JSON.stringify(exp) + " :sntx: " + exp.sntx);

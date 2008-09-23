@@ -1,9 +1,9 @@
 //if (typeof trace != 'undefined')
 //  var load = ESC::compileAndLoadFile
 
-//load('lib/rhino-ext.js');
-//load("lib/tamarin-ext.js")
-load('lib/interpr.js');
+//load('src/rhino-ext.js');
+//load("src/tamarin-ext.js")
+load('src/interpr.js');
 
 var arguments = parameters().split(" ").slice(0, -1);
 
@@ -24,7 +24,7 @@ function setupEnv() {
 function setup() {
   var env = setupEnv();
 
-  var stdlib = readfile("lib/stdlib.wy");
+  var stdlib = readfile("src/stdlib.wy");
   eval_(parse(stdlib), env, []);
   return env;
 }
