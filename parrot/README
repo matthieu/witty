@@ -1,4 +1,0 @@
-To build, set the PARROT_HOME environment variable and run make.
-
-Language 'Wy' was created with tools/dev/mk_language_shell.pl, r28657.
-
