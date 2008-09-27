@@ -73,7 +73,7 @@ returns [Object val]: t=(ID | OPER | UNARY) { $val = new String($t.text); $val.l
 
 OPER: SYMBOLS (SYMBOLS|UNARY)* | UNARY SYMBOLS+;
 
-fragment SYMBOLS: ('_' | '~' | '@' | '#' | '$' | '%' | '^' | '&' | '<' | '>'
+fragment SYMBOLS: ('_' | '~' | '#' | '$' | '%' | '^' | '&' | '<' | '>'
       | '*' | '+' | '=' | '|' | '\\' | '.' | '?' | '/' | '`' | ':');
 
 UNARY: '!' | '-'; 
@@ -95,7 +95,7 @@ fragment OCTAL_ESC    : '\\' ('0'..'3') ('0'..'7') ('0'..'7') | '\\' ('0'..'7') 
 fragment UNICODE_ESC  :   '\\' 'u' HEX_DIG HEX_DIG HEX_DIG HEX_DIG;
 fragment HEX_DIG      : ('0'..'9'|'a'..'f'|'A'..'F') ;
 
-fragment NON_OP       : ('_' | '~' | '#' | '$' | '?' | '`');
+fragment NON_OP       : ('_' | '~' | '#' | '$' | '?' | '`' | '@' | '\\');
 
 fragment DIGIT    : '0'..'9';
 fragment LETTER   : 'a'..'z' | 'A'..'Z';

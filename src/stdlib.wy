@@ -2,6 +2,18 @@
 // the body is always escaped.
 macro(macrox(`exp, `body), `(macro($exp, `($body))))
 
+def(if, predicate, consequence, opposite,
+  primitive('if')
+)
+
+def(lambda, parameters\, body,
+  primitive('lambda')
+)
+
+def(join, list, separator?,
+  primitive('join')
+)
+
 // Operators, order is establishing precedence
 macro(`a = `b,
   if(applic?(a),

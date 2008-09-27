@@ -34,7 +34,7 @@ function patternKey(pattern) {
   throw "No key in pattern: " + pattern;
 }
 
-function expandMacros(exps, env) {
+function expandMacros(exps, env, ctx) {
   var macroApplics = [];
   for (var m = 0, el; el = exps[m]; m++) {
     var mac = variableValue(el, env, true);
@@ -47,13 +47,13 @@ function expandMacros(exps, env) {
   macroApplics.reverse().forEach(function(applics) {
     if (applics)
       applics.forEach(function(applic) {
-        if (rewriteWithMacro(exps, env, macroApplics, applic[0], applic[1])) expanded = true;
+        if (rewriteWithMacro(exps, env, ctx, macroApplics, applic[0], applic[1])) expanded = true;
       });
   });
   return expanded;
 }
 
-function rewriteWithMacro(exps, env, macroApplics, index, mac) {
+function rewriteWithMacro(exps, env, ctx, macroApplics, index, mac) {
   var frame, offset;
   for (var m = -1; m < 2; m++) {
     if (!frame) {
@@ -62,7 +62,7 @@ function rewriteWithMacro(exps, env, macroApplics, index, mac) {
     }
   }
   if (frame) {
-    expansion = eval_(mac[2], extendEnv(frame, env));
+    expansion = eval_(mac[2], extendEnv(frame, env), ctx);
     if (application(exps) && application(expansion)) {
       exps.splice(0, exps.length);
       exps.pushAll(expansion);
@@ -93,14 +93,14 @@ function matchAt(index, pattern, exps) {
 }
 
 // TODO escape code blocks like $(...)
-function escapeEval(exps, env) {
+function escapeEval(exps, env, ctx) {
   var copy = exps.clone();
   if (!copy[0]) return copy;
   
   for (var m = 0; m < copy.length; m++) {
     if (copy[m][0] == '$' || copy[m][0] == '$<') {
       if (application(copy[m])) {
-        var bodyEval = eval_(copy[m][1][0], env);
+        var bodyEval = eval_(copy[m][1][0], env, ctx);
         if (copy[m][0] == '$') copy[m] = bodyEval;
         else if (copy[m][0] == '$<' && bodyEval instanceof Array) {
           copy = copy.slice(0, m).concat(bodyEval).concat(copy.slice(m + 1, copy.length));

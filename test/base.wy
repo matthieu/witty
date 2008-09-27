@@ -54,6 +54,9 @@ if(length(failures) > 0,
 //def(add, a, b,
 //  primitive('+', a, b)
 //)
+//def(macro, expr, 
+//  primitive('+', a, b)
+//)
 
 // x to define regexps with no quoting
 // clean up primitives, getting messy and they should be defined in language

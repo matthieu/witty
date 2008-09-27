@@ -21,7 +21,7 @@ function eval_(exp, env, ctx) {
   else if (list(exp)) return evalList(exp, env, ctx);
   else if (sequence(exp)) return evalSeq(exp, env, ctx);
   else if (application(exp)) {
-    var expanded = expandMacros(exp, env);
+    var expanded = expandMacros(exp, env, ctx);
     // Operands evaluation is differed to apply
     if (expanded) {
       return eval_(exp, env, ctx); // Eval unwinded application
@@ -104,7 +104,7 @@ function sequence(val) { return (val instanceof Array) && val.sntx == 'B'; }
 function evalSeq(exps, env, ctx) {
   // Macro expansion
   // TODO handle macros eval error
-  expandMacros(exps, env);
+  expandMacros(exps, env, ctx);
  
   // An application is evaluated as a whole
   if (exps.sntx == 'A') return eval_(exps, env, ctx);
@@ -120,12 +120,12 @@ function evalSeq(exps, env, ctx) {
 function apply(operation, operands, env, peval, ctx) {
   // Primitives are responsible for evaluating (or not) their operands
   if (primitive(operation)) {
-    return applyPrimitive(operation, leftCurry(operation, operands), env, ctx);
+    return applyPrimitive(operation, leftCurry(operation, operands, ctx), env, ctx);
   } else {
     return callInFile(lambdaSrcFile(operation),
       function() {
         var newEnv = extendEnvValues(lambdaParams(operation), 
-          leftCurry(operation, peval ? operands : evalList(operands, env, ctx)), 
+          leftCurry(operation, peval ? operands : evalList(operands, env, ctx), ctx), 
           lambdaEnv(operation), ctx);
 
         if (error(newEnv)) return newEnv;    
@@ -148,11 +148,11 @@ function makeLambda(params, body, srcFile, env) {
 function makeCurriedLambda(l, curry) { 
   return ['lambda', lambdaParams(l), curry, lambdaBody(l), lambdaSrcFile(l), lambdaEnv(l)]; 
 }
-function lambdaStarParams(l) {
+function multipleParams(l) {
   var params = lambdaParams(l);
   for (var m = 0; m < params.length; m++) {
     var p = params[m];
-    if (p[p.length-1] == '*') return true;
+    if (p[p.length-1] == '\\' || p[p.length-1] == '*') return true;
   }
   return false;
 }
@@ -163,16 +163,16 @@ function leftCurry(l, params, ctx) {
   var curry = lambdaCurry(l) ? lambdaCurry(l).slice() : [];
   var lparams = lambdaParams(l);
   var numset = 0;
-  var length = lambdaStarParams(l) ? (params.length + curry.length) : lparams.length;
+  var length = multipleParams(l) ? (params.length + curry.length) : lparams.length;
   for (var m = 0; m < length; m++) 
     if (!curry[m] && curry[m] != 0 && (params[numset] || params[numset] == 0)) curry[m] = params[numset++];
-  if (numset < params.length && !lambdaStarParams(l))
+  if (numset < params.length && !multipleParams(l))
     return makeError('CallError', "Too many parameters: " + params, ctx);
 
   return curry;
 }
 function rightCurry(l, params, ctx) {
-  if (lambdaStarParams(l)) 
+  if (multipleParams(l)) 
     return makeError('CallError', "Can't right curry a lambda with a variable number of parameters.", ctx);
   var curry = lambdaCurry(l) ? lambdaCurry(l).slice() : [];
   var lparams = lambdaParams(l);
@@ -187,7 +187,7 @@ function rightCurry(l, params, ctx) {
 }
 function nCurry(l, n, param, ctx) {
   var lparams = lambdaParams(l);
-  if (lparams.length <= n && ! lambdaStarParams(l)) 
+  if (lparams.length <= n && ! multipleParams(l)) 
     return makeError('CallError', "Lambda has only " + lparams.length + "parameters , can't set parameter " + n, ctx);
 
   var curry = lambdaCurry(l) ? lambdaCurry(l).slice() : [];
@@ -211,12 +211,14 @@ function makeCurriedPrimitive(p, curry) { return ['primitive', primitiveParams(p
 function primitive(operation) { return operation[0] == 'primitive'; }
 function primitiveBody(operation) { return operation[3]; }
 function primitiveParams(operation) { return operation[1]; }
+function primitiveName(operation) { return operation[4]; }
 
 function applyPrimitive(operation, operands, env, ctx) {
   var primFn = primitiveBody(operation);
   if (typeof primFn == "function") return primFn.call(null, operands, env, ctx);
   else throw "Unrecognized primitive: " + operation[1] + ", most certainly a bug.";
 }
+
 function opEval(fn) {
   return function(operands, env, ctx) {
     var evl = evalList(operands, env, ctx);
@@ -249,7 +251,9 @@ function typeDispatch(op) {
 
 var primitives = {};
 function addPrimitive(name, params, body) {
-  primitives[name] = makePrimitive(name, params, body);
+  var prim = makePrimitive(name, params, body);
+  primitives[name] = prim;
+  return prim;
 }
 
 function isa(p1, p2) {
@@ -289,23 +293,34 @@ function equal(p1, p2) {
   } else return p1.valueOf() === p2.valueOf();
 }
 
-addPrimitive('if', ['predicate', 'consequence', 'opposite'],
-  function(operands, env, ctx) {
+var prims = {
+  'if': function(operands, env, ctx) {
     var pred = eval_(operands[0], env, ctx);
     if (error(pred)) return pred;
 
     if (pred) return eval_(operands[1], env, ctx);
     else if (operands.length > 2) return eval_(operands[2], env, ctx);
-  });
-addPrimitive('lambda', ['parameters*', 'body'], 
-  function(operands, env, ctx) {
+  },
+  'lambda': function(operands, env, ctx) {
     return makeLambda(operands.slice(0, -1), operands.last(), CURRENT_FILE, env, ctx);
-  });
+  },
+  'join': opTailEval(typeDispatch('join'))
+}
+
 addPrimitive('def', ['name', 'parameters*', 'body'],
   function(operands, env, ctx) {
-    var lambda = makeLambda(operands.slice(1, -1), operands.last(), CURRENT_FILE, env, ctx);
-    env.first()[0][operands[0]] = lambda;
-    return lambda;
+    var body = operands.last();
+    if (body[0] == 'primitive') {
+      var primDecl = body[1];
+      var primName = eval_(primDecl[0], env, ctx);
+      var prim = addPrimitive(operands[0], operands.slice(1, -1), prims[primName]);
+      env.first()[0][operands[0]] = prim;
+      return prim;
+    } else {
+      var lambda = makeLambda(operands.slice(1, -1), operands.last(), CURRENT_FILE, env, ctx);
+      env.first()[0][operands[0]] = lambda;
+      return lambda;
+    }
   });
 addPrimitive('macro', ['pattern', 'body'], 
   function(operands, env, ctx) {
@@ -548,7 +563,7 @@ addPrimitive('||', ['loperand', 'roperand'], function(operands, env) { return ev
   addPrimitive(op, ['loperand', 'roperand'], opTailEval(typeDispatch(op)));
 });
 
-addPrimitive('join', ['list', 'separator'], opTailEval(typeDispatch('join')));
+
 addPrimitive('length', ['stuff'], opTailEval(typeDispatch('length')));
 addPrimitive('empty?', ['stuff'], opTailEval(typeDispatch('empty?')));
 addPrimitive('push', ['array', 'element'], opTailEval(typeDispatch('push')));

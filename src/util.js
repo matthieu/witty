@@ -49,3 +49,7 @@ Object.prototype.clone = function() {
   middleMan.prototype = this;
   return new middleMan();
 }
+Object.prototype.merge = function(other) {
+  var self = this;
+  other.eachPair(function(key, val) { self[key] = val; });
+}
