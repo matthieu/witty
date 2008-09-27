@@ -293,20 +293,6 @@ function equal(p1, p2) {
   } else return p1.valueOf() === p2.valueOf();
 }
 
-var prims = {
-  'if': function(operands, env, ctx) {
-    var pred = eval_(operands[0], env, ctx);
-    if (error(pred)) return pred;
-
-    if (pred) return eval_(operands[1], env, ctx);
-    else if (operands.length > 2) return eval_(operands[2], env, ctx);
-  },
-  'lambda': function(operands, env, ctx) {
-    return makeLambda(operands.slice(0, -1), operands.last(), CURRENT_FILE, env, ctx);
-  },
-  'join': opTailEval(typeDispatch('join'))
-}
-
 addPrimitive('def', ['name', 'parameters*', 'body'],
   function(operands, env, ctx) {
     var body = operands.last();
@@ -322,17 +308,40 @@ addPrimitive('def', ['name', 'parameters*', 'body'],
       return lambda;
     }
   });
-addPrimitive('macro', ['pattern', 'body'], 
-  function(operands, env, ctx) {
+
+var prims = {
+  'lambda': function(operands, env, ctx) {
+    return makeLambda(operands.slice(0, -1), operands.last(), CURRENT_FILE, env, ctx);
+  },
+  'macro': function(operands, env, ctx) {
     var pattern = operands.first();
     var key = patternKey(pattern);
     var mframe = env.first()[1];
     var decl = ['macro', pattern, operands.last(), macroId++, env];
     mframe[key] = decl;
     return key;
-  });
-addPrimitive('package', ['name', 'body'],
-  function(operands, env, ctx) {
+  },
+  '`': function(operands, env, ctx) {
+    return escapeEval(operands.first(), env, ctx);
+  },
+  'eval': function(operands, env, ctx) {
+    return eval_(parse(eval_(operands.first()), env), env, ctx);
+  },
+  'apply': opEval(function(operands, env, ctx) {
+    if (operands.length == 2) return apply(operands.first(), operands[1], env, true, ctx);
+    else return apply(operands.first(), operands.tail(), env, true, ctx);
+  }),
+  'defined?': function(operands, env) {
+    return (typeof variableValue(operands[0], env) != "undefined")
+  },
+  'join': opTailEval(typeDispatch('join'))
+}
+
+
+// Package handling
+//
+prims.merge({
+  'package': function(operands, env, ctx) {
     var name = operands[0]; // TODO should delegate back to eval_, just need error handling
     var existingPackage = variableValue(name, env);
     var newFrame = (typeof existingPackage != "undefined") ? packageFrame(existingPackage) : [];
@@ -344,9 +353,8 @@ addPrimitive('package', ['name', 'body'],
     var p = makePackage(name, newFrame);
     setVariableValue(name, p, env, ctx);
     return null;
-  });
-addPrimitive('import', ['name'],
-  function(operands, env, ctx) {
+  },
+  'import': function(operands, env, ctx) {
     var name = operands[0];
     var p = eval_(name, env, ctx);
     if (error(p)) return p;
@@ -357,69 +365,26 @@ addPrimitive('import', ['name'],
     var mergeFrame = env[0][0];
     pframe.eachPair(function(k, v) { mergeFrame[k] = v; });
     return true;
-  });
-addPrimitive('::', ['package', 'definition'],
-  function(operands, env, ctx) {
+  },
+  '::': function(operands, env, ctx) {
     var name = operands[0];
     var p = eval_(name, env, ctx);
     if (error(p)) return p;
     if (!isPackage(p)) 
       return makeError('ReferenceError', "Unknown package: " + name, setContext(ctx, name.line, name.pos));
     return packageFrame(p)[operands[1]];    
-  });
-addPrimitive('print', ['elements*'], 
-  function(operands, env, ctx) {
-    return primitiveBody(primitives.prit)(operands.concat(["\"\\n\""]), env, ctx);
-  });
-addPrimitive('prit', ['elements*'], opEval(
-  function(operands, env, ctx) {
-    if (operands.isEmpty()) return;
-    var f = operands.first();
-    var str = f != null ? f.toString() : "";
-    for (var m = 1, opr; opr = operands[m]; m++) { str += opr.toString(); };
-    pr(str); 
-    return;
-  })),
-addPrimitive('eval', ['expr'], 
-  function(operands, env, ctx) {
-    return eval_(parse(eval_(operands.first()), env), env, ctx);
-  });
-addPrimitive('apply', ['function', 'params*'], opEval(
-  function(operands, env, ctx) {
-    if (operands.length == 2)
-      return apply(operands.first(), operands[1], env, true, ctx);
-    else
-      return apply(operands.first(), operands.tail(), env, true, ctx);
-  })),
-addPrimitive('`', ['expr'], 
-  function(operands, env, ctx) {
-    return escapeEval(operands.first(), env, ctx);
-  });
-addPrimitive('load', ['file'], opEval(
-  function(operands, env, ctx) {
-    var toread = operands.first();
-    return callInFile(toread,
-      function() {
-        var ctnt = readfile(toread);
-        return eval_(parse(ctnt), env, ctx);
-      });
-  }));
-addPrimitive('defined?', ['name'],
-  function(operands, env) {
-    return (typeof variableValue(operands[0], env) != "undefined")
-  });
-addPrimitive('isa', ['p1', 'p2'], opEval(
-  function(operands, env) {
-    return isa(operands[0], operands[1]);
-  }));
-addPrimitive('L', ['elements*'], opEval(
-  function(operands, env) {
+  },
+});
+
+// Data and control structures
+//
+prims.merge({
+  'L': opEval(function(operands, env) {
     var arr = operands.slice();
     arr.sntx = 'L';
     return arr;
-  }));
-addPrimitive('H', ['elements*'],
-  function(operands, env, ctx) {
+  }),
+  'H': function(operands, env, ctx) {
     var h = {};
     if (operands.length % 2 == 1) 
       makeError('CallError', "Odd number of parameters in hash creation.", ctx);
@@ -427,16 +392,21 @@ addPrimitive('H', ['elements*'],
       h[eval_(operands[m], env)] = eval_(operands[m+1], env, ctx);
     h.length = operands.length / 2;
     return h;
-  });
-addPrimitive('X', ['regexp', 'flags?'], opEval(
-  function(operands, env) {
+  },
+  'X': opEval(function(operands, env) {
     var exp = operands[0];
     var flags = operands[1];
     if (!flags) flags = "g";
     return new RegExp(exp, flags);
-  }));
-addPrimitive('for', ['listOrInit', 'lambdaOrStopCond', 'incrementExpr', 'body'], 
-  function(operands, env, ctx) {
+  }),
+  'if': function(operands, env, ctx) {
+    var pred = eval_(operands[0], env, ctx);
+    if (error(pred)) return pred;
+
+    if (pred) return eval_(operands[1], env, ctx);
+    else if (operands.length > 2) return eval_(operands[2], env, ctx);
+  },
+  'for': function(operands, env, ctx) {
     if (operands.length == 2) {
       // First form iterating through a list
       var list = eval_(operands.first(), env, ctx);
@@ -460,7 +430,33 @@ addPrimitive('for', ['listOrInit', 'lambdaOrStopCond', 'incrementExpr', 'body'],
       }
       return ret;
     }
-  });
+  },
+})
+
+// Shell functions
+//
+prims.merge({
+  'prit': opEval(function(operands, env, ctx) {
+    if (operands.isEmpty()) return;
+    var f = operands.first();
+    var str = f != null ? f.toString() : "";
+    for (var m = 1, opr; opr = operands[m]; m++) { str += opr.toString(); };
+    pr(str); 
+    return;
+  }),
+  'load': opEval(function(operands, env, ctx) {
+    var toread = operands.first();
+    return callInFile(toread,
+      function() {
+        var ctnt = readfile(toread);
+        return eval_(parse(ctnt), env, ctx);
+      });
+  })
+});
+addPrimitive('isa', ['p1', 'p2'], opEval(
+  function(operands, env) {
+    return isa(operands[0], operands[1]);
+  }));
 addPrimitive('at', ['list', 'index'],
   function(operands, env, ctx) {
     return typeDispatch('at')(operands, env, ctx);

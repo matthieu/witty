@@ -62,8 +62,9 @@ if(length(failures) > 0,
 // clean up primitives, getting messy and they should be defined in language
 // think of how to make functions like toString or + work on user provided structures
 // hygiene
+// degrade gracefully in a web browser
 // generalized variables
-// cond/case
+// cond/case with partner matching: cond([], true, [x], x, [x, rest\], ...)
 // optional function parameters, parameters with default values
 // provide primitives allowing read/write access to witty code so code can be created or altered directly
 // basic list operations (push, pop, ...)

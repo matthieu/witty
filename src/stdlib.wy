@@ -1,17 +1,83 @@
-// Defining macrox as a shorthand form of macro where
-// the body is always escaped.
-macro(macrox(`exp, `body), `(macro($exp, `($body))))
-
-def(if, predicate, consequence, opposite,
-  primitive('if')
-)
-
 def(lambda, parameters\, body,
   primitive('lambda')
 )
 
+def(macro, pattern, body,
+  primitive('macro')
+)
+
+def(`, expr,
+  primitive('`')
+)
+
+def(defined?, name,
+  primitive('defined?')
+)
+
+def(eval, expression,
+  primitive('eval')
+)
+
+def(apply, function, params\,
+  primitive('apply')
+)
+
+// Control and data structures
+//
+
+def(L, elements\,
+  primitive('L')
+)
+
+def(H, elements\,
+  primitive('H')
+)
+
+def(X, elements\,
+  primitive('X')
+)
+
+def(if, predicate, consequence, opposite?,
+  primitive('if')
+)
+
+def(for, listOrInit, lambdaOrStopCond, incrementExpr?, body?,
+  primitive('for')
+)
+
+
 def(join, list, separator?,
   primitive('join')
+)
+
+// Shell
+//
+
+def(prit, elements\,
+  primitive('prit')
+)
+
+def(print, elements\,
+  prit(elements\, "\n")
+)
+
+def(load, file,
+  primitive('load')
+)
+
+// Package management
+//
+
+def(package, name, body,
+  primitive('package')
+)
+
+def(import, name,
+  primitive('import')
+)
+
+def(::, package, definition,
+  primitive('::')
 )
 
 // Operators, order is establishing precedence
@@ -22,6 +88,10 @@ macro(`a = `b,
     `(=($a, $b))
   )
 )
+
+// Defining macrox as a shorthand form of macro where
+// the body is always escaped.
+macro(macrox(`exp, `body), `(macro($exp, `($body))))
 
 macrox(`a && `b, &&($a, $b))
 macrox(`a || `b, ||($a, $b))
