@@ -1,3 +1,5 @@
+// Core primitives
+//
 def(lambda, parameters\, body,
   primitive('lambda')
 )
@@ -14,12 +16,86 @@ def(defined?, name,
   primitive('defined?')
 )
 
+def(lcurry, fn, params\,
+  primitive('lcurry')
+)
+
+def(rcurry, fn, params\,
+  primitive('rcurry')
+)
+
+def(ncurry, fn, index, param,
+  primitive('ncurry')
+)
+
 def(eval, expression,
   primitive('eval')
 )
 
 def(apply, function, params\,
   primitive('apply')
+)
+
+// Comparison operators
+//
+def(=, name, value,
+  primitive('=')
+)
+
+def(==, lexpr, rexpr,
+  primitive('==')
+)
+
+def(!=, lexpr, rexpr,
+  primitive('!=')
+)
+
+def(<, lexpr, rexpr,
+  primitive('<')
+)
+
+def(>, lexpr, rexpr,
+  primitive('>')
+)
+
+def(<=, lexpr, rexpr,
+  primitive('<=')
+)
+
+def(>=, lexpr, rexpr,
+  primitive('>=')
+)
+
+def(!, lexpr, rexpr,
+  primitive('!')
+)
+
+def(&&, lexpr, rexpr,
+  primitive('&&')
+)
+
+def(||, lexpr, rexpr,
+  primitive('||')
+)
+
+
+
+// Expressions inspection
+//
+def(applic?, expression,
+  primitive('applic?')
+)
+
+def(applied, application,
+  primitive('applied')
+)
+
+def(params, application,
+  primitive('params')
+)
+
+def(nthParam, application, index,
+  primitive('nthParam')
 )
 
 // Control and data structures
@@ -65,6 +141,10 @@ def(load, file,
   primitive('load')
 )
 
+def(arguments,
+  primitive('arguments')
+)
+
 // Package management
 //
 
@@ -80,10 +160,11 @@ def(::, package, definition,
   primitive('::')
 )
 
-// Operators, order is establishing precedence
+// Operators notations, order is establishing precedence
+//
 macro(`a = `b,
   if(applic?(a),
-    if(fnName(a) == "@", 
+    if(applied(a) == "@", 
       `(@!($(nthParam(a, 0)), $(nthParam(a,1)), $b)) ),
     `(=($a, $b))
   )
@@ -114,9 +195,10 @@ macrox(`a / `b, /($a, $b))
 // Standard parsing for foo@bar(baz) is foo@(bar(baz)). We want (foo@bar)(baz).
 macro(`arr . `idx, 
   if(applic?(idx),
-    if(params?(idx),
-      `( @($arr, $(fnName(idx)))($<(params(idx))) ),
-      `( @($arr, $(fnName(idx)))() )
+    // TODO simplify
+    if(empty?(params(idx)),
+      `( @($arr, $(applied(idx)))() ),
+      `( @($arr, $(applied(idx)))($<(params(idx))) )
     ),
     `(@($arr, $idx))
   )
@@ -124,9 +206,9 @@ macro(`arr . `idx,
 
 macro(`pack :: `def, 
   if(applic?(def),
-    if(params?(def),
-      `( ::($pack, $(fnName(def)))($<(params(def))) ),
-      `( ::($pack, $(fnName(def)))() )
+    if(empty?(params(def)),
+      `( ::($pack, $(applied(def)))() ),
+      `( ::($pack, $(applied(def)))($<(params(def))) )
     ),
     `(::($pack, $def))
   )

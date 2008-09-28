@@ -89,7 +89,7 @@ var wHash = {
   'at!': wArray['at!'],
   '@': function(operands, env) {
     var k = operands[1];
-    return operands[0][k];
+    return operands[0][k] || null;
   },
   '@!': function(operands, env) {
     var k = operands[1];
