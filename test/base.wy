@@ -51,15 +51,7 @@ if(length(failures) > 0,
   for(failures, lambda(f, print("  " + f)))
 )
 
-//def(add, a, b,
-//  primitive('+', a, b)
-//)
-//def(macro, expr, 
-//  primitive('+', a, b)
-//)
-
 // x to define regexps with no quoting
-// clean up primitives, getting messy and they should be defined in language
 // think of how to make functions like toString or + work on user provided structures
 // hygiene
 // degrade gracefully in a web browser

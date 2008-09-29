@@ -252,13 +252,6 @@ function typeDispatch(op) {
   }
 }
 
-var primitives = {};
-function addPrimitive(name, params, body) {
-  var prim = makePrimitive(name, params, body);
-  primitives[name] = prim;
-  return prim;
-}
-
 function isa(p1, p2) {
   if (typeof p1 == 'number' && typeof p2 == 'number') return true;
   if (((typeof p1 == 'string') || (p1 instanceof String)) &&
@@ -296,13 +289,13 @@ function equal(p1, p2) {
   } else return p1.valueOf() === p2.valueOf();
 }
 
-addPrimitive('def', ['name', 'parameters*', 'body'],
+var defPrimitive = makePrimitive('def', ['name', 'parameters*', 'body'],
   function(operands, env, ctx) {
     var body = operands.last();
     if (body[0] == 'primitive') {
       var primDecl = body[1];
       var primName = eval_(primDecl[0], env, ctx);
-      var prim = addPrimitive(operands[0], operands.slice(1, -1), prims[primName]);
+      var prim = makePrimitive(operands[0], operands.slice(1, -1), primitives[primName]);
       env.first()[0][operands[0]] = prim;
       return prim;
     } else {
@@ -312,7 +305,7 @@ addPrimitive('def', ['name', 'parameters*', 'body'],
     }
   });
 
-var prims = {
+var primitives = {
   'lambda': function(operands, env, ctx) {
     return makeLambda(operands.slice(0, -1), operands.last(), CURRENT_FILE, env, ctx);
   },
@@ -363,11 +356,10 @@ var prims = {
     else if (primitive(fn)) return makeCurriedPrimitive(fn, nCurry(fn, idx, operands[2], ctx));
     else makeError('CallError', "The first parameter of nurry should be a function.", ctx);
   }),
-  'join': opTailEval(typeDispatch('join'))
 };
 
 // Expression inspection
-prims.merge({
+primitives.merge({
   'applic?': function(operands, env, ctx) {
     return application(eval_(operands.first(), env, ctx));
   },
@@ -391,12 +383,13 @@ prims.merge({
     if (application(f) && !(f[1] === undefined)) return  f[1][idx];
     else return null;
   },
+  'isa': opEval(function(operands, env) { return isa(operands[0], operands[1]); }),
 });
 
 
 // Package handling
 //
-prims.merge({
+primitives.merge({
   'package': function(operands, env, ctx) {
     var name = operands[0]; // TODO should delegate back to eval_, just need error handling
     var existingPackage = variableValue(name, env);
@@ -434,7 +427,7 @@ prims.merge({
 
 // Data and control structures
 //
-prims.merge({
+primitives.merge({
   'L': opEval(function(operands, env) {
     var arr = operands.slice();
     arr.sntx = 'L';
@@ -455,6 +448,15 @@ prims.merge({
     if (!flags) flags = "g";
     return new RegExp(exp, flags);
   }),
+  'at': function(operands, env, ctx) {
+    return typeDispatch('at')(operands, env, ctx);
+  },
+  '@': function(operands, env, ctx) {
+    return typeDispatch('@')(operands, env, ctx);
+  },
+  '@!': function(operands, env, ctx) {
+    return typeDispatch('@!')(operands, env, ctx);
+  },
   'if': function(operands, env, ctx) {
     var pred = eval_(operands[0], env, ctx);
     if (error(pred)) return pred;
@@ -487,11 +489,34 @@ prims.merge({
       return ret;
     }
   },
+  'join': opTailEval(typeDispatch('join')),
+  'length': opTailEval(typeDispatch('length')),
+  'empty?': opTailEval(typeDispatch('empty?')),
+  'push': opTailEval(typeDispatch('push')),
+  'unshift': opTailEval(typeDispatch('unshift')),
+  'pop': opTailEval(typeDispatch('pop')),
+  'shift': opTailEval(typeDispatch('shift')),
+  'map': function(operands, env, ctx) {
+    var list = eval_(operands.first(), env, ctx);
+    var lambda = eval_(operands[1], env, ctx);
+    var newlist = [];
+    newlist.sntx = list.sntx;
+    for (var m = 0; m < list.length; m++) {
+      var res = apply(lambda, [list[m]], env, true, ctx);
+      if (error(res)) return res;
+      newlist.push(res); 
+    }
+    return newlist;
+  },
+  'split': opTailEval(typeDispatch('split')),
+  '=~': opTailEval(typeDispatch('=~')),
+  'search': opTailEval(typeDispatch('search')), // First matched data
+  'match': opTailEval(typeDispatch('match')), // All matched data
 })
 
 // Shell functions
 //
-prims.merge({
+primitives.merge({
   'prit': opEval(function(operands, env, ctx) {
     if (operands.isEmpty()) return;
     var f = operands.first();
@@ -515,9 +540,9 @@ prims.merge({
   }
 });
 
-// Comparison operators
+// Comparison and arithmetic operators
 //
-prims.merge({
+primitives.merge({
   '=': function(operands, env, ctx) {
     var name = operands[0];
     var newval = eval_(operands[1], env, ctx);
@@ -539,57 +564,12 @@ prims.merge({
   '>=': opEval(function(operands, env) { return operands[0] >= operands[1]; }),
   '!': opEval(function(operands, env) { return !operands[0]; }),
   '&&': function(operands, env) { return eval_(operands[0], env) && eval_(operands[1], env); },
-  '||': function(operands, env) { return eval_(operands[0], env) || eval_(operands[1], env); }
+  '||': function(operands, env) { return eval_(operands[0], env) || eval_(operands[1], env); },
+  '+': opTailEval(typeDispatch('+')),
+  '-': opTailEval(typeDispatch('-')),
+  '*': opTailEval(typeDispatch('*')),
+  '/': opTailEval(typeDispatch('/')),
 });
-
-addPrimitive('isa', ['p1', 'p2'], opEval(
-  function(operands, env) {
-    return isa(operands[0], operands[1]);
-  }));
-addPrimitive('at', ['list', 'index'],
-  function(operands, env, ctx) {
-    return typeDispatch('at')(operands, env, ctx);
-  });
-addPrimitive('@', ['list', 'index'],
-  function(operands, env, ctx) {
-    return typeDispatch('@')(operands, env, ctx);
-  });
-addPrimitive('@!', ['list', 'index', 'value'],
-  function(operands, env, ctx) {
-    return typeDispatch('@!')(operands, env, ctx);
-  });
-
-['+', '-', '*', '/'].forEach(function(op) {
-  addPrimitive(op, ['loperand', 'roperand'], opTailEval(typeDispatch(op)));
-});
-
-
-addPrimitive('length', ['stuff'], opTailEval(typeDispatch('length')));
-addPrimitive('empty?', ['stuff'], opTailEval(typeDispatch('empty?')));
-addPrimitive('push', ['array', 'element'], opTailEval(typeDispatch('push')));
-addPrimitive('unshift', ['array', 'element'], opTailEval(typeDispatch('unshift')));
-addPrimitive('pop', ['array', 'element'], opTailEval(typeDispatch('pop')));
-addPrimitive('shift', ['array', 'element'], opTailEval(typeDispatch('shift')));
-addPrimitive('map', ['list', 'function'],
-  function(operands, env, ctx) {
-    var list = eval_(operands.first(), env, ctx);
-    var lambda = eval_(operands[1], env, ctx);
-    var newlist = [];
-    newlist.sntx = list.sntx;
-    for (var m = 0; m < list.length; m++) {
-      var res = apply(lambda, [list[m]], env, true, ctx);
-      if (error(res)) return res;
-      newlist.push(res); 
-    }
-    return newlist;
-  });
-addPrimitive('split', ['string', 'sepiarator', 'maxSplit'], opTailEval(typeDispatch('split')));
-
-addPrimitive('=~', ['string', 'regexp'], opTailEval(typeDispatch('=~')));
-// First match data
-addPrimitive('search', ['string', 'regexp'], opTailEval(typeDispatch('search')));
-// All match data
-addPrimitive('match', ['string', 'regexp'], opTailEval(typeDispatch('match')));
 
 //
 // Script error handling
@@ -631,16 +611,15 @@ function callInFile(file, fn) {
   return res;
 }
 
-addPrimitive('throw', ['error', 'msg?'], opEval(
-  function(operands, env, ctx) {
+primitives.merge({
+  'throw': opEval(function(operands, env, ctx) {
     var err = operands.first();
     if (errorType(err))
       return makeError(errorTypeName(err), operands[1], ctx);
     else
       return makeError(operands.first(), operands[1], ctx);
-  }));
-addPrimitive('try', ['body', 'catches*'],
-  function(operands, env, ctx) {
+  }),
+  'try': function(operands, env, ctx) {
     var res = eval_(operands[0], env, ctx);
     // TODO finally
     if (error(res)) {
@@ -655,10 +634,8 @@ addPrimitive('try', ['body', 'catches*'],
       }
     }
     return res;
-  });
-
-addPrimitive('catch', ['err', 'var?', 'body?'],
-  function(operands, env, ctx) {
+  },
+  'catch': function(operands, env, ctx) {
     if (!operands[0]) 
       return makeError('CallError', "Catch needs at least an error parameter.", ctx);
 
@@ -677,9 +654,8 @@ addPrimitive('catch', ['err', 'var?', 'body?'],
       // No body, err will be swallowed
       return ['catch', err, null, null, null, CURRENT_FILE];
     }
-  });
-addPrimitive('catchAll', ['var?', 'body?'],
-  function(operands, env, ctx) {
+  },
+  'catchAll': function(operands, env, ctx) {
     if (operands[0]) {
       var firstOp = operands[0];
       if (variableRef(firstOp) && !quoted(firstOp) && !selfEval(firstOp)) {
@@ -695,7 +671,8 @@ addPrimitive('catchAll', ['var?', 'body?'],
       // No body, all will be swallowed
       return ['catch', null, null, null, null, CURRENT_FILE];
     }
-  });
+  }
+});
 
 // Try and catch helper functions
 function makeCatch(err, varName, body, env, file) {

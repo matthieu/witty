@@ -9,7 +9,7 @@ var arguments = parameters().split(" ").slice(0, -1);
 
 function setupEnv() {
   var baseFrame = {};
-  primitives.eachPair(function(k,v) { baseFrame[k] = v; });
+  baseFrame['def'] = defPrimitive;
   baseFrame['true'] = true;
   baseFrame['false'] = false;
   baseFrame['null'] = null;

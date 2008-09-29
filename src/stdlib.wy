@@ -36,12 +36,8 @@ def(apply, function, params\,
   primitive('apply')
 )
 
-// Comparison operators
+// Comparison and arithmetic operators
 //
-def(=, name, value,
-  primitive('=')
-)
-
 def(==, lexpr, rexpr,
   primitive('==')
 )
@@ -78,7 +74,25 @@ def(||, lexpr, rexpr,
   primitive('||')
 )
 
+def(=, name, value,
+  primitive('=')
+)
 
+def(+, lexpr, rexpr,
+  primitive('+')
+)
+
+def(-, lexpr, rexpr,
+  primitive('-')
+)
+
+def(*, lexpr, rexpr,
+  primitive('*')
+)
+
+def(/, lexpr, rexpr,
+  primitive('/')
+)
 
 // Expressions inspection
 //
@@ -96,6 +110,10 @@ def(params, application,
 
 def(nthParam, application, index,
   primitive('nthParam')
+)
+
+def(isa, t1, t2,
+  primitive('isa')
 )
 
 // Control and data structures
@@ -121,9 +139,83 @@ def(for, listOrInit, lambdaOrStopCond, incrementExpr?, body?,
   primitive('for')
 )
 
+def(at, list, index,
+  primitive('at')
+)
+
+def(@, list, index,
+  primitive('@')
+)
+
+def(@!, list, index, value,
+  primitive('@!')
+)
 
 def(join, list, separator?,
   primitive('join')
+)
+
+def(length, list,
+  primitive('length')
+)
+
+def(empty?, list,
+  primitive('empty?')
+)
+
+def(push, list, elmt,
+  primitive('push')
+)
+
+def(pop, list,
+  primitive('pop')
+)
+
+def(shift, list,
+  primitive('shift')
+)
+
+def(unshift, list, elmt,
+  primitive('unshift')
+)
+
+def(map, list, fn,
+  primitive('map')
+)
+
+def(split, string, separator?, max?,
+  primitive('split')
+)
+
+def(=~, string, regexp,
+  primitive('=~')
+)
+
+def(search, string, regexp,
+  primitive('search')
+)
+
+def(match, string, regexp,
+  primitive('match')
+)
+
+// Error handling
+//
+
+def(try, body, catches\,
+  primitive('try')
+)
+
+def(throw, error, message?,
+  primitive('throw')
+)
+
+def(catch, error, var?, body?,
+  primitive('catch')
+)
+
+def(catchAll, var?, body?,
+  primitive('catchAll')
 )
 
 // Shell
