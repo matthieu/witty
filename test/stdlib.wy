@@ -34,7 +34,7 @@ describe("Error throwing",
   )
 )
 
-describe("RegExp operator",
+describe("RegExp operator with quoted regexps",
   it("should return the match index", ("abcd" =~ X("b.d")) == 1)
   it("should return null when there's no match", ("acbd" =~ X("bc")) == null)
   it("should convert string to regexp when no regexp provided", ("aabcd" =~ "bc") == 2)

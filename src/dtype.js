@@ -39,7 +39,7 @@ var wArray = {
     var k = eval_(operands[1], env);
     var val = eval_(operands[2], env);
     operands[0][k] = val;
-    return operands[0];
+    return val;
   },
   'at': function(operands, env) {
     var k = eval_(operands[1], env);
@@ -97,7 +97,7 @@ var wHash = {
     var h = operands[0];
     if (typeof h[k] == "undefined") h.length = h.length + 1
     h[k] = val;
-    return h;
+    return val;
   },
   'empty?': wArray['empty?']
 }

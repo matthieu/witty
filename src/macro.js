@@ -68,7 +68,7 @@ function rewriteWithMacro(exps, env, ctx, macroApplics, index, mac) {
       exps.pushAll(expansion);
     } else
       exps.splice(index + offset, mac[1].length, expansion);
-    reindexFoundMacro(index + offset, 1 - mac[1].length, macroApplics);
+      reindexFoundMacro(index + offset, 1 - mac[1].length, macroApplics);
     return true;
   }
   return false;

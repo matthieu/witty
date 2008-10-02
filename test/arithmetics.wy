@@ -31,6 +31,12 @@ describe("Incrementing operators",
 
   it("should increment and decrement a variable value", val == 4)
   it("should return the operation result", (val += 6) == 10)
+
+  h = {bar: 3}
+  h.bar += 4
+  h.bar -= 1
+  it("should increment an decrement hash values", h.bar == 6)
+  it("should return the hash operation result", (h.bar+=4) == 10)
 )
 
 describe("Logic operators",

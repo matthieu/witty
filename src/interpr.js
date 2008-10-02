@@ -21,7 +21,9 @@ function eval_(exp, env, ctx) {
   else if (list(exp)) return evalList(exp, env, ctx);
   else if (sequence(exp)) return evalSeq(exp, env, ctx);
   else if (application(exp)) {
-    var expanded = expandMacros(exp, env, ctx);
+    var expanded = false, tmp = false;
+    while (tmp = expandMacros(exp, env, ctx)) expanded = tmp || expanded;
+    
     // Operands evaluation is differed to apply
     if (expanded) {
       return eval_(exp, env, ctx); // Eval unwinded application
@@ -34,7 +36,8 @@ function eval_(exp, env, ctx) {
     }
   }
   else if (error(exp)) return exp; // TODO stacktraces
-  else return makeError('ReferenceError', "Unknown expression: " + exp, setContext(ctx, exp.line, exp.pos));
+  else if (exp) return makeError('ReferenceError', "Unknown expression: " + exp, setContext(ctx, exp.line, exp.pos));
+  else return makeError('ReferenceError', "Null expression", ctx);
 }
 
 function evalList(operands, env, ctx) {
@@ -104,7 +107,8 @@ function sequence(val) { return (val instanceof Array) && val.sntx == 'B'; }
 function evalSeq(exps, env, ctx) {
   // Macro expansion
   // TODO handle macros eval error
-  expandMacros(exps, env, ctx);
+  while (expandMacros(exps, env, ctx));
+  //expandMacros(exps, env, ctx);
  
   // An application is evaluated as a whole
   if (exps.sntx == 'A') return eval_(exps, env, ctx);
@@ -295,6 +299,8 @@ var defPrimitive = makePrimitive('def', ['name', 'parameters*', 'body'],
     if (body[0] == 'primitive') {
       var primDecl = body[1];
       var primName = eval_(primDecl[0], env, ctx);
+      if (!primitives[primName])
+        return makeError('CallError', 'Unknown primitive: ' + primName, ctx);
       var prim = makePrimitive(operands[0], operands.slice(1, -1), primitives[primName]);
       env.first()[0][operands[0]] = prim;
       return prim;
