@@ -25,7 +25,8 @@ function setup() {
   var env = setupEnv();
 
   var stdlib = readfile("src/stdlib.wy");
-  eval_(parse(stdlib), env, []);
+  var stdres = eval_(parse(stdlib), env, []);
+  if (error(stdres)) throw "Error parsing standard library:\n" + toWyStr(stdres);
   return env;
 }
 

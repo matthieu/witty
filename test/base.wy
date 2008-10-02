@@ -51,10 +51,6 @@ if(length(failures) > 0,
   for(failures, lambda(f, print("  " + f)))
 )
 
-// macros += and -= double eval
-// foo.bar+=2 error
-// foo.bar = foo.bar + 4 -> returns object
-
 // think of how to make functions like toString or + work on user provided structures
 // hygiene
 // degrade gracefully in a web browser

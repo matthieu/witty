@@ -9,7 +9,6 @@ load("src/printer.js");
 
 function eval_(exp, env, ctx) {
   //print("eval: " + JSON.stringify(exp) + " :sntx: " + exp.sntx);
-  //print("eval: " + exp + " " + (typeof ctx));
   if (selfEval(exp)) return eval(exp.valueOf()); // JS eval for native type
   else if (quoted(exp)) return evalQuoted(exp);
   else if (variableRef(exp)) {

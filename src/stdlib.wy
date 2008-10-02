@@ -1,16 +1,23 @@
 // Core primitives
 //
-def(lambda, parameters\, body,
-  primitive('lambda')
-)
-
 def(macro, pattern, body,
   primitive('macro')
+)
+
+// Defining macrox as a shorthand form of macro where the body is always escaped.
+macro(macrox(`exp, `body), 
+  `(macro($exp, `($body)))
+)
+
+def(lambda, parameters\, body,
+  primitive('lambda')
 )
 
 def(`, expr,
   primitive('`')
 )
+
+macrox(\(`exp), lambda(_, $exp))
 
 def(defined?, name,
   primitive('defined?')
@@ -94,6 +101,33 @@ def(/, lexpr, rexpr,
   primitive('/')
 )
 
+macro(`a = `b,
+  if(applic?(a),
+    if(applied(a) == "@", 
+      `(@!($(nthParam(a, 0)), $(nthParam(a,1)), $b)) ),
+    `(=($a, $b))
+  )
+)
+
+macrox(`a += `b, $a = $a + $b)
+macrox(`a -= `b, $a = $a - $b)
+
+macrox(`a && `b, &&($a, $b))
+macrox(`a || `b, ||($a, $b))
+
+macrox(`a == `b, ==($a, $b))
+macrox(`a != `b, !=($a, $b))
+macrox(`a < `b, <($a, $b))
+macrox(`a <= `b, <=($a, $b))
+macrox(`a > `b, >($a, $b))
+macrox(`a >= `b, >=($a, $b))
+macrox(`a =~ `b, =~($a, $b))
+
+macrox(`a + `b, +($a, $b))
+macrox(`a - `b, -($a, $b))
+macrox(`a * `b, *($a, $b))
+macrox(`a / `b, /($a, $b))
+
 // Expressions inspection
 //
 def(applic?, expression,
@@ -149,6 +183,17 @@ def(@, list, index,
 
 def(@!, list, index, value,
   primitive('@!')
+)
+
+// Standard parsing for foo@bar(baz) is foo@(bar(baz)). We want (foo@bar)(baz).
+macro(`arr . `idx, 
+  if(applic?(idx),
+    if(empty?(params(idx)),
+      `( @($arr, $(applied(idx)))() ),
+      `( @($arr, $(applied(idx)))($<(params(idx))) )
+    ),
+    `(@($arr, $idx))
+  )
 )
 
 def(join, list, separator?,
@@ -250,52 +295,6 @@ def(import, name,
 
 def(::, package, definition,
   primitive('::')
-)
-
-// Defining macrox as a shorthand form of macro where
-// the body is always escaped.
-macro(macrox(`exp, `body), `(macro($exp, `($body))))
-
-// Operators notations, order is establishing precedence
-//
-macro(`a = `b,
-  if(applic?(a),
-    if(applied(a) == "@", 
-      `(@!($(nthParam(a, 0)), $(nthParam(a,1)), $b)) ),
-    `(=($a, $b))
-  )
-)
-
-macrox(`a += `b, $a = $a + $b)
-macrox(`a -= `b, $a = $a - $b)
-
-macrox(`a && `b, &&($a, $b))
-macrox(`a || `b, ||($a, $b))
-
-macrox(`a == `b, ==($a, $b))
-macrox(`a != `b, !=($a, $b))
-macrox(`a < `b, <($a, $b))
-macrox(`a <= `b, <=($a, $b))
-macrox(`a > `b, >($a, $b))
-macrox(`a >= `b, >=($a, $b))
-macrox(`a =~ `b, =~($a, $b))
-
-macrox(`a + `b, +($a, $b))
-macrox(`a - `b, -($a, $b))
-macrox(`a * `b, *($a, $b))
-macrox(`a / `b, /($a, $b))
-
-
-// Standard parsing for foo@bar(baz) is foo@(bar(baz)). We want (foo@bar)(baz).
-macro(`arr . `idx, 
-  if(applic?(idx),
-    // TODO simplify
-    if(empty?(params(idx)),
-      `( @($arr, $(applied(idx)))() ),
-      `( @($arr, $(applied(idx)))($<(params(idx))) )
-    ),
-    `(@($arr, $idx))
-  )
 )
 
 macro(`pack :: `def, 
