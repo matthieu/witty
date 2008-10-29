@@ -1,11 +1,13 @@
-load("src/runtime.js");
-load("src/wittyLexer.js");
-load("src/wittyParser.js");
-load("src/util.js");
-load("src/json2.js");
-load("src/macro.js");
-load("src/dtype.js");
-load("src/printer.js");
+if (typeof load != "undefined") {
+  load("src/runtime.js");
+  load("src/wittyLexer.js");
+  load("src/wittyParser.js");
+  load("src/util.js");
+  load("src/json2.js");
+  load("src/macro.js");
+  load("src/dtype.js");
+  load("src/printer.js");
+}
 
 function eval_(exp, env, ctx) {
   //print("eval: " + JSON.stringify(exp) + " :sntx: " + exp.sntx);
@@ -62,6 +64,8 @@ function evalQuoted(exp) {
 
 function variableRef(exp) { return ((typeof exp == 'string') || (exp instanceof String)); }
 function variableValue(exp, env, isMacro) {
+  if (exp instanceof Array) return undefined;
+  
   var index = isMacro ? 1 : 0;
   for (var m = 0, frame; frame = env[m]; m++) {
     var value = frame[index][exp];
@@ -388,7 +392,7 @@ primitives.merge({
     if (application(f) && !(f[1] === undefined)) return  f[1][idx];
     else return null;
   },
-  'isa': opEval(function(operands, env) { return isa(operands[0], operands[1]); }),
+  'isa': opEval(function(operands, env) { return isa(operands[0], operands[1]); })
 });
 
 

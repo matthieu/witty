@@ -1,0 +1,109 @@
+<html>
+  <head>
+    <script language="javascript" src="src/runtime.js"></script>
+    <script language="javascript" src="src/wittyLexer.js"></script>
+    <script language="javascript" src="src/wittyParser.js"></script>
+    <script language="javascript" src="src/util.js"></script>
+    <script language="javascript" src="src/json2.js"></script>
+    <script language="javascript" src="src/macro.js"></script>
+    <script language="javascript" src="src/printer.js"></script>
+    <script language="javascript" src="src/interpr.js"></script>
+    <script language="javascript" src="src/dtype.js"></script>
+  </head>
+
+  <body>
+    <div id="main"></div>
+    <script type="text/javascript">
+
+function fetch(url, callback) {
+  document.getElementById('main').innerHTML = ' Fetching script ' + url + '...';
+  if (window.XMLHttpRequest) {
+    var req = new XMLHttpRequest();
+  } else if (window.ActiveXObject) {
+    var req = new ActiveXObject("Microsoft.XMLHTTP");
+  }
+  req.open("GET", url, false);
+  //req.onreadystatechange = function() { ahahDone(req, url, callback); };
+  req.send("");
+  console.log(req.responseText.slice(0, 10));
+  callback(req.responseText);
+}  
+
+var self = this;
+function doEval(str) {
+  return self.eval(str);
+}
+function load(url) {
+  fetch(url, function(body) {
+      doEval(body);
+      console.log("Done evaluating " + url + " " + ANTLR);
+  });
+}
+
+function setupEnv() {
+  var baseFrame = {};
+  baseFrame['def'] = defPrimitive;
+  baseFrame['true'] = true;
+  baseFrame['false'] = false;
+  baseFrame['null'] = null;
+  baseFrame['ReferenceError'] = makeErrorType('ReferenceError');
+  baseFrame['NameError'] = makeErrorType('NameError');
+  baseFrame['CallError'] = makeErrorType('CallError');
+  baseFrame['TypeError'] = makeErrorType('TypeError');
+  baseFrame['UserError'] = makeErrorType('UserError');
+  return [[baseFrame, {}]];
+}
+
+var env = setupEnv();
+
+function flattnArrays(arr) {
+  var mod = [];
+  for (var m = 0; m < arr.length; m++) {
+    var elmt = arr[m];
+    if (elmt instanceof Array) {
+      var flat = flattnArrays(elmt);
+      if (flat.sntx) mod.push(flat);
+      else mod = mod.concat(flat);
+    } else {
+      mod.push(elmt);
+    }
+  }
+  mod.sntx = arr.sntx;
+  if (arr.line) {
+    mod.line = arr.line;
+    mod.pos = arr.pos;
+  }
+  return mod;
+}
+
+function parse(expr) {
+  var cstream = new ANTLR.runtime.ANTLRStringStream(expr),
+      lexer = new wittyLexer(cstream),
+      tstream = new ANTLR.runtime.CommonTokenStream(lexer),
+      parser = new wittyParser(tstream);
+
+  var res = parser.block();
+  if (res instanceof Array) {
+    res = flattnArrays(res);
+    if (!res.sntx) res.sntx = 'B';
+  }
+  return res;
+}
+
+function wyExec(url) {
+  fetch(url, function(body) {
+    var res = eval_(parse(body), env, []);
+    if (error(res)) console.log("Error parsing file " + url + " :\n" + toWyStr(stdres));
+  });
+}
+
+var CURRENT_FILE = null;
+
+wyExec('src/stdlib.wy');
+print = console.log
+wyExec('test/base.wy');
+
+</script>
+  </body>
+
+</html>

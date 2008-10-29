@@ -52,18 +52,13 @@ if(length(failures) > 0,
 )
 
 // think of how to make functions like toString or + work on user provided structures
-// hygiene
-// degrade gracefully in a web browser
 // generalized variables
 // cond/case with pattern matching: cond([], true, [x], x, [x, rest\], ...)
 // optional function parameters, parameters with default values
 // provide primitives allowing read/write access to witty code so code can be created or altered directly
-// pretty printer for all data types, including lambda, macro and package
 // assign with := returns old value to allow a = b := a (exchange value)
-// single param lambdas syntax sugar: \(..)
 // lambdas shortcut y(...) ?
 // multiline strings
-// anonymous recursive lambdas (aka anaphoric lambdas)
 // recursive macros
 // function composition
 // delay and force
