@@ -11,11 +11,14 @@ import Text.ParserCombinators.Parsec.Language(javaStyle)
 
 data NativeType = WyString String
                 | WyInt Integer
+                | WyFloat Double
                 | WyBool Bool
                 | WyList [NativeType]
                 | WyMap (M.Map NativeType NativeType)
                 | WyId String
                 | WyApplic String [NativeType]
+                | WyStmt [NativeType]
+                | WyBlock [NativeType]
   deriving (Show, Eq, Ord)
 
 --
@@ -23,28 +26,36 @@ data NativeType = WyString String
 
 wyParser = whitespace >> root
 
-root = idOrApplic <|> literalList <|> literalMap 
-      <|> literalInt <|> literalString <|> literalBool
+root = liftM WyBlock $ stmt `sepBy1` (eol <|> semi)
+
+stmt = liftM WyStmt $ many1 compound
+
+compound = idOrApplic <|> literalList <|> literalMap 
+          <|> literalNumber <|> literalString <|> literalBool
 
 idOrApplic = try applic <|> idRef -- todo fix error swallow with applic
 
-idRef = liftM WyId $ identifier
-applic = liftM2 WyApplic identifier $ parens (commaSep wyParser)
+idRef = liftM WyId $ (identifier <|> operator)
+applic = liftM2 WyApplic (identifier <|> operator) $ parens (commaSep root)
 
-literalList = liftM WyList $ brackets (commaSep wyParser)
+literalList = liftM WyList $ brackets (commaSep root)
 
 literalMap = liftM (WyMap . M.fromList) $ braces (commaSep keyVal)
   where keyVal = do key <- parseMapKey
                     colon
-                    value <- wyParser
+                    value <- root
                     return (key, value)
         parseMapKey = literalString <|> (liftM WyString $ identifier)
 
--- fixme escape stuff, symbols and unicode
 literalString = liftM WyString $ stringLiteral
+
+literalNumber = try literalFloat <|> literalInt -- todo negative floats
 literalInt = liftM WyInt $ integer
+literalFloat = liftM WyFloat $ float
 literalBool = (symbol "true" >> (return $ WyBool True))
           <|> (symbol "false" >> (return $ WyBool False))
+
+eol = try (string "\r") >> string "\n"
 
 --
 -- Lexer
@@ -59,13 +70,16 @@ wyDef = javaStyle {
 
 parens = P.parens lexer
 braces = P.braces lexer
-identifier = P.identifier lexer
 brackets = P.brackets lexer
 commaSep = P.commaSep lexer
+identifier = P.identifier lexer
+operator = P.operator lexer
 colon = P.colon lexer
 stringLiteral = P.stringLiteral lexer
 integer = P.integer lexer
+float = P.float lexer
 symbol = P.symbol lexer
+semi = P.semi lexer
 whitespace = P.whiteSpace lexer
 
 --
