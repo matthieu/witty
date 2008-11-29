@@ -3,6 +3,7 @@ import Control.Monad(liftM, liftM2)
 import Data.List(intercalate, (\\))
 import qualified Data.Map as M
 
+import System.Console.Readline
 import Text.ParserCombinators.Parsec
 import qualified Text.ParserCombinators.Parsec.Token as P
 import Text.ParserCombinators.Parsec.Language(javaStyle)
@@ -41,6 +42,8 @@ instance Num NativeType where
 
   WyInt i1 * WyInt i2 = WyInt (i1 * i2)
   WyFloat f1 * WyFloat f2 = WyFloat (f1 * f2)
+  WyInt i1 * WyFloat f2 = WyFloat (fromInteger i1 * f2)
+  WyFloat f1 * WyInt i2 = WyFloat (f1 * fromInteger i2)
   x1 * x2 = error ("can't multiply " ++ (show x1) ++ " and " ++ (show x2))
 
   abs (WyInt i1) = WyInt (abs i1)
@@ -167,14 +170,15 @@ showWy (WyMap s) = show s
 ---
 -- REPL
 
-repl = do putStr "> "
-          line <- getLine
-          let p = parseWy line
-          putStrLn $ (showWy (eval p)) ++ " - " ++ (show p)
-          if line /= "q"
-            then repl
-            else return ()
-
+repl = do line <- readline "> "
+          case line of
+            Nothing -> repl
+            Just l | l == "q"  -> return () 
+                   | otherwise -> do addHistory l
+                                     let p = parseWy l
+                                     putStrLn $ (showWy (eval p)) ++ " - " ++ (show p)
+                                     repl
+          
 mhead []      = Nothing
 mhead (x:xs)  = Just x
 
