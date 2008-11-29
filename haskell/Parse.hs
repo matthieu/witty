@@ -1,6 +1,7 @@
 import System.Environment(getArgs)
 import Control.Monad(liftM, liftM2)
-import Data.List(intercalate, (\\))
+import Data.List(intercalate, foldl1', (\\))
+import Data.Char(toLower)
 import qualified Data.Map as M
 
 import System.Console.Readline
@@ -15,6 +16,7 @@ data NativeType = WyString String
                 | WyInt Integer
                 | WyFloat Double
                 | WyBool Bool
+                | WyNull
                 | WyList [NativeType]
                 | WyMap (M.Map NativeType NativeType)
                 | WyId String
@@ -66,10 +68,17 @@ instance Fractional NativeType where
 
   fromRational r = WyFloat (fromRational r)
 
---toNum :: (Num a) => NativeType -> a
---toNum (WyInt i) = i
---toNum (WyFloat f) = f
---toNum x = error ("Not a number: " ++ (showWy x))
+truthy (WyBool s) = s
+truthy WyNull = False
+truthy _ = True
+
+showWy (WyString s) = show s
+showWy (WyInt s) = show s
+showWy (WyFloat s) = show s
+showWy (WyBool s) = map toLower (show s)
+showWy WyNull = "null"
+showWy (WyList s) = "[" ++ (intercalate "," $ map showWy s) ++ "]"
+showWy (WyMap s) = show s
 
 --
 -- Parser
@@ -147,6 +156,10 @@ eval (WyBlock xs) = last $ map eval xs
 eval (WyStmt []) = error "empty statement!"
 eval (WyStmt xs) = last $ map eval xs
 
+eval (WyId idn) | idn == "true" = WyBool True
+eval (WyId idn) | idn == "false" = WyBool False
+eval (WyId idn) | idn == "null" = WyBool False
+
 eval (WyList xs) = WyList $ map eval xs
 
 --eval (WyApplic fn ps) = foldir1 (($) . (envLookup fn)) ps
@@ -155,17 +168,16 @@ eval (WyApplic fn ps) = applyPrimitive fn ps
 eval x = id x
 
 applyPrimitive fn ps = case fn of
-                          "+" -> foldr1 (+) (map eval ps)
-                          "-" -> foldr1 (-) (map eval ps)
-                          "*" -> foldr1 (*) (map eval ps)
-                          "/" -> foldr1 (/) (map eval ps)
-
-showWy (WyString s) = show s
-showWy (WyInt s) = show s
-showWy (WyFloat s) = show s
-showWy (WyBool s) = show s
-showWy (WyList s) = "[" ++ (intercalate "," $ map showWy s) ++ "]"
-showWy (WyMap s) = show s
+                          "+" -> opEval (+)
+                          "-" -> opEval (-)
+                          "*" -> opEval (*)
+                          "/" -> opEval (/)
+                          "==" -> opEval boolEq
+                          "&&" -> boolEval (&&)
+                          "||" -> boolEval (||)
+                       where opEval = flip foldl1' (map eval ps)
+                             boolEq a b = WyBool (a == b)
+                             boolEval op = WyBool $ foldl1' op (map (truthy . eval) ps)
 
 ---
 -- REPL
