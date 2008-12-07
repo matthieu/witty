@@ -97,6 +97,7 @@ data WyType = WyString String
             | WyNull
             | WyList [WyType]
             | WyMap (M.Map WyType WyType)
+            | WyLambda [String] ASTType WyEnv
     deriving (Show, Eq, Ord)
 
 instance Num WyType where
@@ -149,14 +150,15 @@ truthy _ = True
 showWy (WyString s) = show s
 showWy (WyInt s) = show s
 showWy (WyFloat s) = show s
-showWy (WyBool s) = map toLower (show s)
+showWy (WyBool s) = map toLower $ show s
 showWy WyNull = "null"
 showWy (WyList s) = "[" ++ (intercalate "," $ map showWy s) ++ "]"
 showWy (WyMap s) = show s
+showWy (WyLambda ss ast env) = "lambda(" ++ (show ss) ++ ", " ++ (show ast) ++ ") in " ++ (show env)
 
 data Frame = Frame {
     frameVars :: M.Map String WyType
-  }
+  } deriving (Show, Eq, Ord)
 
 type WyEnv = S.Seq Frame
 
@@ -235,6 +237,8 @@ applyPrimitive fn ps env =
     "&&" -> boolEval (&&)
     "||" -> boolEval (||)
     "=" -> envInsert (extractId . head $ ps) (eval env . head . tail $ ps) env
+    "lambda" -> liftM (WyLambda (map extractId $ init ps) (last ps)) (readSTRef env)
+    _ -> error $ "Unknown function: " ++ fn
   where opEval op = liftM (foldl1' op) (mapM (eval env) ps)
         boolEval op = liftM (WyBool . foldl1' op) (mapM (liftM truthy . eval env) ps)
         evalList env ps = mapM (eval env) ps
