@@ -2,7 +2,11 @@ import System.Environment(getArgs)
 import Control.Monad(liftM, liftM2)
 import Data.List(intercalate, foldl1', (\\))
 import Data.Char(toLower)
+import qualified Data.Sequence as S
+import Data.Sequence ((><), (<|), (|>))
 import qualified Data.Map as M
+import Data.STRef
+import Control.Monad.ST
 
 import System.Console.Readline
 import Text.ParserCombinators.Parsec
@@ -10,7 +14,7 @@ import qualified Text.ParserCombinators.Parsec.Token as P
 import Text.ParserCombinators.Parsec.Language(javaStyle)
 
 --
--- AST nodes
+-- AST Nodes and Parser
 
 data ASTType = ASTString String
                 | ASTInt Integer
@@ -24,9 +28,6 @@ data ASTType = ASTString String
                 | ASTStmt [ASTType]
                 | ASTBlock [ASTType]
     deriving (Show, Eq, Ord)
-
---
--- Parser
 
 wyParser = whitespace >> root
 
@@ -157,6 +158,40 @@ data Frame = Frame {
     frameVars :: M.Map String WyType
   }
 
+type WyEnv = S.Seq Frame
+
+envInsert' name value env = S.update 0 (fstFrameUpdate name value env) env
+
+envLookup' name env | S.null env = Nothing
+                    | otherwise = case fstFrameLookup name env of
+                                    Just value -> Just value
+                                    Nothing -> envLookup' name $ S.drop 1 env
+
+envUpdate' name value env = 
+  case envUpdate'' name value env 0 of
+    Just (frame, idx) -> S.update idx frame env
+    Nothing -> envInsert' name value env
+  where 
+    envUpdate'' _ _ env _ | S.null env = Nothing
+    envUpdate'' name value env index | otherwise = 
+      case fstFrameLookup name env of
+        Just value -> Just (fstFrameUpdate name value env, index)
+        Nothing -> envUpdate'' name value (S.drop 1 env) (index+1)
+
+fstFrameUpdate name value env = Frame $ M.insert name value $ frameVars $ S.index env 0
+fstFrameLookup name env = M.lookup name $ frameVars $ S.index env 0
+
+envMutate env value fn = do envd <- readSTRef env
+                            writeSTRef env $ fn envd
+                            return value
+envQuery env fn = do envd <- readSTRef env
+                     return $ fn envd
+
+envInsert name value env = do val <- value 
+                              envMutate env val $ envInsert' name val
+envUpdate name value env = envMutate env value $ envUpdate' name value
+envLookup name env = envQuery env $ envLookup' name
+
 --
 -- Interpreter
 
@@ -164,52 +199,68 @@ parseWy input = case (parse wyParser "(unknown)" input) of
                   Right out -> out
                   Left msg -> error $ "Parsing error: " ++ (show msg)
 
-eval:: ASTType -> WyType
+eval:: STRef s WyEnv -> ASTType -> ST s WyType
 
-eval (ASTBlock []) = error "empty block!"
-eval (ASTBlock xs) = last $ map eval xs
+eval _ (ASTBlock []) = error "empty block!"
+eval env (ASTBlock xs) = last $ map (eval env) xs
 
-eval (ASTStmt []) = error "empty statement!"
-eval (ASTStmt xs) = last $ map eval xs
+eval _ (ASTStmt []) = error "empty statement!"
+eval env (ASTStmt xs) = last $ map (eval env) xs
 
-eval (ASTApplic fn ps) = applyPrimitive fn ps
+eval env (ASTApplic fn ps) = applyPrimitive fn ps env
 
-eval (ASTId idn) | idn == "true" = WyBool True
-eval (ASTId idn) | idn == "false" = WyBool False
-eval (ASTId idn) | idn == "null" = WyBool False
+eval _ (ASTId idn) | idn == "true" = return $ WyBool True
+eval _ (ASTId idn) | idn == "false" = return $ WyBool False
+eval _ (ASTId idn) | idn == "null" = return $ WyBool False
+eval env (ASTId idn) | otherwise = liftM valOrErr $ envLookup idn env
+  where valOrErr m = case m of
+                       Just wy -> wy
+                       Nothing -> error $ "Unknown symbol: " ++ idn
 
-eval (ASTList xs) = WyList $ map eval xs
+eval env (ASTList xs) = liftM WyList $ mapM (eval env) xs
 
-eval ASTNull = WyNull
-eval (ASTBool b) = WyBool b
-eval (ASTFloat f) = WyFloat f 
-eval (ASTInt i) = WyInt i
-eval (ASTString s) = WyString s
+eval _ ASTNull = return WyNull
+eval _ (ASTBool b) = return $ WyBool b
+eval _ (ASTFloat f) = return $ WyFloat f 
+eval _ (ASTInt i) = return $ WyInt i
+eval _ (ASTString s) = return $ WyString s
 
-applyPrimitive fn ps = case fn of
-                          "+" -> opEval (+)
-                          "-" -> opEval (-)
-                          "*" -> opEval (*)
-                          "/" -> opEval (/)
-                          "==" -> opEval boolEq
-                          "&&" -> boolEval (&&)
-                          "||" -> boolEval (||)
-                       where opEval = flip foldl1' (map eval ps)
-                             boolEq a b = WyBool (a == b)
-                             boolEval op = WyBool $ foldl1' op (map (truthy . eval) ps)
+applyPrimitive fn ps env = 
+  case fn of
+    "+" -> opEval (+)
+    "-" -> opEval (-)
+    "*" -> opEval (*)
+    "/" -> opEval (/)
+    "==" -> opEval boolEq
+    "&&" -> boolEval (&&)
+    "||" -> boolEval (||)
+    "=" -> envInsert (extractId . head $ ps) (eval env . head . tail $ ps) env
+  where opEval op = liftM (foldl1' op) (mapM (eval env) ps)
+        boolEval op = liftM (WyBool . foldl1' op) (mapM (liftM truthy . eval env) ps)
+        evalList env ps = mapM (eval env) ps
+        boolEq a b = WyBool (a == b)
+        extractId (ASTBlock [ASTStmt [ASTId i]]) = i
+        extractId x = error $ "Non identifier lvalue in = " ++ (show x)
 
 ---
 -- REPL
 
-repl = do line <- readline "> "
-          case line of
-            Nothing -> repl
-            Just l | l == "q"  -> return () 
-                   | otherwise -> do addHistory l
-                                     let p = parseWy l
-                                     putStrLn $ (showWy (eval p)) ++ " - " ++ (show p)
-                                     repl
-          
+runEval env p = runST (do runEnv <- newSTRef env
+                          res <- eval runEnv p
+                          newEnv <- readSTRef runEnv
+                          return (res, newEnv))
+
+repl env = do 
+  line <- readline "> "
+  case line of
+    Nothing -> repl env
+    Just l | l == "q"  -> return () 
+           | otherwise -> do addHistory l
+                             let p = parseWy l
+                             let e = runEval env p
+                             putStrLn $ (showWy . fst $ e) ++ " - " ++ (show p)
+                             repl $ snd e
+ 
 mhead []      = Nothing
 mhead (x:xs)  = Just x
 
@@ -217,4 +268,5 @@ main = do params <- getArgs
           case mhead params of
             Just x -> do cnt <- readFile x
                          putStrLn cnt
-            Nothing -> repl
+            Nothing -> repl $ S.empty |>  Frame M.empty
+
