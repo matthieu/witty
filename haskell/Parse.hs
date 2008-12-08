@@ -208,6 +208,11 @@ envInsert name value env = do val <- value
 envUpdate name value env = envMutate env value $ envUpdate' name value
 envLookup name env = envQuery env $ envLookup' name
 
+envStack :: [String] -> [WyType] -> WyEnv -> ST s (STRef s WyEnv)
+envStack params values env = do newEnv <- newSTRef $ extend params values env
+                                return newEnv
+  where extend params values env = (Frame $ M.fromList $ zip params values) <| env
+
 --
 -- Interpreter
 
@@ -244,15 +249,18 @@ eval _ (ASTFloat f) = return $ WyFloat f
 eval _ (ASTInt i) = return $ WyInt i
 eval _ (ASTString s) = return $ WyString s
 
--- evalList env l = mapM (eval env) l 
+apply vals env (WyPrim (WyPrimitive n fn)) = fn vals env
+apply vals env (WyLambda params ast lenv) = eval (newEnvStack params vals lenv env) ast
 
-apply ps env (WyPrim (WyPrimitive n fn)) = fn ps env
--- apply (WyLambda lps ast lenv) ps env = 
 apply ps env other = error $ "Don't know how to apply: " ++ show other
 
+newEnvStack params vals lenv env = (evalVals vals env) >>= ((flip $ envStack params) lenv)
+evalVals vals env = mapM (eval env) vals 
 
--- Declare primitives in the provided frame
-primitives f = arithmPrim . basePrim $ f
+--
+-- Primitives definition
+
+primitives frame = arithmPrim . basePrim $ frame
 
 basePrim f = 
   M.insert "lambda" (wyP "lambda" $ \ps env -> liftM (WyLambda (map extractId $ init ps) (last ps)) (readSTRef env)) $
