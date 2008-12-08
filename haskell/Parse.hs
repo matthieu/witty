@@ -1,3 +1,6 @@
+{-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE RankNTypes #-}
+
 import System.Environment(getArgs)
 import Control.Monad(liftM, liftM2)
 import Data.List(intercalate, foldl1', (\\))
@@ -98,7 +101,11 @@ data WyType = WyString String
             | WyList [WyType]
             | WyMap (M.Map WyType WyType)
             | WyLambda [String] ASTType WyEnv
+            | WyPrim WyPrimitive
     deriving (Show, Eq, Ord)
+            
+data WyPrimitive = WyPrimitive String (forall s. [ASTType] -> STRef s WyEnv -> ST s WyType)
+wyP n = WyPrim . WyPrimitive n
 
 instance Num WyType where
   WyString s1 + WyString s2 = WyString (s1 ++ s2)
@@ -142,6 +149,13 @@ instance Fractional WyType where
   x1 / x2 = error ("can't divide " ++ (show x1) ++ " and " ++ (show x2))
 
   fromRational r = WyFloat (fromRational r)
+
+instance Show WyPrimitive where
+  show (WyPrimitive n _) = "WyPrimitive " ++ show n
+instance Eq WyPrimitive where
+  (WyPrimitive n1 _) == (WyPrimitive n2 _) = n1 == n2
+instance Ord WyPrimitive where
+  (WyPrimitive n1 _) <= (WyPrimitive n2 _) = n1 <= n2
 
 truthy (WyBool s) = s
 truthy WyNull = False
@@ -209,7 +223,10 @@ eval env (ASTBlock xs) = last $ map (eval env) xs
 eval _ (ASTStmt []) = error "empty statement!"
 eval env (ASTStmt xs) = last $ map (eval env) xs
 
-eval env (ASTApplic fn ps) = applyPrimitive fn ps env
+eval env (ASTApplic fn ps) = (liftM valOrErr $ envLookup fn env) >>= apply ps env
+  where valOrErr m = case m of
+                         Just wy -> wy
+                         Nothing -> error $ "Unknown function: " ++ fn
 
 eval _ (ASTId idn) | idn == "true" = return $ WyBool True
 eval _ (ASTId idn) | idn == "false" = return $ WyBool False
@@ -227,24 +244,33 @@ eval _ (ASTFloat f) = return $ WyFloat f
 eval _ (ASTInt i) = return $ WyInt i
 eval _ (ASTString s) = return $ WyString s
 
-applyPrimitive fn ps env = 
-  case fn of
-    "+" -> opEval (+)
-    "-" -> opEval (-)
-    "*" -> opEval (*)
-    "/" -> opEval (/)
-    "==" -> opEval boolEq
-    "&&" -> boolEval (&&)
-    "||" -> boolEval (||)
-    "=" -> envInsert (extractId . head $ ps) (eval env . head . tail $ ps) env
-    "lambda" -> liftM (WyLambda (map extractId $ init ps) (last ps)) (readSTRef env)
-    _ -> error $ "Unknown function: " ++ fn
-  where opEval op = liftM (foldl1' op) (mapM (eval env) ps)
-        boolEval op = liftM (WyBool . foldl1' op) (mapM (liftM truthy . eval env) ps)
-        evalList env ps = mapM (eval env) ps
-        boolEq a b = WyBool (a == b)
-        extractId (ASTBlock [ASTStmt [ASTId i]]) = i
+-- evalList env l = mapM (eval env) l 
+
+apply ps env (WyPrim (WyPrimitive n fn)) = fn ps env
+-- apply (WyLambda lps ast lenv) ps env = 
+apply ps env other = error $ "Don't know how to apply: " ++ show other
+
+
+-- Declare primitives in the provided frame
+primitives f = arithmPrim . basePrim $ f
+
+basePrim f = 
+  M.insert "lambda" (wyP "lambda" $ \ps env -> liftM (WyLambda (map extractId $ init ps) (last ps)) (readSTRef env)) $
+  M.insert "=" (wyP "=" $ \ps env -> envInsert (extractId . head $ ps) (eval env . head . tail $ ps) env) f
+  where extractId (ASTBlock [ASTStmt [ASTId i]]) = i
         extractId x = error $ "Non identifier lvalue in = " ++ (show x)
+
+arithmPrim f = 
+  M.insert "+" (wyP "+" $ opEval (+)) $
+  M.insert "-" (wyP "-" $ opEval (-)) $
+  M.insert "*" (wyP "*" $ opEval (*)) $
+  M.insert "/" (wyP "/" $ opEval (/)) $
+  M.insert "==" (wyP "==" $ opEval boolEq) $
+  M.insert "&&" (wyP "&&" $ boolEval (&&)) $
+  M.insert "||" (wyP "||" $ boolEval (||)) f
+  where opEval op = \ps env -> liftM (foldl1' op) (mapM (eval env) ps)
+        boolEval op = \ps env -> liftM (WyBool . foldl1' op) (mapM (liftM truthy . eval env) ps)
+        boolEq a b = WyBool (a == b)
 
 ---
 -- REPL
@@ -272,5 +298,5 @@ main = do params <- getArgs
           case mhead params of
             Just x -> do cnt <- readFile x
                          putStrLn cnt
-            Nothing -> repl $ S.empty |>  Frame M.empty
+            Nothing -> repl $ S.empty |> (Frame $ primitives M.empty)
 
