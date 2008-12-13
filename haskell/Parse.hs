@@ -250,12 +250,19 @@ eval _ (ASTInt i) = return $ WyInt i
 eval _ (ASTString s) = return $ WyString s
 
 apply vals env (WyPrim (WyPrimitive n fn)) = fn vals env
-apply vals env (WyLambda params ast lenv) = eval (newEnvStack params vals lenv env) ast
+apply vals env (WyLambda params ast lenv) = 
+  do envCopy <- readSTRef env -- saving current env, todo: tail calls
+     nes <- newEnvStack env params vals lenv
+     nes' <- readSTRef nes
+     writeSTRef env nes'
+     res <- eval env ast
+     writeSTRef env envCopy -- restoring env
+     return res
+  where newEnvStack env params vals lenv = evalVals env vals >>= ((flip $ envStack params) lenv)
+        evalVals env vals = mapM (eval env) vals
 
 apply ps env other = error $ "Don't know how to apply: " ++ show other
 
-newEnvStack params vals lenv env = (evalVals vals env) >>= ((flip $ envStack params) lenv)
-evalVals vals env = mapM (eval env) vals 
 
 --
 -- Primitives definition
