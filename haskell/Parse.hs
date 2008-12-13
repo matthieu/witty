@@ -271,9 +271,15 @@ primitives frame = arithmPrim . basePrim $ frame
 
 basePrim f = 
   M.insert "lambda" (wyP "lambda" $ \ps env -> liftM (WyLambda (map extractId $ init ps) (last ps)) (readSTRef env)) $
-  M.insert "=" (wyP "=" $ \ps env -> envInsert (extractId . head $ ps) (eval env . head . tail $ ps) env) f
+  M.insert "=" (wyP "=" $ \ps env -> envInsert (extractId . head $ ps) (evalSnd env ps) env) $
+  M.insert "if" (wyP "if" $ \ps env -> do
+    expr <- eval env . head $ ps
+    if (truthy expr) 
+      then evalSnd env  ps
+      else evalSnd env . tail $ ps) f
   where extractId (ASTBlock [ASTStmt [ASTId i]]) = i
         extractId x = error $ "Non identifier lvalue in = " ++ (show x)
+        evalSnd env = eval env . head . tail
 
 arithmPrim f = 
   M.insert "+" (wyP "+" $ opEval (+)) $
