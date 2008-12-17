@@ -8,8 +8,7 @@ import Data.Char(toLower)
 import qualified Data.Sequence as S
 import Data.Sequence ((><), (<|), (|>))
 import qualified Data.Map as M
-import Data.STRef
-import Control.Monad.ST
+import Data.IORef
 
 import System.Console.Readline
 import Text.ParserCombinators.Parsec
@@ -100,12 +99,15 @@ data WyType = WyString String
             | WyNull
             | WyList [WyType]
             | WyMap (M.Map WyType WyType)
-            | WyLambda [String] ASTType WyEnv
+            | WyLambda WyL
             | WyPrim WyPrimitive
     deriving (Show, Eq, Ord)
             
-data WyPrimitive = WyPrimitive String (forall s. [ASTType] -> STRef s WyEnv -> ST s WyType)
+data WyPrimitive = WyPrimitive String ([ASTType] -> WyEnv -> IO WyType)
 wyP n = WyPrim . WyPrimitive n
+
+data WyL = WyL [String] ASTType WyEnv
+wyL ss ast = WyLambda . WyL ss ast
 
 instance Num WyType where
   WyString s1 + WyString s2 = WyString (s1 ++ s2)
@@ -156,6 +158,12 @@ instance Eq WyPrimitive where
   (WyPrimitive n1 _) == (WyPrimitive n2 _) = n1 == n2
 instance Ord WyPrimitive where
   (WyPrimitive n1 _) <= (WyPrimitive n2 _) = n1 <= n2
+instance Show WyL where
+  show (WyL ps ast _) = "WyLambda " ++ show ps ++ " " ++ show ast
+instance Eq WyL where
+  (WyL ps1 ast1 _) == (WyL ps2 ast2 _) = (ps1 == ps2) && (ast1 == ast2)
+instance Ord WyL where
+  (WyL ps1 ast1 _) <= (WyL ps2 ast2 _) = (ps1 <= ps2) && (ast1 <= ast2)
 
 truthy (WyBool s) = s
 truthy WyNull = False
@@ -168,50 +176,46 @@ showWy (WyBool s) = map toLower $ show s
 showWy WyNull = "null"
 showWy (WyList s) = "[" ++ (intercalate "," $ map showWy s) ++ "]"
 showWy (WyMap s) = show s
-showWy (WyLambda ss ast env) = "lambda(" ++ (show ss) ++ ", " ++ (show ast) ++ ") in " ++ (show env)
+showWy (WyLambda (WyL ss ast env)) = "lambda(" ++ (show ss) ++ ", " ++ (show ast) ++ ")"
+showWy (WyPrim (WyPrimitive n _)) = "<primitive " ++ (show n) ++ ">"
+
+type WyEnv = IORef (S.Seq Frame)
 
 data Frame = Frame {
-    frameVars :: M.Map String WyType
-  } deriving (Show, Eq, Ord)
+    frameVars :: M.Map String (IORef WyType)
+  }
 
-type WyEnv = S.Seq Frame
+envLookup :: String -> WyEnv -> IO (Maybe (IORef WyType))
+envLookup name env = do envVal <- readIORef env
+                        return $ envLookup' name envVal
+  where envLookup' name env | S.null env = Nothing
+                            | otherwise = case fstFrameLookup name env of
+                                            Just value -> Just value
+                                            Nothing -> envLookup' name $ S.drop 1 env
+        fstFrameLookup name env = M.lookup name $ frameVars $ S.index env 0
 
-envInsert' name value env = S.update 0 (fstFrameUpdate name value env) env
+envInsert :: String -> WyType -> WyEnv -> IO WyType
+envInsert name value env = do val <- newIORef value
+                              envVal <- readIORef env
+                              writeIORef env $ envInsert' name val envVal
+                              return value
+  where envInsert' name value env = S.update 0 (fstFrameUpdate name value env) env
+        fstFrameUpdate name value env = Frame $ M.insert name value $ frameVars $ S.index env 0
 
-envLookup' name env | S.null env = Nothing
-                    | otherwise = case fstFrameLookup name env of
-                                    Just value -> Just value
-                                    Nothing -> envLookup' name $ S.drop 1 env
 
-envUpdate' name value env = 
-  case envUpdate'' name value env 0 of
-    Just (frame, idx) -> S.update idx frame env
-    Nothing -> envInsert' name value env
-  where 
-    envUpdate'' _ _ env _ | S.null env = Nothing
-    envUpdate'' name value env index | otherwise = 
-      case fstFrameLookup name env of
-        Just value -> Just (fstFrameUpdate name value env, index)
-        Nothing -> envUpdate'' name value (S.drop 1 env) (index+1)
+envUpdate :: String -> WyType -> WyEnv -> IO WyType
+envUpdate name value env = do
+  val <- envLookup name env
+  case val of
+    Just ref -> writeIORef ref value >> return value
+    Nothing -> envInsert name value env
 
-fstFrameUpdate name value env = Frame $ M.insert name value $ frameVars $ S.index env 0
-fstFrameLookup name env = M.lookup name $ frameVars $ S.index env 0
-
-envMutate env value fn = do envd <- readSTRef env
-                            writeSTRef env $ fn envd
-                            return value
-envQuery env fn = do envd <- readSTRef env
-                     return $ fn envd
-
-envInsert name value env = do val <- value 
-                              envMutate env val $ envInsert' name val
-envUpdate name value env = envMutate env value $ envUpdate' name value
-envLookup name env = envQuery env $ envLookup' name
-
-envStack :: [String] -> [WyType] -> WyEnv -> ST s (STRef s WyEnv)
-envStack params values env = do newEnv <- newSTRef $ extend params values env
-                                return newEnv
-  where extend params values env = (Frame $ M.fromList $ zip params values) <| env
+envStack :: [String] -> [WyType] -> WyEnv -> IO (IORef (S.Seq Frame))
+envStack params values env = do envVal <- readIORef env
+                                valRefs <- mapM newIORef values
+                                writeIORef env $ extend params valRefs envVal
+                                return env
+  where extend params values env = ((<| env) . Frame . M.fromList . (zip params)) values
 
 --
 -- Interpreter
@@ -220,7 +224,7 @@ parseWy input = case (parse wyParser "(unknown)" input) of
                   Right out -> out
                   Left msg -> error $ "Parsing error: " ++ (show msg)
 
-eval:: STRef s WyEnv -> ASTType -> ST s WyType
+eval :: WyEnv -> ASTType -> IO WyType
 
 eval _ (ASTBlock []) = error "empty block!"
 eval env (ASTBlock xs) = last $ map (eval env) xs
@@ -228,7 +232,11 @@ eval env (ASTBlock xs) = last $ map (eval env) xs
 eval _ (ASTStmt []) = error "empty statement!"
 eval env (ASTStmt xs) = last $ map (eval env) xs
 
-eval env (ASTApplic fn ps) = (liftM valOrErr $ envLookup fn env) >>= apply ps env
+eval env (ASTApplic fn ps) = do valMaybe <- envLookup fn env
+                                valRef <- readIORef $ valOrErr valMaybe
+                                foo <- apply ps env valRef
+                                putStrLn $ show foo ++ " - " ++ show ps
+                                return foo
   where valOrErr m = case m of
                          Just wy -> wy
                          Nothing -> error $ "Unknown function: " ++ fn
@@ -236,7 +244,9 @@ eval env (ASTApplic fn ps) = (liftM valOrErr $ envLookup fn env) >>= apply ps en
 eval _ (ASTId idn) | idn == "true" = return $ WyBool True
 eval _ (ASTId idn) | idn == "false" = return $ WyBool False
 eval _ (ASTId idn) | idn == "null" = return $ WyBool False
-eval env (ASTId idn) | otherwise = liftM valOrErr $ envLookup idn env
+eval env (ASTId idn) | otherwise = do valMaybe <- envLookup idn env
+                                      let valRef = valOrErr valMaybe
+                                      readIORef valRef
   where valOrErr m = case m of
                        Just wy -> wy
                        Nothing -> error $ "Unknown symbol: " ++ idn
@@ -249,58 +259,59 @@ eval _ (ASTFloat f) = return $ WyFloat f
 eval _ (ASTInt i) = return $ WyInt i
 eval _ (ASTString s) = return $ WyString s
 
+apply:: [ASTType] -> WyEnv -> WyType -> IO WyType
 apply vals env (WyPrim (WyPrimitive n fn)) = fn vals env
-apply vals env (WyLambda params ast lenv) = 
-  do envCopy <- readSTRef env -- saving current env, todo: tail calls
-     nes <- newEnvStack env params vals lenv
-     nes' <- readSTRef nes
-     writeSTRef env nes'
-     res <- eval env ast
-     writeSTRef env envCopy -- restoring env
-     return res
-  where newEnvStack env params vals lenv = evalVals env vals >>= ((flip $ envStack params) lenv)
-        evalVals env vals = mapM (eval env) vals
-
+apply vals env (WyLambda (WyL params ast lenv)) =
+  let newEnv = mapM (eval env) vals >>= (flip $ envStack params) lenv
+  in newEnv >>= (flip eval) ast
 apply ps env other = error $ "Don't know how to apply: " ++ show other
-
 
 --
 -- Primitives definition
 
-primitives frame = arithmPrim . basePrim $ frame
-
+primitives f = arithmPrim f >>= basePrim
+ 
 basePrim f = 
-  M.insert "lambda" (wyP "lambda" $ \ps env -> liftM (WyLambda (map extractId $ init ps) (last ps)) (readSTRef env)) $
-  M.insert "=" (wyP "=" $ \ps env -> envInsert (extractId . head $ ps) (evalSnd env ps) env) $
-  M.insert "if" (wyP "if" $ \ps env -> do
+  liftInsert "lambda" (\ps env -> return $ wyL (map extractId $ init ps) (last ps) env) f >>=
+  liftInsert "=" (\ps env -> (evalSnd env ps) >>= (flip $ envUpdate (extractId . head $ ps)) env) >>=
+  liftInsert "if" (\ps env -> do
     expr <- eval env . head $ ps
     if (truthy expr) 
-      then evalSnd env  ps
-      else evalSnd env . tail $ ps) f
+      then evalSnd env ps
+      else evalSnd env . tail $ ps)
   where extractId (ASTBlock [ASTStmt [ASTId i]]) = i
         extractId x = error $ "Non identifier lvalue in = " ++ (show x)
         evalSnd env = eval env . head . tail
 
 arithmPrim f = 
-  M.insert "+" (wyP "+" $ opEval (+)) $
-  M.insert "-" (wyP "-" $ opEval (-)) $
-  M.insert "*" (wyP "*" $ opEval (*)) $
-  M.insert "/" (wyP "/" $ opEval (/)) $
-  M.insert "==" (wyP "==" $ opEval boolEq) $
-  M.insert "&&" (wyP "&&" $ boolEval (&&)) $
-  M.insert "||" (wyP "||" $ boolEval (||)) f
+  liftInsert "+" (opEval (+)) f >>=
+  liftInsert "-" (opEval (-)) >>=
+  liftInsert "*" (opEval (*)) >>=
+  liftInsert "/" (opEval (/)) >>=
+  liftInsert "==" (opEval $ boolComp (==)) >>=
+  liftInsert "<=" (opEval $ boolComp (<=)) >>=
+  liftInsert ">=" (opEval $ boolComp (>=)) >>=
+  liftInsert "<" (opEval $ boolComp (<)) >>=
+  liftInsert ">" (opEval $ boolComp (>)) >>=
+  liftInsert "&&" (boolEval (&&)) >>=
+  liftInsert "||" (boolEval (||))
   where opEval op = \ps env -> liftM (foldl1' op) (mapM (eval env) ps)
         boolEval op = \ps env -> liftM (WyBool . foldl1' op) (mapM (liftM truthy . eval env) ps)
-        boolEq a b = WyBool (a == b)
+        boolComp c a b = WyBool (c a b)
+
+liftInsert name lambda map = liftM (flip (M.insert name) $ map) (wyPIO name lambda)
+  where wyPIO n l = newIORef $ wyP n l
 
 ---
 -- REPL
 
-runEval env p = runST (do runEnv <- newSTRef env
-                          res <- eval runEnv p
-                          newEnv <- readSTRef runEnv
-                          return (res, newEnv))
+runEval :: S.Seq Frame -> ASTType -> IO (WyType, S.Seq Frame)
+runEval env p = do runEnv <- newIORef env
+                   res <- eval runEnv p
+                   newEnv <- readIORef runEnv
+                   return (res, newEnv)
 
+repl :: S.Seq Frame -> IO ()
 repl env = do 
   line <- readline "> "
   case line of
@@ -308,7 +319,7 @@ repl env = do
     Just l | l == "q"  -> return () 
            | otherwise -> do addHistory l
                              let p = parseWy l
-                             let e = runEval env p
+                             e <- runEval env p
                              putStrLn $ (showWy . fst $ e) ++ " - " ++ (show p)
                              repl $ snd e
  
@@ -319,5 +330,6 @@ main = do params <- getArgs
           case mhead params of
             Just x -> do cnt <- readFile x
                          putStrLn cnt
-            Nothing -> repl $ S.empty |> (Frame $ primitives M.empty)
+            Nothing -> do p <- primitives M.empty
+                          repl $ S.empty |> (Frame p)
 
