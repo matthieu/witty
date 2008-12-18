@@ -213,8 +213,8 @@ envUpdate name value env = do
 envStack :: [String] -> [WyType] -> WyEnv -> IO (IORef (S.Seq Frame))
 envStack params values env = do envVal <- readIORef env
                                 valRefs <- mapM newIORef values
-                                writeIORef env $ extend params valRefs envVal
-                                return env
+                                newEnv <- newIORef $ extend params valRefs envVal
+                                return newEnv
   where extend params values env = ((<| env) . Frame . M.fromList . (zip params)) values
 
 --
@@ -234,9 +234,7 @@ eval env (ASTStmt xs) = last $ map (eval env) xs
 
 eval env (ASTApplic fn ps) = do valMaybe <- envLookup fn env
                                 valRef <- readIORef $ valOrErr valMaybe
-                                foo <- apply ps env valRef
-                                putStrLn $ show foo ++ " - " ++ show ps
-                                return foo
+                                apply ps env valRef
   where valOrErr m = case m of
                          Just wy -> wy
                          Nothing -> error $ "Unknown function: " ++ fn
