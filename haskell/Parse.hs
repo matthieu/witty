@@ -89,6 +89,15 @@ symbol = P.symbol lexer
 semi = P.semi lexer
 whitespace = P.whiteSpace lexer
 
+-- AST optimizer
+
+pruneAST (ASTBlock [single]) = pruneAST single
+pruneAST (ASTStmt [single]) = pruneAST single
+pruneAST (ASTApplic s ps) = ASTApplic s $ map pruneAST ps
+pruneAST (ASTList xs) = ASTList $ map pruneAST xs
+pruneAST (ASTMap m) = ASTMap $ M.mapKeys pruneAST . M.map pruneAST $ m
+pruneAST x = x
+
 --
 -- Types and Environment
 
@@ -220,9 +229,9 @@ envStack params values env = do envVal <- readIORef env
 --
 -- Interpreter
 
-parseWy input = case (parse wyParser "(unknown)" input) of
-                  Right out -> out
-                  Left msg -> error $ "Parsing error: " ++ (show msg)
+parseWy input = pruneAST $ case (parse wyParser "(unknown)" input) of
+                             Right out -> out
+                             Left msg -> error $ "Parsing error: " ++ (show msg)
 
 eval :: WyEnv -> ASTType -> IO WyType
 
@@ -277,7 +286,7 @@ basePrim f =
     if (truthy expr) 
       then evalSnd env ps
       else evalSnd env . tail $ ps)
-  where extractId (ASTBlock [ASTStmt [ASTId i]]) = i
+  where extractId (ASTId i) = i
         extractId x = error $ "Non identifier lvalue in = " ++ (show x)
         evalSnd env = eval env . head . tail
 
