@@ -195,8 +195,7 @@ data Frame = Frame {
   }
 
 envLookup :: String -> WyEnv -> IO (Maybe (IORef WyType))
-envLookup name env = do envVal <- readIORef env
-                        return $ envLookup' name envVal
+envLookup name env = liftM (envLookup' name) (readIORef env)
   where envLookup' name env | S.null env = Nothing
                             | otherwise = case fstFrameLookup name env of
                                             Just value -> Just value
@@ -225,6 +224,23 @@ envStack params values env = do envVal <- readIORef env
                                 newEnv <- newIORef $ extend params valRefs envVal
                                 return newEnv
   where extend params values env = ((<| env) . Frame . M.fromList . (zip params)) values
+
+--
+-- Macro system
+
+patternMatch _ _ Nothing = Nothing
+patternMatch (ASTId s1) (ASTId s2) f | s1 == s2      = f
+patternMatch (ASTId s) x (Just f)    | s !! 0 == '`' = Just $ M.insert (tail s) x f
+
+patternMatch (ASTStmt (x1:xs1)) (ASTStmt (x2:xs2)) f = patternMatch x1 x2 $ matchList xs1 xs2 f
+patternMatch (ASTStmt [x]) y f = patternMatch x y f
+patternMatch (ASTStmt []) (ASTStmt []) f = f
+
+patternMatch (ASTApplic n1 (p1:ps1)) (ASTApplic n2 (p2:ps2)) f | n1 == n2 = patternMatch p1 p2 $ matchList ps1 ps2 f
+patternMatch _ _ _ = Nothing
+
+matchList (x1:xs1) (x2:xs2) f = patternMatch x1 x2 $ matchList xs1 xs2 f
+matchList [] [] f = f
 
 --
 -- Interpreter
