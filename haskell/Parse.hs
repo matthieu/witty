@@ -1,5 +1,6 @@
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE TypeSynonymInstances #-}
 
 import System.Environment(getArgs)
 import Control.Monad(liftM, liftM2)
@@ -109,6 +110,11 @@ data WyType = WyString String
             | WyList [WyType]
             | WyMap (M.Map WyType WyType)
             | WyLambda WyL
+            | WyMacro {
+                macroPattern:: ASTType,
+                macroBody:: ASTType,
+                macroEnv:: WyEnv 
+              }
             | WyPrim WyPrimitive
     deriving (Show, Eq, Ord)
             
@@ -194,6 +200,9 @@ data Frame = Frame {
     frameVars :: M.Map String (IORef WyType)
   }
 
+instance Show WyEnv where show _ = "<env>"
+instance Ord WyEnv where _ <= _ = False
+
 envLookup :: String -> WyEnv -> IO (Maybe (IORef WyType))
 envLookup name env = liftM (envLookup' name) (readIORef env)
   where envLookup' name env | S.null env = Nothing
@@ -218,15 +227,22 @@ envUpdate name value env = do
     Just ref -> writeIORef ref value >> return value
     Nothing -> envInsert name value env
 
-envStack :: [String] -> [WyType] -> WyEnv -> IO (IORef (S.Seq Frame))
+envStack :: [String] -> [WyType] -> WyEnv -> IO (WyEnv)
 envStack params values env = do envVal <- readIORef env
                                 valRefs <- mapM newIORef values
                                 newEnv <- newIORef $ extend params valRefs envVal
                                 return newEnv
   where extend params values env = ((<| env) . Frame . M.fromList . (zip params)) values
 
+envAdd :: Frame -> WyEnv -> IO (WyEnv)
+envAdd frame env = do envVal <- readIORef env
+                      newEnv <- newIORef $ frame <| envVal
+                      return newEnv
+
 --
 -- Macro system
+
+patternMatch :: ASTType -> ASTType -> Maybe (M.Map String ASTType) -> Maybe (M.Map String ASTType)
 
 patternMatch _ _ Nothing = Nothing
 patternMatch (ASTId s1) (ASTId s2) f | s1 == s2      = f
@@ -241,6 +257,67 @@ patternMatch _ _ _ = Nothing
 
 matchList (x1:xs1) (x2:xs2) f = patternMatch x1 x2 $ matchList xs1 xs2 f
 matchList [] [] f = f
+
+findMacro :: (Num a) => [ASTType] -> a -> WyEnv -> IO [(WyType, a)]
+findMacro [] num env = return []
+findMacro ((ASTId x):xs) num env = lookupMacro x xs num env
+findMacro ((ASTApplic n _):xs) num env = lookupMacro n xs num env
+findMacro (x:xs) num env = findMacro xs (num+1) env
+lookupMacro n xs num env = 
+  do m <- envLookup n env
+     case m of
+       Just res -> do t <- findMacro xs (num+1) env
+                      v <- readIORef res
+                      return $ (v, num) : t
+       Nothing -> findMacro xs (num+1) env
+
+matchMacro :: [ASTType] -> [(WyType, Int)] -> [(WyType, Int, M.Map String ASTType)]
+matchMacro stmt [] = []
+matchMacro stmt ((m@(WyMacro p b e), idx):mis) = 
+  case matchOffset [-1, 0, 1] stmt p idx of
+    Just m -> m : matchMacro stmt mis
+    Nothing -> matchMacro stmt mis
+  where matchOffset (offs:offss) stmt mi idx = 
+          if offs + idx >= 0
+              then case patternMatch mi (ASTStmt $ drop (offs + idx) stmt) (Just M.empty) of
+                      Just f -> Just (m, idx, f)
+                      Nothing -> matchOffset offss stmt mi idx
+              else matchOffset offss stmt mi idx
+        matchOffset [] stmt mi idx = Nothing
+
+runMacro:: WyType -> Frame -> WyEnv -> IO (WyType, WyType)
+runMacro m f env = do newEnv <- envAdd f env
+                      res <- eval newEnv $ macroBody m
+                      return (res, m)
+
+rewriteStmt :: ASTType -> [([ASTType], Int, WyType)] -> Int -> t
+rewriteStmt (ASTStmt stmt) ((nast, idx, m):mres) offs = 
+  rewriteStmt (ASTStmt (take startIdx stmt ++ nast ++ drop (startIdx + macroPattLgth m) stmt)) mres newOffs
+  where startIdx = idx - (fst $ macroPivot m) - offs
+        newOffs = offs + length nast - macroPattLgth m 
+                                                 
+macroPattLgth m = case macroPattern m of
+                    (ASTStmt es)    -> length es
+                    (ASTApplic _ _) -> 1
+                    _               -> error $ "Bad macro pattern: " ++ (show $ macroPattern m)
+
+macroPivot :: (Num t) => WyType -> (t, String)
+macroPivot (WyMacro p b e) = firstNonVar p
+  where firstNonVar (ASTStmt es) = firstNonVar' es 0
+        firstNonVar (ASTApplic n _) = (0, n)
+        firstNonVar' ((ASTId i):es) idx | i !! 0 /= '`' = (idx, i)
+        firstNonVar' [] idx = error $ "No pivot found in macro pattern " ++ (show p)
+        firstNonVar' (e:es) idx = firstNonVar' es (idx+1)
+-- liftM (macroPivot . (WyMacro (ASTStmt [ASTId "`a", ASTId "+", ASTId "`b"]) ASTNull)) (newIORef $ S.empty |> (Frame M.empty))
+-- liftM (macroPivot . (WyMacro (ASTApplic "foo" []) ASTNull)) (newIORef $ S.empty |> (Frame M.empty))
+
+applyMacros s@(ASTStmt ss) env = do
+  mstruct <- liftM (matchMacro ss) $ findMacro ss 0 env
+
+-- findMacro scans and returns the macros and their positions (or empty arr)
+-- matchMacro tries the macro patterns and returns macro, position and frame for those that match (or empty arr)
+-- runMacro runs the macros in their frame/env and returns macro and result
+-- rewriteStmt rewrites the list replacing the macro expression with the result of the macro run
 
 --
 -- Interpreter
@@ -297,6 +374,7 @@ primitives f = arithmPrim f >>= basePrim
 basePrim f = 
   liftInsert "lambda" (\ps env -> return $ wyL (map extractId $ init ps) (last ps) env) f >>=
   liftInsert "=" (\ps env -> (evalSnd env ps) >>= (flip $ envUpdate (extractId . head $ ps)) env) >>=
+  liftInsert "`" (\ps env -> 
   liftInsert "if" (\ps env -> do
     expr <- eval env . head $ ps
     if (truthy expr) 
