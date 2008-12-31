@@ -72,7 +72,7 @@ lexer = P.makeTokenParser wyDef
 wyDef = javaStyle { 
           P.identLetter = alphaNum <|> oneOf "!#$%&?@\\^~",
           P.opStart = P.opLetter wyDef,
-          P.opLetter = oneOf "!#$%&*+./<=>?@\\^|-~",
+          P.opLetter = oneOf "!#$%&*+./<=>?@\\^|-~`",
           P.caseSensitive = True
         }
 
@@ -109,6 +109,7 @@ data WyType = WyString String
             | WyNull
             | WyList [WyType]
             | WyMap (M.Map WyType WyType)
+            | WyTemplate ASTType
             | WyLambda WyL
             | WyMacro {
                 macroPattern:: ASTType,
@@ -191,6 +192,7 @@ showWy (WyBool s) = map toLower $ show s
 showWy WyNull = "null"
 showWy (WyList s) = "[" ++ (intercalate "," $ map showWy s) ++ "]"
 showWy (WyMap s) = show s
+showWy (WyTemplate ast) = "`(" ++ (show ast) ++ ")"
 showWy (WyLambda (WyL ss ast env)) = "lambda(" ++ (show ss) ++ ", " ++ (show ast) ++ ")"
 showWy (WyPrim (WyPrimitive n _)) = "<primitive " ++ (show n) ++ ">"
 
@@ -312,7 +314,8 @@ macroPivot (WyMacro p b e) = firstNonVar p
 -- liftM (macroPivot . (WyMacro (ASTApplic "foo" []) ASTNull)) (newIORef $ S.empty |> (Frame M.empty))
 
 applyMacros s@(ASTStmt ss) env = do
-  mstruct <- liftM (matchMacro ss) $ findMacro ss 0 env
+  mstruct <- liftM (matchMacro ss) (findMacro ss 0 env)
+  return mstruct
 
 -- findMacro scans and returns the macros and their positions (or empty arr)
 -- matchMacro tries the macro patterns and returns macro, position and frame for those that match (or empty arr)
@@ -374,7 +377,7 @@ primitives f = arithmPrim f >>= basePrim
 basePrim f = 
   liftInsert "lambda" (\ps env -> return $ wyL (map extractId $ init ps) (last ps) env) f >>=
   liftInsert "=" (\ps env -> (evalSnd env ps) >>= (flip $ envUpdate (extractId . head $ ps)) env) >>=
-  liftInsert "`" (\ps env -> 
+  liftInsert "`" (\ps env -> return . WyTemplate . head $ ps) >>= -- support $ escaping
   liftInsert "if" (\ps env -> do
     expr <- eval env . head $ ps
     if (truthy expr) 
