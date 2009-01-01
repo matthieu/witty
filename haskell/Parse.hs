@@ -234,7 +234,6 @@ envLookupVar :: String -> WyEnv -> IO (Maybe (IORef WyType))
 envLookupVar name env = envLookup name env frameVars
 envLookupMacro name env = envLookup name env macroVars
 
-
 envInsert name value env varFn macFn = do val <- newIORef value
                                           envVal <- readIORef env
                                           writeIORef env $ envInsert' name val envVal
@@ -379,7 +378,7 @@ eval env (ASTId idn) | otherwise = do valMaybe <- envLookupVar idn env
                                       readIORef valRef
   where valOrErr m = case m of
                        Just wy -> wy
-                       Nothing -> error $ "Unknown symbol: " ++ idn
+                       Nothing -> error $ "Unknown reference: " ++ idn
 
 eval env (ASTList xs) = liftM WyList $ mapM (eval env) xs
 
@@ -408,7 +407,7 @@ basePrim f =
                                  in do envInsertMacro n m env
                                        return $ WyString n ) >>=
   liftInsert "=" (\ps env -> (evalSnd env ps) >>= (flip $ envUpdate (extractId . head $ ps)) env) >>=
-  liftInsert "`" (\ps env -> return . WyTemplate . head $ ps) >>= -- support $ escaping
+  liftInsert "`" (\ps env -> liftM WyTemplate $ (unescapeBq env) . head $ ps) >>= -- support $ escaping
   liftInsert "if" (\ps env -> do
     expr <- eval env . head $ ps
     if (truthy expr) 
@@ -436,6 +435,19 @@ arithmPrim f =
 
 liftInsert name lambda map = liftM (flip (M.insert name) $ map) (wyPIO name lambda)
   where wyPIO n l = newIORef $ wyP n l
+
+unescapeBq :: WyEnv -> ASTType -> IO ASTType
+unescapeBq env (ASTId i) | i !! 0 == '$' = do
+  res <- envLookupVar (tail i) env
+  case res of
+    Just v  -> liftM wyToAST $ readIORef v
+    Nothing -> error $ "Unknown unescaped reference: " ++ (show i) 
+unescapeBq env (ASTList ss) = liftM ASTList $ mapM (unescapeBq env) ss
+unescapeBq env (ASTMap m) = liftM ASTMap $ T.mapM (unescapeBq env) m
+unescapeBq env (ASTApplic n ps) = liftM (ASTApplic n) $ mapM (unescapeBq env) ps
+unescapeBq env (ASTStmt xs) = liftM ASTStmt $ mapM (unescapeBq env) xs
+unescapeBq env (ASTBlock xs) = liftM ASTBlock $ mapM (unescapeBq env) xs
+unescapeBq _ x = return x
 
 ---
 -- REPL
