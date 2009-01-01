@@ -268,41 +268,33 @@ envAdd frame env = do envVal <- readIORef env
 -- Macro system
 
 patternMatch :: ASTType -> ASTType -> Maybe (M.Map String ASTType) -> Maybe (M.Map String ASTType)
-
 patternMatch _ _ Nothing = Nothing
 patternMatch (ASTId s1) (ASTId s2) f | s1 == s2      = f
 patternMatch (ASTId s) x (Just f)    | s !! 0 == '`' = Just $ M.insert (tail s) x f
-
 patternMatch (ASTStmt (x1:xs1)) (ASTStmt (x2:xs2)) f = patternMatch x1 x2 $ matchList xs1 xs2 f
 patternMatch (ASTStmt [x]) y f = patternMatch x y f
 patternMatch (ASTStmt []) (ASTStmt []) f = f
-
 patternMatch (ASTApplic n1 (p1:ps1)) (ASTApplic n2 (p2:ps2)) f | n1 == n2 = patternMatch p1 p2 $ matchList ps1 ps2 f
 patternMatch _ _ _ = Nothing
 
 matchList (x1:xs1) (x2:xs2) f = patternMatch x1 x2 $ matchList xs1 xs2 f
-matchList [] [] f = f
+matchList [] _ f = f
 
-findMacro :: (Num a) => [ASTType] -> a -> WyEnv -> IO [(WyType, a)]
-findMacro [] num env = return []
-findMacro ((ASTId x):xs) num env = lookupMacro x xs num env
-findMacro ((ASTApplic n _):xs) num env = lookupMacro n xs num env
-findMacro (x:xs) num env = findMacro xs (num+1) env
+findMacros :: (Num a) => [ASTType] -> a -> WyEnv -> IO [(WyType, a)]
+findMacros [] num env = return []
+findMacros ((ASTId x):xs) num env = lookupMacro x xs num env
+findMacros ((ASTApplic n _):xs) num env = lookupMacro n xs num env
+findMacros (x:xs) num env = findMacros xs (num+1) env
 lookupMacro n xs num env = 
   do m <- envLookupMacro n env
      case m of
-       Just res -> do t <- findMacro xs (num+1) env
+       Just res -> do t <- findMacros xs (num+1) env
                       v <- readIORef res
                       return $ (v, num) : t
-       Nothing -> findMacro xs (num+1) env
+       Nothing -> findMacros xs (num+1) env
 
-matchMacro :: [ASTType] -> WyEnv -> [(WyType, Int)] -> IO [(WyType, Int, Frame)]
-matchMacro stmt _ [] = return []
-matchMacro stmt env ((m@(WyMacro p b e), idx):mis) = do
-  mo <- matchOffset [-1, 0, 1] stmt p idx
-  case mo of
-    Just m -> liftM (m :) $ matchMacro stmt env mis
-    Nothing -> matchMacro stmt env mis
+matchMacro :: [ASTType] -> WyEnv -> (WyType, Int) -> IO (Maybe (WyType, Int, Frame))
+matchMacro stmt env (m@(WyMacro p b e), idx) = matchOffset [-1, 0, 1] stmt p idx
   where matchOffset (offs:offss) stmt mi idx = 
           if offs + idx >= 0
               then case patternMatch mi (ASTStmt $ drop (offs + idx) stmt) (Just M.empty) of
@@ -311,25 +303,25 @@ matchMacro stmt env ((m@(WyMacro p b e), idx):mis) = do
                       Nothing -> matchOffset offss stmt mi idx
               else matchOffset offss stmt mi idx
         matchOffset [] stmt mi idx = return Nothing
-        toFrame b env = liftM (flip Frame $ M.empty) $ T.mapM (toEvalRef env) b
-        toEvalRef env exp = eval env exp >>= newIORef
+        toFrame b env = liftM (flip Frame $ M.empty) $ T.mapM (toWyRef env) b
+        toWyRef env exp = newIORef $ WyTemplate exp
 
 runMacro :: WyType -> Frame -> WyEnv -> IO WyType
 runMacro m f env = do newEnv <- envAdd f env
                       res <- eval newEnv $ macroBody m
                       return res
 
-rewriteStmt :: [ASTType] -> Int -> [(WyType, Int, [ASTType])] -> [ASTType]
-rewriteStmt stmt offs [] = stmt
-rewriteStmt stmt offs ((m , idx, nast):mres) = 
-  rewriteStmt (take startIdx stmt ++ nast ++ drop (startIdx + macroPattLgth m) stmt) newOffs mres
-  where startIdx = idx - (fst $ macroPivot m) - offs
-        newOffs = offs + length nast - macroPattLgth m 
+rewriteStmt :: [ASTType] -> Int -> (WyType, Int, [ASTType]) -> ([ASTType], Int)
+rewriteStmt stmt offs (m , idx, nast) =
+  let startIdx = idx - (fst $ macroPivot m) - offs
+      newOffs = offs + length nast - macroPattLgth m   
+  in (take startIdx stmt ++ nast ++ drop (startIdx + macroPattLgth m) stmt, newOffs)
                                                  
-macroPattLgth m = case macroPattern m of
-                    (ASTStmt es)    -> length es
-                    (ASTApplic _ _) -> 1
-                    _               -> error $ "Bad macro pattern: " ++ (show $ macroPattern m)
+macroPattLgth m = 
+  case macroPattern m of
+    (ASTStmt es)    -> length es
+    (ASTApplic _ _) -> 1
+    _               -> error $ "Bad macro pattern: " ++ (show $ macroPattern m)
 
 macroPivot :: (Num t) => WyType -> (t, String)
 macroPivot (WyMacro p b e) = firstNonVar p
@@ -342,11 +334,16 @@ macroPivot (WyMacro p b e) = firstNonVar p
 -- liftM (macroPivot . (WyMacro (ASTApplic "foo" []) ASTNull)) (newIORef $ S.empty |> (Frame M.empty))
 
 applyMacros :: [ASTType] -> WyEnv -> IO [ASTType]
-applyMacros stmt env = do
-  mstruct <- findMacro stmt 0 env >>= matchMacro stmt env
-  liftM (rewriteStmt stmt 0) (mapM doRun mstruct)
-  where doRun (m, idx, f) = do res <- runMacro m f env
-                               return (m, idx, [wyToAST res])
+applyMacros stmt env = findMacros stmt 0 env >>= rewriteMatch stmt 0
+  where rewriteMatch stmt _ [] = return stmt
+        rewriteMatch stmt offs ((m, idx):ms) = do
+          matchM <- matchMacro stmt env (m, idx+offs)
+          case matchM of
+            Just match -> do newStmt <- liftM (rewriteStmt stmt offs) $ runMatch match
+                             rewriteMatch (fst newStmt) (snd newStmt) ms
+            Nothing -> rewriteMatch stmt offs ms
+        runMatch (m, idx, f) = do res <- runMacro m f env
+                                  return (m, idx, [wyToAST res])
 
 --
 -- Interpreter
@@ -357,11 +354,13 @@ parseWy input = pruneAST $ case (parse wyParser "(unknown)" input) of
 
 eval :: WyEnv -> ASTType -> IO WyType
 
-eval _ (ASTBlock []) = error "empty block!"
 eval env (ASTBlock xs) = last $ map (eval env) xs
 
-eval _ (ASTStmt []) = error "empty statement!"
 eval env (ASTStmt xs) = liftM last $ applyMacros xs env >>= mapM (eval env)
+-- eval env (ASTStmt xs) = do ms <- applyMacros xs env
+--                            putStrLn (show ms)
+--                            es <- mapM (eval env) ms
+--                            return $ last es
 
 eval env (ASTApplic fn ps) = do valMaybe <- envLookupVar fn env
                                 valRef   <- readIORef $ valOrErr valMaybe
