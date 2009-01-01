@@ -9,6 +9,7 @@ import Data.Char(toLower)
 import qualified Data.Sequence as S
 import Data.Sequence ((><), (<|), (|>))
 import qualified Data.Map as M
+import qualified Data.Traversable as T
 import Data.IORef
 
 import System.Console.Readline
@@ -70,9 +71,10 @@ eol = try (string "\r") >> string "\n"
 
 lexer = P.makeTokenParser wyDef
 wyDef = javaStyle { 
-          P.identLetter = alphaNum <|> oneOf "!#$%&?@\\^~",
+          P.identStart = letter <|> oneOf "`$",
+          P.identLetter = alphaNum <|> oneOf "!#$%&?@\\^~`",
           P.opStart = P.opLetter wyDef,
-          P.opLetter = oneOf "!#$%&*+./<=>?@\\^|-~`",
+          P.opLetter = oneOf "!#%&*+./<=>?@\\^|-~",
           P.caseSensitive = True
         }
 
@@ -100,7 +102,7 @@ pruneAST (ASTMap m) = ASTMap $ M.mapKeys pruneAST . M.map pruneAST $ m
 pruneAST x = x
 
 --
--- Types and Environment
+-- Language types and supporting function
 
 data WyType = WyString String
             | WyInt Integer
@@ -185,6 +187,17 @@ truthy (WyBool s) = s
 truthy WyNull = False
 truthy _ = True
 
+wyToAST (WyString s) = ASTString s
+wyToAST (WyInt i) = ASTInt i
+wyToAST (WyFloat f) = ASTFloat f
+wyToAST (WyBool b) = ASTBool b
+wyToAST WyNull = ASTNull
+wyToAST (WyList ss) = ASTList $ map wyToAST ss
+wyToAST (WyMap m) = ASTMap $ M.mapKeys wyToAST . M.map wyToAST $ m
+wyToAST (WyTemplate t) = t
+wyToAST (WyLambda (WyL ss ast env)) = ASTApplic "lambda" (map ASTId ss ++ [ast])
+wyToAST (WyPrim (WyPrimitive n _)) = ASTId n
+
 showWy (WyString s) = show s
 showWy (WyInt s) = show s
 showWy (WyFloat s) = show s
@@ -194,47 +207,58 @@ showWy (WyList s) = "[" ++ (intercalate "," $ map showWy s) ++ "]"
 showWy (WyMap s) = show s
 showWy (WyTemplate ast) = "`(" ++ (show ast) ++ ")"
 showWy (WyLambda (WyL ss ast env)) = "lambda(" ++ (show ss) ++ ", " ++ (show ast) ++ ")"
+showWy (WyMacro p b env) = "macro(" ++ (show p) ++ ", " ++ (show b) ++ ")"
 showWy (WyPrim (WyPrimitive n _)) = "<primitive " ++ (show n) ++ ">"
+
+-- Environment definition
+--
 
 type WyEnv = IORef (S.Seq Frame)
 
 data Frame = Frame {
-    frameVars :: M.Map String (IORef WyType)
+    frameVars :: M.Map String (IORef WyType),
+    macroVars :: M.Map String (IORef WyType)
   }
 
 instance Show WyEnv where show _ = "<env>"
 instance Ord WyEnv where _ <= _ = False
 
-envLookup :: String -> WyEnv -> IO (Maybe (IORef WyType))
-envLookup name env = liftM (envLookup' name) (readIORef env)
+envLookup name env frameFn = liftM (envLookup' name) (readIORef env)
   where envLookup' name env | S.null env = Nothing
                             | otherwise = case fstFrameLookup name env of
                                             Just value -> Just value
                                             Nothing -> envLookup' name $ S.drop 1 env
-        fstFrameLookup name env = M.lookup name $ frameVars $ S.index env 0
+        fstFrameLookup name env = M.lookup name $ frameFn $ S.index env 0
 
-envInsert :: String -> WyType -> WyEnv -> IO WyType
-envInsert name value env = do val <- newIORef value
-                              envVal <- readIORef env
-                              writeIORef env $ envInsert' name val envVal
-                              return value
+envLookupVar :: String -> WyEnv -> IO (Maybe (IORef WyType))
+envLookupVar name env = envLookup name env frameVars
+envLookupMacro name env = envLookup name env macroVars
+
+
+envInsert name value env varFn macFn = do val <- newIORef value
+                                          envVal <- readIORef env
+                                          writeIORef env $ envInsert' name val envVal
+                                          return value
   where envInsert' name value env = S.update 0 (fstFrameUpdate name value env) env
-        fstFrameUpdate name value env = Frame $ M.insert name value $ frameVars $ S.index env 0
+        fstFrameUpdate name value env = Frame (varFn name value $ S.index env 0) (macFn name value $ S.index env 0)
 
+envInsertVar :: String -> WyType -> WyEnv -> IO WyType
+envInsertVar name value env = envInsert name value env (\n v -> M.insert n v . frameVars) (\n v -> macroVars)
+envInsertMacro name value env = envInsert name value env (\n v -> frameVars) (\n v -> M.insert n v . macroVars)
 
 envUpdate :: String -> WyType -> WyEnv -> IO WyType
 envUpdate name value env = do
-  val <- envLookup name env
+  val <- envLookupVar name env
   case val of
     Just ref -> writeIORef ref value >> return value
-    Nothing -> envInsert name value env
+    Nothing -> envInsertVar name value env
 
 envStack :: [String] -> [WyType] -> WyEnv -> IO (WyEnv)
 envStack params values env = do envVal <- readIORef env
                                 valRefs <- mapM newIORef values
                                 newEnv <- newIORef $ extend params valRefs envVal
                                 return newEnv
-  where extend params values env = ((<| env) . Frame . M.fromList . (zip params)) values
+  where extend params values env = ((<| env) . (flip Frame $ M.empty) . M.fromList . (zip params)) values
 
 envAdd :: Frame -> WyEnv -> IO (WyEnv)
 envAdd frame env = do envVal <- readIORef env
@@ -266,35 +290,40 @@ findMacro ((ASTId x):xs) num env = lookupMacro x xs num env
 findMacro ((ASTApplic n _):xs) num env = lookupMacro n xs num env
 findMacro (x:xs) num env = findMacro xs (num+1) env
 lookupMacro n xs num env = 
-  do m <- envLookup n env
+  do m <- envLookupMacro n env
      case m of
        Just res -> do t <- findMacro xs (num+1) env
                       v <- readIORef res
                       return $ (v, num) : t
        Nothing -> findMacro xs (num+1) env
 
-matchMacro :: [ASTType] -> [(WyType, Int)] -> [(WyType, Int, M.Map String ASTType)]
-matchMacro stmt [] = []
-matchMacro stmt ((m@(WyMacro p b e), idx):mis) = 
-  case matchOffset [-1, 0, 1] stmt p idx of
-    Just m -> m : matchMacro stmt mis
-    Nothing -> matchMacro stmt mis
+matchMacro :: [ASTType] -> WyEnv -> [(WyType, Int)] -> IO [(WyType, Int, Frame)]
+matchMacro stmt _ [] = return []
+matchMacro stmt env ((m@(WyMacro p b e), idx):mis) = do
+  mo <- matchOffset [-1, 0, 1] stmt p idx
+  case mo of
+    Just m -> liftM (m :) $ matchMacro stmt env mis
+    Nothing -> matchMacro stmt env mis
   where matchOffset (offs:offss) stmt mi idx = 
           if offs + idx >= 0
               then case patternMatch mi (ASTStmt $ drop (offs + idx) stmt) (Just M.empty) of
-                      Just f -> Just (m, idx, f)
+                      Just f -> do fr <- toFrame f env
+                                   return $ Just (m, idx, fr)
                       Nothing -> matchOffset offss stmt mi idx
               else matchOffset offss stmt mi idx
-        matchOffset [] stmt mi idx = Nothing
+        matchOffset [] stmt mi idx = return Nothing
+        toFrame b env = liftM (flip Frame $ M.empty) $ T.mapM (toEvalRef env) b
+        toEvalRef env exp = eval env exp >>= newIORef
 
-runMacro:: WyType -> Frame -> WyEnv -> IO (WyType, WyType)
+runMacro :: WyType -> Frame -> WyEnv -> IO WyType
 runMacro m f env = do newEnv <- envAdd f env
                       res <- eval newEnv $ macroBody m
-                      return (res, m)
+                      return res
 
-rewriteStmt :: ASTType -> [([ASTType], Int, WyType)] -> Int -> t
-rewriteStmt (ASTStmt stmt) ((nast, idx, m):mres) offs = 
-  rewriteStmt (ASTStmt (take startIdx stmt ++ nast ++ drop (startIdx + macroPattLgth m) stmt)) mres newOffs
+rewriteStmt :: [ASTType] -> Int -> [(WyType, Int, [ASTType])] -> [ASTType]
+rewriteStmt stmt offs [] = stmt
+rewriteStmt stmt offs ((m , idx, nast):mres) = 
+  rewriteStmt (take startIdx stmt ++ nast ++ drop (startIdx + macroPattLgth m) stmt) newOffs mres
   where startIdx = idx - (fst $ macroPivot m) - offs
         newOffs = offs + length nast - macroPattLgth m 
                                                  
@@ -313,14 +342,12 @@ macroPivot (WyMacro p b e) = firstNonVar p
 -- liftM (macroPivot . (WyMacro (ASTStmt [ASTId "`a", ASTId "+", ASTId "`b"]) ASTNull)) (newIORef $ S.empty |> (Frame M.empty))
 -- liftM (macroPivot . (WyMacro (ASTApplic "foo" []) ASTNull)) (newIORef $ S.empty |> (Frame M.empty))
 
-applyMacros s@(ASTStmt ss) env = do
-  mstruct <- liftM (matchMacro ss) (findMacro ss 0 env)
-  return mstruct
-
--- findMacro scans and returns the macros and their positions (or empty arr)
--- matchMacro tries the macro patterns and returns macro, position and frame for those that match (or empty arr)
--- runMacro runs the macros in their frame/env and returns macro and result
--- rewriteStmt rewrites the list replacing the macro expression with the result of the macro run
+applyMacros :: [ASTType] -> WyEnv -> IO [ASTType]
+applyMacros stmt env = do
+  mstruct <- findMacro stmt 0 env >>= matchMacro stmt env
+  liftM (rewriteStmt stmt 0) (mapM doRun mstruct)
+  where doRun (m, idx, f) = do res <- runMacro m f env
+                               return (m, idx, [wyToAST res])
 
 --
 -- Interpreter
@@ -335,10 +362,10 @@ eval _ (ASTBlock []) = error "empty block!"
 eval env (ASTBlock xs) = last $ map (eval env) xs
 
 eval _ (ASTStmt []) = error "empty statement!"
-eval env (ASTStmt xs) = last $ map (eval env) xs
+eval env (ASTStmt xs) = liftM last $ applyMacros xs env >>= mapM (eval env)
 
-eval env (ASTApplic fn ps) = do valMaybe <- envLookup fn env
-                                valRef <- readIORef $ valOrErr valMaybe
+eval env (ASTApplic fn ps) = do valMaybe <- envLookupVar fn env
+                                valRef   <- readIORef $ valOrErr valMaybe
                                 apply ps env valRef
   where valOrErr m = case m of
                          Just wy -> wy
@@ -347,7 +374,7 @@ eval env (ASTApplic fn ps) = do valMaybe <- envLookup fn env
 eval _ (ASTId idn) | idn == "true" = return $ WyBool True
 eval _ (ASTId idn) | idn == "false" = return $ WyBool False
 eval _ (ASTId idn) | idn == "null" = return $ WyBool False
-eval env (ASTId idn) | otherwise = do valMaybe <- envLookup idn env
+eval env (ASTId idn) | otherwise = do valMaybe <- envLookupVar idn env
                                       let valRef = valOrErr valMaybe
                                       readIORef valRef
   where valOrErr m = case m of
@@ -376,6 +403,10 @@ primitives f = arithmPrim f >>= basePrim
  
 basePrim f = 
   liftInsert "lambda" (\ps env -> return $ wyL (map extractId $ init ps) (last ps) env) f >>=
+  liftInsert "macro" (\ps env -> let m = WyMacro (head ps) (last ps) env
+                                     n = snd . macroPivot $ m
+                                 in do envInsertMacro n m env
+                                       return $ WyString n ) >>=
   liftInsert "=" (\ps env -> (evalSnd env ps) >>= (flip $ envUpdate (extractId . head $ ps)) env) >>=
   liftInsert "`" (\ps env -> return . WyTemplate . head $ ps) >>= -- support $ escaping
   liftInsert "if" (\ps env -> do
@@ -435,5 +466,5 @@ main = do params <- getArgs
             Just x -> do cnt <- readFile x
                          putStrLn cnt
             Nothing -> do p <- primitives M.empty
-                          repl $ S.empty |> (Frame p)
+                          repl $ S.empty |> (Frame p M.empty)
 
