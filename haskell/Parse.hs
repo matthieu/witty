@@ -4,8 +4,9 @@
 
 import System.Environment(getArgs)
 import Control.Monad(liftM, liftM2)
-import Data.List(intercalate, foldl1', (\\))
+import Data.List(intercalate, foldl1', (\\), sortBy)
 import Data.Char(toLower)
+import Data.Ord(comparing)
 import qualified Data.Sequence as S
 import Data.Sequence ((><), (<|), (|>))
 import qualified Data.Map as M
@@ -116,6 +117,7 @@ data WyType = WyString String
             | WyMacro {
                 macroPattern:: ASTType,
                 macroBody:: ASTType,
+                macroPriority:: Integer,
                 macroEnv:: WyEnv 
               }
             | WyPrim WyPrimitive
@@ -207,7 +209,7 @@ showWy (WyList s) = "[" ++ (intercalate "," $ map showWy s) ++ "]"
 showWy (WyMap s) = show s
 showWy (WyTemplate ast) = "`(" ++ (show ast) ++ ")"
 showWy (WyLambda (WyL ss ast env)) = "lambda(" ++ (show ss) ++ ", " ++ (show ast) ++ ")"
-showWy (WyMacro p b env) = "macro(" ++ (show p) ++ ", " ++ (show b) ++ ")"
+showWy (WyMacro p b _ env) = "macro(" ++ (show p) ++ ", " ++ (show b) ++ ")"
 showWy (WyPrim (WyPrimitive n _)) = "<primitive " ++ (show n) ++ ">"
 
 -- Environment definition
@@ -245,12 +247,13 @@ envInsertVar :: String -> WyType -> WyEnv -> IO WyType
 envInsertVar name value env = envInsert name value env (\n v -> M.insert n v . frameVars) (\n v -> macroVars)
 envInsertMacro name value env = envInsert name value env (\n v -> frameVars) (\n v -> M.insert n v . macroVars)
 
-envUpdate :: String -> WyType -> WyEnv -> IO WyType
-envUpdate name value env = do
-  val <- envLookupVar name env
+envUpdate name value env lookupFn insertFn = do
+  val <- lookupFn name env
   case val of
     Just ref -> writeIORef ref value >> return value
-    Nothing -> envInsertVar name value env
+    Nothing -> insertFn name value env
+envUpdateVar name value env = envUpdate name value env envLookupVar envInsertVar
+envUpdateMacro name value env = envUpdate name value env envLookupMacro envInsertMacro
 
 envStack :: [String] -> [WyType] -> WyEnv -> IO (WyEnv)
 envStack params values env = do envVal <- readIORef env
@@ -294,7 +297,7 @@ lookupMacro n xs num env =
        Nothing -> findMacros xs (num+1) env
 
 matchMacro :: [ASTType] -> WyEnv -> (WyType, Int) -> IO (Maybe (WyType, Int, Frame))
-matchMacro stmt env (m@(WyMacro p b e), idx) = matchOffset [-1, 0, 1] stmt p idx
+matchMacro stmt env (m@(WyMacro p b _ e), idx) = matchOffset [-1, 0, 1] stmt p idx
   where matchOffset (offs:offss) stmt mi idx = 
           if offs + idx >= 0
               then case patternMatch mi (ASTStmt $ drop (offs + idx) stmt) (Just M.empty) of
@@ -324,7 +327,7 @@ macroPattLgth m =
     _               -> error $ "Bad macro pattern: " ++ (show $ macroPattern m)
 
 macroPivot :: (Num t) => WyType -> (t, String)
-macroPivot (WyMacro p b e) = firstNonVar p
+macroPivot (WyMacro p b _ e) = firstNonVar p
   where firstNonVar (ASTStmt es) = firstNonVar' es 0
         firstNonVar (ASTApplic n _) = (0, n)
         firstNonVar' ((ASTId i):es) idx | i !! 0 /= '`' = (idx, i)
@@ -334,7 +337,7 @@ macroPivot (WyMacro p b e) = firstNonVar p
 -- liftM (macroPivot . (WyMacro (ASTApplic "foo" []) ASTNull)) (newIORef $ S.empty |> (Frame M.empty))
 
 applyMacros :: [ASTType] -> WyEnv -> IO [ASTType]
-applyMacros stmt env = findMacros stmt 0 env >>= rewriteMatch stmt 0
+applyMacros stmt env = liftM orderFound (findMacros stmt 0 env) >>= rewriteMatch stmt 0
   where rewriteMatch stmt _ [] = return stmt
         rewriteMatch stmt offs ((m, idx):ms) = do
           matchM <- matchMacro stmt env (m, idx+offs)
@@ -344,6 +347,8 @@ applyMacros stmt env = findMacros stmt 0 env >>= rewriteMatch stmt 0
             Nothing -> rewriteMatch stmt offs ms
         runMatch (m, idx, f) = do res <- runMacro m f env
                                   return (m, idx, [wyToAST res])
+        orderFound ms = reverse . sortBy (comparing priority) $ ms
+                        where priority = macroPriority . fst
 
 --
 -- Interpreter
@@ -401,11 +406,11 @@ primitives f = arithmPrim f >>= basePrim
  
 basePrim f = 
   liftInsert "lambda" (\ps env -> return $ wyL (map extractId $ init ps) (last ps) env) f >>=
-  liftInsert "macro" (\ps env -> let m = WyMacro (head ps) (last ps) env
-                                     n = snd . macroPivot $ m
-                                 in do envInsertMacro n m env
-                                       return $ WyString n ) >>=
-  liftInsert "=" (\ps env -> (evalSnd env ps) >>= (flip $ envUpdate (extractId . head $ ps)) env) >>=
+  liftInsert "macrop" (\ps env -> let m = WyMacro (head ps) (last ps) (extractInt $ ps !! 1) env
+                                      n = snd . macroPivot $ m
+                                  in do envUpdateMacro n m env
+                                        return $ WyString n ) >>=
+  liftInsert "=" (\ps env -> (evalSnd env ps) >>= (flip $ envUpdateVar (extractId . head $ ps)) env) >>=
   liftInsert "`" (\ps env -> liftM WyTemplate $ (unescapeBq env) . head $ ps) >>= -- support $ escaping
   liftInsert "if" (\ps env -> do
     expr <- eval env . head $ ps
@@ -414,6 +419,8 @@ basePrim f =
       else evalSnd env . tail $ ps)
   where extractId (ASTId i) = i
         extractId x = error $ "Non identifier lvalue in = " ++ (show x)
+        extractInt (ASTInt i) = i
+        extractInt x = error $ (show x) ++ "isn't an integer value"
         evalSnd env = eval env . head . tail
 
 arithmPrim f = 
