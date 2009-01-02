@@ -96,11 +96,18 @@ whitespace = P.whiteSpace lexer
 -- AST optimizer
 
 pruneAST (ASTBlock [single]) = pruneAST single
-pruneAST (ASTStmt [single]) = pruneAST single
+
+pruneAST (ASTBlock ss) = ASTBlock $ map pruneAST ss
+pruneAST (ASTStmt [single]) | isApplic single = ASTStmt $ [pruneAST single]
+                            | otherwise       = pruneAST single
+pruneAST (ASTStmt ss) = ASTStmt $ map pruneAST ss 
 pruneAST (ASTApplic s ps) = ASTApplic s $ map pruneAST ps
 pruneAST (ASTList xs) = ASTList $ map pruneAST xs
 pruneAST (ASTMap m) = ASTMap $ M.mapKeys pruneAST . M.map pruneAST $ m
 pruneAST x = x
+
+isApplic (ASTApplic _ _) = True
+isApplic _               = False
 
 --
 -- Language types and supporting function
@@ -282,6 +289,7 @@ patternMatch _ _ _ = Nothing
 
 matchList (x1:xs1) (x2:xs2) f = patternMatch x1 x2 $ matchList xs1 xs2 f
 matchList [] _ f = f
+matchList _ _ _ = Nothing
 
 findMacros :: (Num a) => [ASTType] -> a -> WyEnv -> IO [(WyType, a)]
 findMacros [] num env = return []
@@ -328,8 +336,8 @@ macroPattLgth m =
 
 macroPivot :: (Num t) => WyType -> (t, String)
 macroPivot (WyMacro p b _ e) = firstNonVar p
-  where firstNonVar (ASTStmt es) = firstNonVar' es 0
-        firstNonVar (ASTApplic n _) = (0, n)
+  where firstNonVar (ASTStmt [ASTApplic n _]) = (0, n)
+        firstNonVar (ASTStmt es) = firstNonVar' es 0
         firstNonVar' ((ASTId i):es) idx | i !! 0 /= '`' = (idx, i)
         firstNonVar' [] idx = error $ "No pivot found in macro pattern " ++ (show p)
         firstNonVar' (e:es) idx = firstNonVar' es (idx+1)
@@ -360,12 +368,7 @@ parseWy input = pruneAST $ case (parse wyParser "(unknown)" input) of
 eval :: WyEnv -> ASTType -> IO WyType
 
 eval env (ASTBlock xs) = last $ map (eval env) xs
-
 eval env (ASTStmt xs) = liftM last $ applyMacros xs env >>= mapM (eval env)
--- eval env (ASTStmt xs) = do ms <- applyMacros xs env
---                            putStrLn (show ms)
---                            es <- mapM (eval env) ms
---                            return $ last es
 
 eval env (ASTApplic fn ps) = do valMaybe <- envLookupVar fn env
                                 valRef   <- readIORef $ valOrErr valMaybe
@@ -402,7 +405,7 @@ apply ps env other = error $ "Don't know how to apply: " ++ show other
 --
 -- Primitives definition
 
-primitives f = arithmPrim f >>= basePrim
+primitives f = arithmPrim f >>= basePrim >>= stdIOPrim
  
 basePrim f = 
   liftInsert "lambda" (\ps env -> return $ wyL (map extractId $ init ps) (last ps) env) f >>=
@@ -439,6 +442,14 @@ arithmPrim f =
         boolEval op = \ps env -> liftM (WyBool . foldl1' op) (mapM (liftM truthy . eval env) ps)
         boolComp c a b = WyBool (c a b)
 
+stdIOPrim f =
+  liftInsert "print" (\ps env -> do eps <- mapM (eval env) ps 
+                                    putStrLn (concatWyStr eps)
+                                    return WyNull ) f
+  where concatWyStr = concat . map literalStr
+        literalStr (WyString s) = s
+        literalStr anyWy = showWy anyWy
+
 liftInsert name lambda map = liftM (flip (M.insert name) $ map) (wyPIO name lambda)
   where wyPIO n l = newIORef $ wyP n l
 
@@ -464,6 +475,8 @@ runEval env p = do runEnv <- newIORef env
                    newEnv <- readIORef runEnv
                    return (res, newEnv)
 
+wyInterpr env = runEval env . parseWy
+
 repl :: S.Seq Frame -> IO ()
 repl env = do 
   line <- readline "> "
@@ -471,18 +484,20 @@ repl env = do
     Nothing -> repl env
     Just l | l == "q"  -> return () 
            | otherwise -> do addHistory l
-                             let p = parseWy l
-                             e <- runEval env p
-                             putStrLn $ (showWy . fst $ e) ++ " - " ++ (show p)
+                             e <- wyInterpr env l
+                             putStrLn (showWy . fst $ e)
                              repl $ snd e
  
 mhead []      = Nothing
 mhead (x:xs)  = Just x
 
 main = do params <- getArgs
+          p <- primitives M.empty
+          let blankEnv = S.empty |> (Frame p M.empty)
+          env <- liftM snd $ readFile "foundation.wy" >>= wyInterpr blankEnv
           case mhead params of
             Just x -> do cnt <- readFile x
-                         putStrLn cnt
-            Nothing -> do p <- primitives M.empty
-                          repl $ S.empty |> (Frame p M.empty)
+                         runEval env . parseWy $ cnt
+                         return ()
+            Nothing -> repl env
 
