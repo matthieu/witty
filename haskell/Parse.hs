@@ -371,6 +371,7 @@ parseWy input = pruneAST $ case (parse wyParser "(unknown)" input) of
 eval :: WyEnv -> ASTType -> IO WyType
 
 eval env (ASTBlock xs) = liftM last $ mapM (eval env) xs
+-- todo alter the AST instead of constantly rewriting it
 eval env (ASTStmt xs) = liftM last $ applyMacros xs env >>= mapM (eval env)
 
 eval env (ASTApplic fn ps) = 
@@ -440,8 +441,10 @@ arithmPrim f =
   liftInsert ">" (opEval $ boolComp (>)) >>=
   liftInsert "&&" (boolEval (&&)) >>=
   liftInsert "||" (boolEval (||))
-  where opEval op = \ps env -> liftM (foldl1' op) (mapM (eval env) ps)
-        boolEval op = \ps env -> liftM (WyBool . foldl1' op) (mapM (liftM truthy . eval env) ps)
+  where opEval op ps env = if length ps == 1 
+                             then liftM (op 0) $ eval env (head ps)
+                             else liftM (foldl1' op) (mapM (eval env) ps)
+        boolEval op ps env = liftM (WyBool . foldl1' op) (mapM (liftM truthy . eval env) ps)
         boolComp c a b = WyBool (c a b)
 
 stdIOPrim f =
