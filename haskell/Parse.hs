@@ -387,6 +387,8 @@ eval env (ASTId idn) | otherwise =
      readIORef $ maybeErr valMaybe ("Unknown reference: " ++ idn)
 
 eval env (ASTList xs) = liftM WyList $ mapM (eval env) xs
+eval env (ASTMap m) = liftM (WyMap . M.fromList) $ T.mapM evalKeyVal $ M.toList m
+  where evalKeyVal (k,v) = liftM2 (,) (eval env k) (eval env v)
 
 eval _ ASTNull = return WyNull
 eval _ (ASTBool b) = return $ WyBool b
