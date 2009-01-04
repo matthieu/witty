@@ -1,2 +1,16 @@
-macrop(`a = `b, 1, `(=($a, $b)))
-macrop(`a + `b, 2, `(+($a, $b)))
+macrop(macro(`exp, `body), 10, `(macrop($exp, 10, $body)));
+macro(macrox(`exp, `body), `(macrop($exp, 10, `($body))));
+macro(macropx(`exp, `priority, `body), `(macrop($exp, $priority, `($body))));
+
+macropx(`a = `b, 1, =($a, $b));
+macropx(`a || `b, 2, ||($a, $b));
+macropx(`a && `b, 3, &&($a, $b));
+macropx(`a == `b, 4, ==($a, $b));
+macropx(`a <= `b, 4, <=($a, $b));
+macropx(`a >= `b, 4, >=($a, $b));
+macropx(`a < `b, 4, <($a, $b));
+macropx(`a > `b, 4, >($a, $b));
+macropx(`a + `b, 5, +($a, $b));
+macropx(`a - `b, 5, -($a, $b));
+macropx(`a * `b, 6, *($a, $b));
+macropx(`a / `b, 6, /($a, $b));

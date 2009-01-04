@@ -5,7 +5,7 @@
 import System.Environment(getArgs)
 import Control.Monad(liftM, liftM2)
 import Data.List(intercalate, foldl1', (\\), sortBy)
-import Data.Char(toLower)
+import Data.Char(toLower, isSpace)
 import Data.Ord(comparing)
 import qualified Data.Sequence as S
 import Data.Sequence ((><), (<|), (|>))
@@ -34,9 +34,9 @@ data ASTType = ASTString String
                 | ASTBlock [ASTType]
     deriving (Show, Eq, Ord)
 
-wyParser = whitespace >> root
+wyParser = whitespace >> root >>= \x -> eof >> return x
 
-root = liftM ASTBlock $ stmt `sepBy1` (eol <|> semi)
+root = liftM ASTBlock $ stmt `sepEndBy1` (many1 newline <|> semi)
 
 stmt = liftM ASTStmt $ many1 compound
 
@@ -65,12 +65,10 @@ literalFloat = liftM ASTFloat $ float
 literalBool = (symbol "true" >> (return $ ASTBool True))
           <|> (symbol "false" >> (return $ ASTBool False))
 
-eol = try (string "\r") >> string "\n"
-
 --
 -- Lexer
 
-lexer = P.makeTokenParser wyDef
+lexer' = P.makeTokenParser wyDef
 wyDef = javaStyle { 
           P.identStart = letter <|> oneOf "`$",
           P.identLetter = alphaNum <|> oneOf "!#$%&?@\\^~`",
@@ -78,6 +76,9 @@ wyDef = javaStyle {
           P.opLetter = oneOf "!#%&*+./<=>?@\\^|-~",
           P.caseSensitive = True
         }
+
+--lexer = lexer' { P.whiteSpace = skipMany (satisfy (\c -> isSpace c && c /= '\n')) }
+lexer = lexer' { P.whiteSpace = skipMany (satisfy (== ' ')) }
 
 parens = P.parens lexer
 braces = P.braces lexer
@@ -322,10 +323,10 @@ runMacro m f env = do newEnv <- envAdd f env
                       res <- eval newEnv $ macroBody m
                       return res
 
-rewriteStmt :: [ASTType] -> Int -> (WyType, Int, [ASTType]) -> ([ASTType], Int)
-rewriteStmt stmt offs (m , idx, nast) =
-  let startIdx = idx - (fst $ macroPivot m) - offs
-      newOffs = offs + length nast - macroPattLgth m   
+rewriteStmt :: [ASTType] -> (WyType, Int, [ASTType]) -> ([ASTType], Int)
+rewriteStmt stmt (m , idx, nast) =
+  let startIdx = idx - (fst $ macroPivot m)
+      newOffs = length nast - macroPattLgth m   
   in (take startIdx stmt ++ nast ++ drop (startIdx + macroPattLgth m) stmt, newOffs)
                                                  
 macroPattLgth m = 
@@ -345,18 +346,20 @@ macroPivot (WyMacro p b _ e) = firstNonVar p
 -- liftM (macroPivot . (WyMacro (ASTApplic "foo" []) ASTNull)) (newIORef $ S.empty |> (Frame M.empty))
 
 applyMacros :: [ASTType] -> WyEnv -> IO [ASTType]
-applyMacros stmt env = liftM orderFound (findMacros stmt 0 env) >>= rewriteMatch stmt 0
-  where rewriteMatch stmt _ [] = return stmt
-        rewriteMatch stmt offs ((m, idx):ms) = do
-          matchM <- matchMacro stmt env (m, idx+offs)
+applyMacros stmt env = liftM orderFound (findMacros stmt 0 env) >>= rewriteMatch stmt
+  where rewriteMatch stmt [] = return stmt
+        rewriteMatch stmt (mi@(m,idx):ms) = do
+          matchM <- matchMacro stmt env mi
           case matchM of
-            Just match -> do newStmt <- liftM (rewriteStmt stmt offs) $ runMatch match
-                             rewriteMatch (fst newStmt) (snd newStmt) ms
-            Nothing -> rewriteMatch stmt offs ms
+            Just match -> do newStmt <- liftM (rewriteStmt stmt) $ runMatch match
+                             rewriteMatch (fst newStmt) $ updIndexes idx (snd newStmt) ms
+            Nothing -> rewriteMatch stmt ms
         runMatch (m, idx, f) = do res <- runMacro m f env
                                   return (m, idx, [wyToAST res])
         orderFound ms = reverse . sortBy (comparing priority) $ ms
                         where priority = macroPriority . fst
+        updIndexes p offs [] = []
+        updIndexes p offs ((m, idx):ms) = (m, if idx > p then idx+offs else idx) : updIndexes p offs ms
 
 --
 -- Interpreter
@@ -367,25 +370,20 @@ parseWy input = pruneAST $ case (parse wyParser "(unknown)" input) of
 
 eval :: WyEnv -> ASTType -> IO WyType
 
-eval env (ASTBlock xs) = last $ map (eval env) xs
+eval env (ASTBlock xs) = liftM last $ mapM (eval env) xs
 eval env (ASTStmt xs) = liftM last $ applyMacros xs env >>= mapM (eval env)
 
-eval env (ASTApplic fn ps) = do valMaybe <- envLookupVar fn env
-                                valRef   <- readIORef $ valOrErr valMaybe
-                                apply ps env valRef
-  where valOrErr m = case m of
-                         Just wy -> wy
-                         Nothing -> error $ "Unknown function: " ++ fn
+eval env (ASTApplic fn ps) = 
+  do valMaybe <- envLookupVar fn env
+     valRef   <- readIORef $ maybeErr valMaybe ("Unknown function: " ++ fn)
+     apply ps env valRef
 
 eval _ (ASTId idn) | idn == "true" = return $ WyBool True
 eval _ (ASTId idn) | idn == "false" = return $ WyBool False
 eval _ (ASTId idn) | idn == "null" = return $ WyBool False
-eval env (ASTId idn) | otherwise = do valMaybe <- envLookupVar idn env
-                                      let valRef = valOrErr valMaybe
-                                      readIORef valRef
-  where valOrErr m = case m of
-                       Just wy -> wy
-                       Nothing -> error $ "Unknown reference: " ++ idn
+eval env (ASTId idn) | otherwise = 
+  do valMaybe <- envLookupVar idn env
+     readIORef $ maybeErr valMaybe ("Unknown reference: " ++ idn)
 
 eval env (ASTList xs) = liftM WyList $ mapM (eval env) xs
 
@@ -401,6 +399,10 @@ apply vals env (WyLambda (WyL params ast lenv)) =
   let newEnv = mapM (eval env) vals >>= (flip $ envStack params) lenv
   in newEnv >>= (flip eval) ast
 apply ps env other = error $ "Don't know how to apply: " ++ show other
+  
+maybeErr m msg = case m of
+                    Just wy -> wy
+                    Nothing -> error msg
 
 --
 -- Primitives definition
@@ -423,7 +425,7 @@ basePrim f =
   where extractId (ASTId i) = i
         extractId x = error $ "Non identifier lvalue in = " ++ (show x)
         extractInt (ASTInt i) = i
-        extractInt x = error $ (show x) ++ "isn't an integer value"
+        extractInt x = error $ (show x) ++ " isn't an integer value"
         evalSnd env = eval env . head . tail
 
 arithmPrim f = 
@@ -477,7 +479,6 @@ runEval env p = do runEnv <- newIORef env
 
 wyInterpr env = runEval env . parseWy
 
-repl :: S.Seq Frame -> IO ()
 repl env = do 
   line <- readline "> "
   case line of
@@ -494,6 +495,7 @@ mhead (x:xs)  = Just x
 main = do params <- getArgs
           p <- primitives M.empty
           let blankEnv = S.empty |> (Frame p M.empty)
+          ast <- liftM parseWy (readFile "foundation.wy")
           env <- liftM snd $ readFile "foundation.wy" >>= wyInterpr blankEnv
           case mhead params of
             Just x -> do cnt <- readFile x
