@@ -34,11 +34,21 @@ data ASTType = ASTString String
                 | ASTBlock [ASTType]
     deriving (Show, Eq, Ord)
 
-wyParser = whitespace >> root >>= \x -> eof >> return x
+wyParser = whitespace >> block >>= \x -> eof >> return x
 
-root = liftM ASTBlock $ stmt `sepEndBy1` (many1 newline <|> semi)
+block = liftM ASTBlock $ stmt `sepEndBy1` (many1 newline <|> semi)
 
-stmt = liftM ASTStmt $ many1 compound
+stmt = liftM ASTStmt $ assocOrAtom
+
+assocOrAtom = try assoc <|> liftM (:[]) atom
+
+assoc = do ls <- atom
+           rs <- opStmt
+           return $ ls : rs
+
+atom = parens stmt <|> compound
+
+opStmt = do { op <- operator; s <- assocOrAtom; return $ (ASTId op) : s }
 
 compound = idOrApplic <|> literalList <|> literalMap 
           <|> literalNumber <|> literalString <|> literalBool
@@ -46,14 +56,14 @@ compound = idOrApplic <|> literalList <|> literalMap
 idOrApplic = try applic <|> idRef -- todo fix error swallow with applic
 
 idRef = liftM ASTId $ (identifier <|> operator)
-applic = liftM2 ASTApplic (identifier <|> operator) $ parens (commaSep root)
+applic = liftM2 ASTApplic (identifier <|> operator) $ parens (commaSep block)
 
-literalList = liftM ASTList $ brackets (commaSep root)
+literalList = liftM ASTList $ brackets (commaSep stmt)
 
 literalMap = liftM (ASTMap . M.fromList) $ braces (commaSep keyVal)
   where keyVal = do key <- parseMapKey
                     colon
-                    value <- root
+                    value <- stmt
                     return (key, value)
         parseMapKey = literalString <|> (liftM ASTString $ identifier)
 
@@ -68,7 +78,7 @@ literalBool = (symbol "true" >> (return $ ASTBool True))
 --
 -- Lexer
 
-lexer' = P.makeTokenParser wyDef
+lexer = P.makeTokenParser wyDef
 wyDef = javaStyle { 
           P.identStart = letter <|> oneOf "`$",
           P.identLetter = alphaNum <|> oneOf "!#$%&?@\\^~`",
@@ -78,7 +88,6 @@ wyDef = javaStyle {
         }
 
 --lexer = lexer' { P.whiteSpace = skipMany (satisfy (\c -> isSpace c && c /= '\n')) }
-lexer = lexer' { P.whiteSpace = skipMany (satisfy (== ' ')) }
 
 parens = P.parens lexer
 braces = P.braces lexer
