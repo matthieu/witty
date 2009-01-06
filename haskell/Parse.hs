@@ -419,7 +419,7 @@ maybeErr m msg = case m of
 --
 -- Primitives definition
 
-primitives f = arithmPrim f >>= basePrim >>= stdIOPrim >>= dataPrim
+primitives f = arithmPrim f >>= basePrim >>= stdIOPrim >>= dataPrim >>= metaPrim
  
 basePrim f = 
   liftInsert "lambda" (\ps env -> return $ wyL (map extractId $ init ps) (last ps) env) f >>=
@@ -440,7 +440,13 @@ basePrim f =
         evalSnd env = eval env . head . tail
 
 dataPrim f =
-  liftInsert "@" (\ps env -> liftM2 elemAt (eval env $ head ps) (eval env $ last ps)) f >>=
+  liftInsert "empty?" (\ps env -> do e <- eval env $ head ps
+                                     case e of
+                                       (WyList l) -> return . WyBool $ null l
+                                       (WyString s) -> return . WyBool $ null s
+                                       (WyMap m) -> return . WyBool $ M.null m
+                                       x -> error $ "Can't check emptiness of " ++ show x ) f >>=
+  liftInsert "@" (\ps env -> liftM2 elemAt (eval env $ head ps) (eval env $ last ps)) >>=
   liftInsert "@!" (\ps env -> do oldVal <- eval env $ head ps
                                  idx <- eval env $ ps !! 1
                                  newVal <- eval env $ last ps
@@ -459,6 +465,7 @@ dataPrim f =
         updatedVal (WyString s) (WyInt n) (WyString ns) = 
           WyString $ take (fromInteger n) s ++ ns ++ drop ((fromInteger n)+1) s
         updatedVal (WyMap m) k v = WyMap $ M.insert k v m
+        updatedVal x _ _ = error $ "Can't update an element in " ++ show x
         takeOrFill n xs = if (length xs > n) then take n xs
                                              else take n xs ++ take (n - length xs) (repeat WyNull)
 
@@ -479,6 +486,18 @@ arithmPrim f =
                              else liftM (foldl1' op) (mapM (eval env) ps)
         boolEval op ps env = liftM (WyBool . foldl1' op) (mapM (liftM truthy . eval env) ps)
         boolComp c a b = WyBool (c a b)
+
+metaPrim f =
+  liftInsert "applic?" (\ps env -> do 
+    applic <- eval env $ head ps 
+    case applic of
+      (WyTemplate (ASTStmt [ASTApplic _ _])) -> return $ WyBool True
+      _                                      -> return $ WyBool False) f >>=
+  liftInsert "params" (\ps env -> do
+    applic <- eval env $ head ps 
+    case applic of
+      (WyTemplate (ASTStmt [ASTApplic _ ps])) -> return $ WyList $ map WyTemplate ps
+      _                                       -> error "Not a function application.")
 
 stdIOPrim f =
   liftInsert "print" (\ps env -> do eps <- mapM (eval env) ps 
