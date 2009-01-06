@@ -419,7 +419,7 @@ maybeErr m msg = case m of
 --
 -- Primitives definition
 
-primitives f = arithmPrim f >>= basePrim >>= stdIOPrim
+primitives f = arithmPrim f >>= basePrim >>= stdIOPrim >>= dataPrim
  
 basePrim f = 
   liftInsert "lambda" (\ps env -> return $ wyL (map extractId $ init ps) (last ps) env) f >>=
@@ -434,11 +434,33 @@ basePrim f =
     if (truthy expr) 
       then evalSnd env ps
       else evalSnd env . tail $ ps)
-  where extractId (ASTId i) = i
-        extractId x = error $ "Non identifier lvalue in = " ++ (show x)
-        extractInt (ASTInt i) = i
+
+  where extractInt (ASTInt i) = i
         extractInt x = error $ (show x) ++ " isn't an integer value"
         evalSnd env = eval env . head . tail
+
+dataPrim f =
+  liftInsert "@" (\ps env -> liftM2 elemAt (eval env $ head ps) (eval env $ last ps)) f >>=
+  liftInsert "@!" (\ps env -> do oldVal <- eval env $ head ps
+                                 idx <- eval env $ ps !! 1
+                                 newVal <- eval env $ last ps
+                                 let updVal = updatedVal oldVal idx newVal
+                                 envUpdateVar (extractId $ head ps) updVal env
+                                 return newVal )
+
+  where elemAt (WyList xs) (WyInt n) = elemInArr xs n
+        elemAt (WyString s) (WyInt n) = WyString $ [elemInArr s n]
+        elemAt (WyMap m) k = maybe WyNull id $ M.lookup k m
+        elemAt c n = error $ "Can't access element " ++ show n ++ " in " ++ show c
+        elemInArr xs n = xs !! if n > 0 then fromInteger n else length xs + fromInteger n
+
+        updatedVal (WyList xs) (WyInt n) val = -- sparse list 
+          WyList $ takeOrFill (fromInteger n) xs ++ [val] ++ drop ((fromInteger n)+1) xs
+        updatedVal (WyString s) (WyInt n) (WyString ns) = 
+          WyString $ take (fromInteger n) s ++ ns ++ drop ((fromInteger n)+1) s
+        updatedVal (WyMap m) k v = WyMap $ M.insert k v m
+        takeOrFill n xs = if (length xs > n) then take n xs
+                                             else take n xs ++ take (n - length xs) (repeat WyNull)
 
 arithmPrim f = 
   liftInsert "+" (opEval (+)) f >>=
@@ -468,6 +490,9 @@ stdIOPrim f =
 
 liftInsert name lambda map = liftM (flip (M.insert name) $ map) (wyPIO name lambda)
   where wyPIO n l = newIORef $ wyP n l
+  
+extractId (ASTId i) = i
+extractId x = error $ "Non identifier lvalue in = " ++ (show x)
 
 unescapeBq :: WyEnv -> ASTType -> IO ASTType
 unescapeBq env (ASTId i) | i !! 0 == '$' = do
