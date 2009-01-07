@@ -381,7 +381,7 @@ eval :: WyEnv -> ASTType -> IO WyType
 
 eval env (ASTBlock xs) = liftM last $ mapM (eval env) xs
 -- todo alter the AST instead of constantly rewriting it
-eval env (ASTStmt xs) = liftM last $ applyMacros xs env >>= mapM (eval env)
+eval env (ASTStmt xs) = liftM last $ applyMacros xs env >>= (\x -> putStrLn (show x) >> return x) >>= mapM (eval env)
 
 eval env (ASTApplic fn ps) = 
   do valMaybe <- envLookupVar fn env
@@ -446,7 +446,7 @@ dataPrim f =
                                        (WyString s) -> return . WyBool $ null s
                                        (WyMap m) -> return . WyBool $ M.null m
                                        x -> error $ "Can't check emptiness of " ++ show x ) f >>=
-  liftInsert "@" (\ps env -> liftM2 elemAt (eval env $ head ps) (eval env $ last ps)) >>=
+  liftInsert "@" (\ps env -> liftM elemAt $ evalAtParams ps env) >>=
   liftInsert "@!" (\ps env -> do oldVal <- eval env $ head ps
                                  idx <- eval env $ ps !! 1
                                  newVal <- eval env $ last ps
@@ -454,11 +454,15 @@ dataPrim f =
                                  envUpdateVar (extractId $ head ps) updVal env
                                  return newVal )
 
-  where elemAt (WyList xs) (WyInt n) = elemInArr xs n
-        elemAt (WyString s) (WyInt n) = WyString $ [elemInArr s n]
-        elemAt (WyMap m) k = maybe WyNull id $ M.lookup k m
-        elemAt c n = error $ "Can't access element " ++ show n ++ " in " ++ show c
-        elemInArr xs n = xs !! if n > 0 then fromInteger n else length xs + fromInteger n
+  where elemAt ((WyList xs), (WyInt n)) = elemInArr xs n
+        elemAt ((WyString s), (WyInt n)) = WyString $ [elemInArr s n]
+        elemAt ((WyMap m), k) = maybe WyNull id $ M.lookup k m
+        elemAt (c, n) = error $ "Can't access element " ++ show n ++ " in " ++ show c
+        elemInArr xs n = xs !! if n >= 0 then fromInteger n else length xs + fromInteger n
+        evalAtParams ps env = do obj <- eval env $ head ps
+                                 case obj of
+                                   (WyMap _) -> return (obj, WyString . extractId . last $ ps)
+                                   x         -> liftM ((,) obj) (eval env $ last ps)
 
         updatedVal (WyList xs) (WyInt n) val = -- sparse list 
           WyList $ takeOrFill (fromInteger n) xs ++ [val] ++ drop ((fromInteger n)+1) xs
