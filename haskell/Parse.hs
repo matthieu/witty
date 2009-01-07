@@ -506,7 +506,8 @@ metaPrim f =
 stdIOPrim f =
   liftInsert "print" (\ps env -> do eps <- mapM (eval env) ps 
                                     putStrLn (concatWyStr eps)
-                                    return WyNull ) f
+                                    return WyNull ) f >>=
+  liftInsert "arguments" (\ps env -> liftM (WyList . map WyString . tail) getArgs )
   where concatWyStr = concat . map literalStr
         literalStr (WyString s) = s
         literalStr anyWy = showWy anyWy
