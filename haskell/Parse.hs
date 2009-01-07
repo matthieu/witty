@@ -29,7 +29,7 @@ data ASTType = ASTString String
                 | ASTList [ASTType]
                 | ASTMap (M.Map ASTType ASTType)
                 | ASTId String
-                | ASTApplic String [ASTType]
+                | ASTApplic ASTType [ASTType]
                 | ASTStmt [ASTType]
                 | ASTBlock [ASTType]
     deriving (Show, Eq, Ord)
@@ -56,7 +56,8 @@ compound = idOrApplic <|> literalList <|> literalMap
 idOrApplic = try applic <|> idRef -- todo fix error swallow with applic
 
 idRef = liftM ASTId $ (identifier <|> operator)
-applic = liftM2 ASTApplic (identifier <|> operator) $ parens (commaSep block)
+applic = liftM2 chainedApplics (identifier <|> operator) $ many1 $ parens (commaSep block)
+  where chainedApplics n ps = foldl ASTApplic (ASTId n) ps
 
 literalList = liftM ASTList $ brackets (commaSep stmt)
 
@@ -127,7 +128,7 @@ data WyType = WyString String
             | WyFloat Double
             | WyBool Bool
             | WyNull
-            | WyList [WyType]
+            | WyList [WyType] -- todo change to sequence
             | WyMap (M.Map WyType WyType)
             | WyTemplate ASTType
             | WyLambda WyL
@@ -214,7 +215,7 @@ wyToAST WyNull = ASTNull
 wyToAST (WyList ss) = ASTList $ map wyToAST ss
 wyToAST (WyMap m) = ASTMap $ M.mapKeys wyToAST . M.map wyToAST $ m
 wyToAST (WyTemplate t) = t
-wyToAST (WyLambda (WyL ss ast env)) = ASTApplic "lambda" (map ASTId ss ++ [ast])
+wyToAST (WyLambda (WyL ss ast env)) = ASTApplic (ASTId "lambda") (map ASTId ss ++ [ast])
 wyToAST (WyPrim (WyPrimitive n _)) = ASTId n
 
 showWy (WyString s) = show s
@@ -304,7 +305,7 @@ matchList _ _ _ = Nothing
 findMacros :: (Num a) => [ASTType] -> a -> WyEnv -> IO [(WyType, a)]
 findMacros [] num env = return []
 findMacros ((ASTId x):xs) num env = lookupMacro x xs num env
-findMacros ((ASTApplic n _):xs) num env = lookupMacro n xs num env
+findMacros ((ASTApplic (ASTId n) _):xs) num env = lookupMacro n xs num env
 findMacros (x:xs) num env = findMacros xs (num+1) env
 lookupMacro n xs num env = 
   do m <- envLookupMacro n env
@@ -346,7 +347,7 @@ macroPattLgth m =
 
 macroPivot :: (Num t) => WyType -> (t, String)
 macroPivot (WyMacro p b _ e) = firstNonVar p
-  where firstNonVar (ASTStmt [ASTApplic n _]) = (0, n)
+  where firstNonVar (ASTStmt [ASTApplic (ASTId n) _]) = (0, n)
         firstNonVar (ASTStmt es) = firstNonVar' es 0
         firstNonVar' ((ASTId i):es) idx | i !! 0 /= '`' = (idx, i)
         firstNonVar' [] idx = error $ "No pivot found in macro pattern " ++ (show p)
@@ -383,14 +384,11 @@ eval env (ASTBlock xs) = liftM last $ mapM (eval env) xs
 -- todo alter the AST instead of constantly rewriting it
 eval env (ASTStmt xs) = liftM last $ applyMacros xs env >>= (\x -> putStrLn (show x) >> return x) >>= mapM (eval env)
 
-eval env (ASTApplic fn ps) = 
-  do valMaybe <- envLookupVar fn env
-     valRef   <- readIORef $ maybeErr valMaybe ("Unknown function: " ++ fn)
-     apply ps env valRef
+eval env (ASTApplic fn ps) = eval env fn >>= apply ps env
 
 eval _ (ASTId idn) | idn == "true" = return $ WyBool True
 eval _ (ASTId idn) | idn == "false" = return $ WyBool False
-eval _ (ASTId idn) | idn == "null" = return $ WyBool False
+eval _ (ASTId idn) | idn == "null" = return $ WyNull
 eval env (ASTId idn) | otherwise = 
   do valMaybe <- envLookupVar idn env
      readIORef $ maybeErr valMaybe ("Unknown reference: " ++ idn)
