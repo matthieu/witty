@@ -185,7 +185,7 @@ def(@!, list, index, value,
   primitive('@!')
 )
 
-// Standard parsing for foo@bar(baz) is foo@(bar(baz)). We want (foo@bar)(baz).
+// Standard parsing for foo.bar(baz) is foo.(bar(baz)). We want (foo.bar)(baz).
 macro(`arr . `idx, 
   if(applic?(idx),
     if(empty?(params(idx)),
