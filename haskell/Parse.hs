@@ -438,6 +438,7 @@ basePrim f =
         extractInt x = error $ (show x) ++ " isn't an integer value"
         evalSnd env = eval env . head . tail
 
+-- |> and <| to return a new array with a new value at its beginning / end
 dataPrim f =
   liftInsert "empty?" (\ps env -> do e <- eval env $ head ps
                                      case e of
@@ -452,6 +453,9 @@ dataPrim f =
                                  let updVal = updatedVal oldVal idx newVal
                                  envUpdateVar (extractId $ head ps) updVal env
                                  return newVal ) >>=
+  liftInsert "push" (\ps env -> do arr <- eval env $ head ps
+                                   val <- eval env $ last ps
+                                   envUpdateVar (extractId $ head ps) (push arr val) env)
 
   where elemAt ((WyList xs), (WyInt n)) = elemInArr xs n
         elemAt ((WyString s), (WyInt n)) = WyString $ [elemInArr s n]
@@ -471,6 +475,10 @@ dataPrim f =
         updatedVal x _ _ = error $ "Can't update an element in " ++ show x
         takeOrFill n xs = if (length xs > n) then take n xs
                                              else take n xs ++ take (n - length xs) (repeat WyNull)
+
+        push (WyList xs) val = WyList (val : xs)
+        push (WyString xs) (WyString val) = WyString (val ++ xs)
+        push x val = error $ "Can't push value " ++ (show val) ++ " in " ++ (show x)
 
 arithmPrim f = 
   liftInsert "+" (opEval (+)) f >>=
