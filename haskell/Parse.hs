@@ -112,7 +112,7 @@ pruneAST (ASTBlock ss) = ASTBlock $ map pruneAST ss
 pruneAST (ASTStmt [single]) | isApplic single = ASTStmt $ [pruneAST single]
                             | otherwise       = pruneAST single
 pruneAST (ASTStmt ss) = ASTStmt $ map pruneAST ss 
-pruneAST (ASTApplic s ps) = ASTApplic s $ map pruneAST ps
+pruneAST (ASTApplic s ps) = ASTApplic (pruneAST s) $ map pruneAST ps
 pruneAST (ASTList xs) = ASTList $ map pruneAST xs
 pruneAST (ASTMap m) = ASTMap $ M.mapKeys pruneAST . M.map pruneAST $ m
 pruneAST x = x
@@ -423,7 +423,8 @@ basePrim f =
   liftInsert "lambda" (\ps env -> return $ wyL (map extractId $ init ps) (last ps) env) f >>=
   liftInsert "macrop" (\ps env -> let m = WyMacro (head ps) (last ps) (extractInt $ ps !! 1) env
                                       n = snd . macroPivot $ m
-                                  in do envUpdateMacro n m env
+                                  in do putStrLn $ ">>  " ++ (show $ macroPattern m)
+                                        envUpdateMacro n m env
                                         return $ WyString n ) >>=
   liftInsert "=" (\ps env -> (evalSnd env ps) >>= (flip $ envUpdateVar (extractId . head $ ps)) env) >>=
   liftInsert "`" (\ps env -> liftM WyTemplate $ (unescapeBq env) . head $ ps) >>= -- support $ escaping
@@ -450,7 +451,7 @@ dataPrim f =
                                  newVal <- eval env $ last ps
                                  let updVal = updatedVal oldVal idx newVal
                                  envUpdateVar (extractId $ head ps) updVal env
-                                 return newVal )
+                                 return newVal ) >>=
 
   where elemAt ((WyList xs), (WyInt n)) = elemInArr xs n
         elemAt ((WyString s), (WyInt n)) = WyString $ [elemInArr s n]
@@ -518,14 +519,14 @@ extractId (ASTId i) = i
 extractId x = error $ "Non identifier lvalue in = " ++ (show x)
 
 unescapeBq :: WyEnv -> ASTType -> IO ASTType
-unescapeBq env (ASTId i) | i !! 0 == '$' = do
+unescapeBq env ai@(ASTId i) | i !! 0 == '$' = do
   res <- envLookupVar (tail i) env
   case res of
     Just v  -> liftM wyToAST $ readIORef v
-    Nothing -> error $ "Unknown unescaped reference: " ++ (show i) 
+    Nothing -> return ai
 unescapeBq env (ASTList ss) = liftM ASTList $ mapM (unescapeBq env) ss
 unescapeBq env (ASTMap m) = liftM ASTMap $ T.mapM (unescapeBq env) m
-unescapeBq env (ASTApplic n ps) = liftM (ASTApplic n) $ mapM (unescapeBq env) ps
+unescapeBq env (ASTApplic n ps) = liftM2 ASTApplic (unescapeBq env n) $ mapM (unescapeBq env) ps
 unescapeBq env (ASTStmt xs) = liftM ASTStmt $ mapM (unescapeBq env) xs
 unescapeBq env (ASTBlock xs) = liftM ASTBlock $ mapM (unescapeBq env) xs
 unescapeBq _ x = return x
