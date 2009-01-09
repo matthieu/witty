@@ -4,13 +4,14 @@
 
 import System.Environment(getArgs)
 import Control.Monad(liftM, liftM2)
-import Data.List(intercalate, foldl1', (\\), sortBy)
+import Data.List(intercalate, foldl1', foldl', (\\), sortBy)
 import Data.Char(toLower, isSpace)
 import Data.Ord(comparing)
 import qualified Data.Sequence as S
 import Data.Sequence ((><), (<|), (|>))
 import qualified Data.Map as M
 import qualified Data.Traversable as T
+import qualified Data.Foldable as F (foldrM) 
 import Data.IORef
 
 import System.Console.Readline
@@ -405,11 +406,14 @@ eval _ (ASTString s) = return $ WyString s
 
 apply:: [ASTType] -> WyEnv -> WyType -> IO WyType
 apply vals env (WyPrim (WyPrimitive n fn)) = fn vals env
-apply vals env (WyLambda (WyL params ast lenv)) =
-  let newEnv = mapM (eval env) vals >>= (flip $ envStack params) lenv
-  in newEnv >>= (flip eval) ast
+apply vals env wl@(WyLambda _) =
+  mapM (eval env) vals >>= applyDirect env wl
 apply ps env other = error $ "Don't know how to apply: " ++ show other
-  
+
+applyDirect env (WyLambda (WyL params ast lenv)) evals =
+  let newEnv = envStack params evals lenv
+  in newEnv >>= (flip eval) ast
+
 maybeErr m msg = case m of
                     Just wy -> wy
                     Nothing -> error msg
@@ -432,11 +436,20 @@ basePrim f =
     expr <- eval env . head $ ps
     if (truthy expr) 
       then evalSnd env ps
-      else evalSnd env . tail $ ps)
+      else evalSnd env . tail $ ps) >>=
+  liftInsert "for" (\ps env -> 
+    if length ps /= 2 
+      then error "not implemented yet"
+      else do list <- eval env (head ps)
+              lambda <- eval env (last ps)
+              wyFold (applySeq env lambda) (return WyNull) list )
 
   where extractInt (ASTInt i) = i
         extractInt x = error $ (show x) ++ " isn't an integer value"
         evalSnd env = eval env . head . tail
+        applySeq env l elmt acc = applyDirect env l [elmt]
+        wyFold f z (WyList xs) = foldl' (\x xs -> x >>= f xs) z xs
+        wyFold f z (WyString xs) = foldl' (\x xs -> x >>= f xs) z (map (WyString . (:"")) xs)
 
 -- |> and <| to return a new array with a new value at its beginning / end
 dataPrim f =

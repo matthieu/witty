@@ -17,3 +17,4 @@ macropx(`a / `b, 6, /($a, $b));
 
 // todo generalize to be able to execute a.b.c in a hash
 macro(`arr . `idx, `(@($arr, $idx)))
+
