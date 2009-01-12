@@ -41,7 +41,7 @@ block = liftM ASTBlock $ stmt `sepEndBy1` (many1 newline <|> semi)
 
 stmt = liftM ASTStmt $ assocOrAtom
 
-assocOrAtom = try assoc <|> liftM (:[]) atom
+assocOrAtom = try assoc <|> liftM (:[]) atom -- todo unary operators ! and -
 
 assoc = do ls <- atom
            rs <- opStmt
@@ -155,6 +155,8 @@ instance Num WyType where
   WyInt i1 + WyFloat f2 = WyFloat ((fromInteger i1) + f2)
   WyFloat f1 + WyInt i2 = WyFloat (f1 + (fromInteger i2))
   WyList l1 + WyList l2 = WyList (l1 ++ l2)
+  WyString s1 + x = WyString (s1 ++ showWy x)
+  x + WyString s1 = WyString (showWy x ++ s1)
   x1 + x2 = error ("can't add " ++ (show x1) ++ " and " ++ (show x2))
   -- todo merge maps
 
@@ -383,7 +385,7 @@ eval :: WyEnv -> ASTType -> IO WyType
 
 eval env (ASTBlock xs) = liftM last $ mapM (eval env) xs
 -- todo alter the AST instead of constantly rewriting it
-eval env (ASTStmt xs) = liftM last $ applyMacros xs env >>= (\x -> putStrLn (show x) >> return x) >>= mapM (eval env)
+eval env (ASTStmt xs) = liftM last $ applyMacros xs env >>= mapM (eval env)
 
 eval env (ASTApplic fn ps) = eval env fn >>= apply ps env
 
@@ -427,8 +429,7 @@ basePrim f =
   liftInsert "lambda" (\ps env -> return $ wyL (map extractId $ init ps) (last ps) env) f >>=
   liftInsert "macrop" (\ps env -> let m = WyMacro (head ps) (last ps) (extractInt $ ps !! 1) env
                                       n = snd . macroPivot $ m
-                                  in do putStrLn $ ">>  " ++ (show $ macroPattern m)
-                                        envUpdateMacro n m env
+                                  in do envUpdateMacro n m env
                                         return $ WyString n ) >>=
   liftInsert "=" (\ps env -> (evalSnd env ps) >>= (flip $ envUpdateVar (extractId . head $ ps)) env) >>=
   liftInsert "`" (\ps env -> liftM WyTemplate $ (unescapeBq env) . head $ ps) >>= -- support $ escaping
@@ -436,7 +437,7 @@ basePrim f =
     expr <- eval env . head $ ps
     if (truthy expr) 
       then evalSnd env ps
-      else evalSnd env . tail $ ps) >>=
+      else if length ps < 3 then return WyNull else evalSnd env . tail $ ps) >>=
   liftInsert "for" (\ps env -> 
     if length ps /= 2 
       then error "not implemented yet"
@@ -453,12 +454,8 @@ basePrim f =
 
 -- |> and <| to return a new array with a new value at its beginning / end
 dataPrim f =
-  liftInsert "empty?" (\ps env -> do e <- eval env $ head ps
-                                     case e of
-                                       (WyList l) -> return . WyBool $ null l
-                                       (WyString s) -> return . WyBool $ null s
-                                       (WyMap m) -> return . WyBool $ M.null m
-                                       x -> error $ "Can't check emptiness of " ++ show x ) f >>=
+  liftInsert "empty?" (\ps env -> onContainers ps env (WyBool . null) (WyBool . null) (WyBool . M.null) ) f >>=
+  liftInsert "length" (\ps env -> onContainers ps env wyLength wyLength (WyInt . toInteger . M.size) ) >>=
   liftInsert "@" (\ps env -> liftM elemAt $ evalAtParams ps env) >>=
   liftInsert "@!" (\ps env -> do oldVal <- eval env $ head ps
                                  idx <- eval env $ ps !! 1
@@ -466,15 +463,28 @@ dataPrim f =
                                  let updVal = updatedVal oldVal idx newVal
                                  envUpdateVar (extractId $ head ps) updVal env
                                  return newVal ) >>=
-  liftInsert "push" (\ps env -> do arr <- eval env $ head ps
-                                   val <- eval env $ last ps
-                                   envUpdateVar (extractId $ head ps) (push arr val) env)
+  liftInsert "push!" (\ps env -> do arr <- eval env $ head ps
+                                    val <- eval env $ last ps
+                                    envUpdateVar (extractId $ head ps) (push arr val) env)
 
-  where elemAt ((WyList xs), (WyInt n)) = elemInArr xs n
-        elemAt ((WyString s), (WyInt n)) = WyString $ [elemInArr s n]
+  where onContainers ps env fnl fns fnm = 
+          do e <- eval env $ head ps
+             case e of
+               (WyList l) -> return . fnl $ l
+               (WyString s) -> return . fns $ s
+               (WyMap m) -> return . fnm $ m
+               x -> error $ "Can't check the length of " ++ show x
+        wyLength = WyInt .toInteger . length
+  
+        elemAt ((WyList xs), (WyInt n)) = elemInArr xs n id
+        elemAt ((WyString s), (WyInt n)) = elemInArr s n (WyString . (:[]))
         elemAt ((WyMap m), k) = maybe WyNull id $ M.lookup k m
         elemAt (c, n) = error $ "Can't access element " ++ show n ++ " in " ++ show c
-        elemInArr xs n = xs !! if n >= 0 then fromInteger n else length xs + fromInteger n
+        elemInArr xs n fn = 
+          if m >= length xs || m < -(length xs)
+            then WyNull
+            else fn $ xs !! if m >= 0 then m else length xs + m
+          where m = fromInteger n
         evalAtParams ps env = do obj <- eval env $ head ps
                                  case obj of
                                    (WyMap _) -> return (obj, WyString . extractId . last $ ps)
@@ -498,6 +508,7 @@ arithmPrim f =
   liftInsert "-" (opEval (-)) >>=
   liftInsert "*" (opEval (*)) >>=
   liftInsert "/" (opEval (/)) >>=
+  liftInsert "!" (\ps env -> liftM (WyBool . not . truthy) (eval env $ ps !! 0)) >>=
   liftInsert "==" (opEval $ boolComp (==)) >>=
   liftInsert "<=" (opEval $ boolComp (<=)) >>=
   liftInsert ">=" (opEval $ boolComp (>=)) >>=
@@ -527,11 +538,13 @@ stdIOPrim f =
   liftInsert "print" (\ps env -> do eps <- mapM (eval env) ps 
                                     putStrLn (concatWyStr eps)
                                     return WyNull ) f >>=
-  liftInsert "arguments" (\ps env -> liftM (WyList . map WyString . tail) getArgs ) >>=
+  liftInsert "arguments" (\ps env -> liftM (WyList . map WyString . safeTail) getArgs ) >>=
   liftInsert "load" (\ps env -> liftM literalStr (eval env $ head ps) >>= readFile >>= eval env . parseWy)
   where concatWyStr = concat . map literalStr
         literalStr (WyString s) = s
         literalStr anyWy = showWy anyWy
+        safeTail [] = []
+        safeTail (x:xs) = xs
 
 liftInsert name lambda map = liftM (flip (M.insert name) $ map) (wyPIO name lambda)
   where wyPIO n l = newIORef $ wyP n l
