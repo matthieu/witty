@@ -456,6 +456,7 @@ basePrim f =
 dataPrim f =
   liftInsert "empty?" (\ps env -> onContainers ps env (WyBool . null) (WyBool . null) (WyBool . M.null) ) f >>=
   liftInsert "length" (\ps env -> onContainers ps env wyLength wyLength (WyInt . toInteger . M.size) ) >>=
+  liftInsert "reverse" (\ps env -> onContainers ps env (WyList . reverse) (WyString . reverse) (WyMap . id) ) >>=
   liftInsert "@" (\ps env -> liftM elemAt $ evalAtParams ps env) >>=
   liftInsert "@!" (\ps env -> do oldVal <- eval env $ head ps
                                  idx <- eval env $ ps !! 1
