@@ -37,7 +37,7 @@ data ASTType = ASTString String
 
 wyParser = whitespace >> block >>= \x -> eof >> return x
 
-block = liftM ASTBlock $ stmt `sepEndBy1` (many1 newline <|> semi)
+block = liftM ASTBlock $ stmt `sepEndBy1` eol
 
 stmt = liftM ASTStmt $ assocOrAtom
 
@@ -54,11 +54,24 @@ opStmt = do { op <- operator; s <- assocOrAtom; return $ (ASTId op) : s }
 compound = idOrApplic <|> literalList <|> literalMap 
           <|> literalNumber <|> literalString <|> literalBool
 
-idOrApplic = try applic <|> idRef -- todo fix error swallow with applic
+-- idOrApplic = try applic <|> idRef -- todo fix error swallow with applic
+idOrApplic = do idr <- idRef
+                appl <- applicOrNull
+                case appl of
+                  [] -> return idr
+                  [x]  -> return $ chainedApplics idr x
+  where chainedApplics n ps = foldl ASTApplic n ps
+        isNull ASTNull = True
+        isNull _ = False
+  
+applicOrNull = do try (symbol "(")
+                  res <- commaSep (cr >> block)
+                  symbol ")"
+                  rest <- many $ parens (commaSep (cr >> block))
+                  return [res:rest]
+               <|> return []
 
 idRef = liftM ASTId $ (identifier <|> operator)
-applic = liftM2 chainedApplics (identifier <|> operator) $ many1 $ parens (commaSep block)
-  where chainedApplics n ps = foldl ASTApplic (ASTId n) ps
 
 literalList = liftM ASTList $ brackets (commaSep stmt)
 
@@ -77,6 +90,11 @@ literalFloat = liftM ASTFloat $ float
 literalBool = (symbol "true" >> (return $ ASTBool True))
           <|> (symbol "false" >> (return $ ASTBool False))
 
+eol = many1 $ (lexeme . many1 . oneOf $ ";\n") >> skipChar '\n'
+cr = skipChar '\n'
+
+skipChar = lexeme . skipMany . char
+
 --
 -- Lexer
 
@@ -86,7 +104,8 @@ wyDef = javaStyle {
           P.identLetter = alphaNum <|> oneOf "!#$%&?@\\^~`",
           P.opStart = P.opLetter wyDef,
           P.opLetter = oneOf "!#%&*+./<=>?@\\^|-~",
-          P.caseSensitive = True
+          P.caseSensitive = True,
+          P.isBlank = (\ch -> ch == ' ' || ch == '\t' || ch == '\r')
         }
 
 --lexer = lexer' { P.whiteSpace = skipMany (satisfy (\c -> isSpace c && c /= '\n')) }
@@ -103,6 +122,7 @@ integer = P.integer lexer
 float = P.float lexer
 symbol = P.symbol lexer
 semi = P.semi lexer
+lexeme = P.lexeme lexer
 whitespace = P.whiteSpace lexer
 
 -- AST optimizer
@@ -500,8 +520,8 @@ dataPrim f =
         takeOrFill n xs = if (length xs > n) then take n xs
                                              else take n xs ++ take (n - length xs) (repeat WyNull)
 
-        push (WyList xs) val = WyList (val : xs)
-        push (WyString xs) (WyString val) = WyString (val ++ xs)
+        push (WyList xs) val = WyList (xs ++ [val])
+        push (WyString xs) (WyString val) = WyString (xs ++ val)
         push x val = error $ "Can't push value " ++ (show val) ++ " in " ++ (show x)
 
 arithmPrim f = 
