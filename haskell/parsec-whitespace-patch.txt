@@ -1,3 +1,6 @@
+# Diff from Parsec 3.0.0 to add a configurable whitespace function
+# to the language definition.
+
 Only in parsec-3.0.0-patched: dist
 diff -r parsec-3.0.0/parsec.cabal parsec-3.0.0-patched/parsec.cabal
 2c2
