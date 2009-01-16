@@ -61,8 +61,6 @@ idOrApplic = do idr <- idRef
                   [] -> return idr
                   [x]  -> return $ chainedApplics idr x
   where chainedApplics n ps = foldl ASTApplic n ps
-        isNull ASTNull = True
-        isNull _ = False
   
 applicOrNull = do try (symbol "(")
                   res <- commaSep (cr >> block)
@@ -535,12 +533,15 @@ arithmPrim f =
   liftInsert ">=" (opEval $ boolComp (>=)) >>=
   liftInsert "<" (opEval $ boolComp (<)) >>=
   liftInsert ">" (opEval $ boolComp (>)) >>=
-  liftInsert "&&" (boolEval (&&)) >>=
-  liftInsert "||" (boolEval (||))
+  liftInsert "&&" (boolEval (&&) (return True) False) >>=
+  liftInsert "||" (boolEval (||) (return False) True)
   where opEval op ps env = if length ps == 1 
                              then liftM (op 0) $ eval env (head ps)
                              else liftM (foldl1' op) (mapM (eval env) ps)
-        boolEval op ps env = liftM (WyBool . foldl1' op) (mapM (liftM truthy . eval env) ps)
+        boolEval op init stop ps env = liftM WyBool $ foldr (boolContinue op env stop) init (reverse ps)
+        boolContinue op env stop p accM = do acc <- accM
+                                             if acc == stop then return acc
+                                                            else liftM (op acc . truthy) $ eval env p
         boolComp c a b = WyBool (c a b)
 
 metaPrim f =
