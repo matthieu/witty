@@ -1,0 +1,25 @@
+Only in parsec-3.0.0-patched: dist
+diff -r parsec-3.0.0/parsec.cabal parsec-3.0.0-patched/parsec.cabal
+2c2
+< version:	3.0.0
+---
+> version:	3.0.1
+diff -r parsec-3.0.0/Text/Parsec/Language.hs parsec-3.0.0-patched/Text/Parsec/Language.hs
+27a28
+> import Data.Char ( isSpace )
+91a93
+>                , isBlank  = isSpace
+diff -r parsec-3.0.0/Text/Parsec/Token.hs parsec-3.0.0-patched/Text/Parsec/Token.hs
+98c98,103
+<     caseSensitive  :: Bool
+---
+>     caseSensitive  :: Bool,
+> 
+>     -- | A function that returns true for every character that should be
+>     -- considered blank, like space or '\t' for example.
+> 
+>     isBlank :: (Char -> Bool)
+690c695
+<         skipMany1 (satisfy isSpace)
+---
+>         skipMany1 (satisfy (isBlank languageDef))
