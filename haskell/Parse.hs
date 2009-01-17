@@ -383,12 +383,13 @@ applyMacros stmt env = liftM orderFound (findMacros stmt 0 env) >>= rewriteMatch
           matchM <- matchMacro stmt env mi
           case matchM of
             Just match -> do newStmt <- liftM (rewriteStmt stmt) $ runMatch match
-                             rewriteMatch (fst newStmt) $ updIndexes idx (snd newStmt) ms
+                             rm <- rewriteMatch (fst newStmt) $ updIndexes idx (snd newStmt) ms
+                             return rm
             Nothing -> rewriteMatch stmt ms
         runMatch (m, idx, f) = do res <- runMacro m f env
                                   return (m, idx, [wyToAST res])
-        orderFound ms = reverse . sortBy (comparing priority) $ ms
-                        where priority = macroPriority . fst
+        orderFound ms = sortBy (comparing priority) $ ms
+                        where priority = ((-)0) . macroPriority . fst
         updIndexes p offs [] = []
         updIndexes p offs ((m, idx):ms) = (m, if idx > p then idx+offs else idx) : updIndexes p offs ms
 
@@ -403,7 +404,7 @@ eval :: WyEnv -> ASTType -> IO WyType
 
 eval env (ASTBlock xs) = liftM last $ mapM (eval env) xs
 -- todo alter the AST instead of constantly rewriting it
-eval env (ASTStmt xs) = liftM last $ applyMacros xs env >>= mapM (eval env)
+eval env (ASTStmt xs) = liftM last $ applyMacros xs env >>=mapM (eval env)
 
 eval env (ASTApplic fn ps) = eval env fn >>= apply ps env
 
@@ -591,7 +592,7 @@ liftInsert name lambda map = liftM (flip (M.insert name) $ map) (wyPIO name lamb
   
 extractId (ASTId i) = i
 extractId (ASTStmt [ASTId i]) = i
-extractId x = error $ "Non identifier lvalue in = " ++ (show x)
+extractId x = error $ "Non identifier value when one was expected: " ++ (show x)
 
 unescapeBq :: WyEnv -> ASTType -> IO ASTType
 unescapeBq env ai@(ASTId i) | i !! 0 == '$' = do
