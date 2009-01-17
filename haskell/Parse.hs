@@ -450,7 +450,7 @@ basePrim f =
                                   in do envUpdateMacro n m env
                                         return $ WyString n ) >>=
   liftInsert "=" (\ps env -> (evalSnd env ps) >>= (flip $ envUpdateVar (extractId . head $ ps)) env) >>=
-  liftInsert "`" (\ps env -> liftM WyTemplate $ (unescapeBq env) . head $ ps) >>= -- support $ escaping
+  liftInsert "`" (\ps env -> liftM WyTemplate $ unescapeBq env . head $ ps) >>=
   liftInsert "if" (\ps env -> do
     expr <- eval env . head $ ps
     if (truthy expr) 
@@ -470,7 +470,7 @@ basePrim f =
         wyFold f z (WyList xs) = foldl' (\x xs -> x >>= f xs) z xs
         wyFold f z (WyString xs) = foldl' (\x xs -> x >>= f xs) z (map (WyString . (:"")) xs)
 
--- |> and <| to return a new array with a new value at its beginning / end
+-- todo |> and <| to return a new array with a new value at its beginning / end
 dataPrim f =
   liftInsert "empty?" (\ps env -> onContainers ps env (WyBool . null) (WyBool . null) (WyBool . M.null) ) f >>=
   liftInsert "length" (\ps env -> onContainers ps env wyLength wyLength (WyInt . toInteger . M.size) ) >>=
@@ -535,6 +535,7 @@ arithmPrim f =
   liftInsert ">" (opEval $ boolComp (>)) >>=
   liftInsert "&&" (boolEval (&&) (return True) False) >>=
   liftInsert "||" (boolEval (||) (return False) True)
+
   where opEval op ps env = if length ps == 1 
                              then liftM (op 0) $ eval env (head ps)
                              else liftM (foldl1' op) (mapM (eval env) ps)
@@ -546,7 +547,7 @@ arithmPrim f =
 
 metaPrim f =
   liftInsert "applic?" (\ps env -> do 
-    applic <- eval env $ head ps 
+    applic <- eval env $ head ps
     case applic of
       (WyTemplate (ASTStmt [ASTApplic _ _])) -> return $ WyBool True
       _                                      -> return $ WyBool False) f >>=
@@ -554,7 +555,24 @@ metaPrim f =
     applic <- eval env $ head ps 
     case applic of
       (WyTemplate (ASTStmt [ASTApplic _ ps])) -> return $ WyList $ map WyTemplate ps
-      _                                       -> error "Not a function application.")
+      _                                       -> error "Not a function application.") >>=
+
+  liftInsert "fnName" (\ps env -> do
+    applic <- eval env $ head ps 
+    case applic of
+      (WyTemplate (ASTStmt [ASTApplic (ASTId n) _])) -> return $ WyString n
+      (WyTemplate (ASTStmt [ASTApplic  _ _]))        -> error "Function application has no simple name."
+      _                                              -> error "Not a function application.") >>=
+
+  liftInsert "nthParam" (\ps env -> do
+    applic <- eval env $ head ps 
+    idx <- eval env $ head . tail $ ps 
+    case applic of
+      (WyTemplate (ASTStmt [ASTApplic _ ps])) -> 
+        case idx of 
+          (WyInt i) -> return . WyTemplate $ ps !! fromInteger i
+          _         -> error "Index parameter passed to nthParam isn't an int."
+      x                                       -> error $ "Not a function application: " ++ (show x))
 
 stdIOPrim f =
   liftInsert "print" (\ps env -> do eps <- mapM (eval env) ps 
@@ -572,6 +590,7 @@ liftInsert name lambda map = liftM (flip (M.insert name) $ map) (wyPIO name lamb
   where wyPIO n l = newIORef $ wyP n l
   
 extractId (ASTId i) = i
+extractId (ASTStmt [ASTId i]) = i
 extractId x = error $ "Non identifier lvalue in = " ++ (show x)
 
 unescapeBq :: WyEnv -> ASTType -> IO ASTType
@@ -582,6 +601,7 @@ unescapeBq env ai@(ASTId i) | i !! 0 == '$' = do
     Nothing -> return ai
 unescapeBq env (ASTList ss) = liftM ASTList $ mapM (unescapeBq env) ss
 unescapeBq env (ASTMap m) = liftM ASTMap $ T.mapM (unescapeBq env) m
+unescapeBq env (ASTApplic (ASTId n) ps) | n == "$" = liftM wyToAST $ eval env (ps !! 0)
 unescapeBq env (ASTApplic n ps) = liftM2 ASTApplic (unescapeBq env n) $ mapM (unescapeBq env) ps
 unescapeBq env (ASTStmt xs) = liftM ASTStmt $ mapM (unescapeBq env) xs
 unescapeBq env (ASTBlock xs) = liftM ASTBlock $ mapM (unescapeBq env) xs

@@ -2,7 +2,13 @@ macrop(macro(`exp, `body), 10, `(macrop($exp, 10, $body)));
 macro(macrox(`exp, `body), `(macrop($exp, 10, `($body))));
 macro(macropx(`exp, `priority, `body), `(macrop($exp, $priority, `($body))));
 
-macropx(`a = `b, 1, =($a, $b));
+macrop(`a = `b, 1,
+  if(applic?(a),
+    if(fnName(a) == "@", 
+      `(@!($(nthParam(a, 0)), $(nthParam(a,1)), $b)) ),
+    `(=($a, $b))
+  )
+)
 macropx(`a += `b, 1, =($a, +($a, $b)));
 macropx(`a -= `b, 1, =($a, -($a, $b)));
 macropx(`a || `b, 2, ||($a, $b));
