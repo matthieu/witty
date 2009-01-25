@@ -1,6 +1,8 @@
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
 import System.Environment(getArgs)
 import Control.Monad(liftM, liftM2)
@@ -142,29 +144,43 @@ isApplic _               = False
 --
 -- Language types and supporting function
 
+data WyError = UnknownRef s
+             | Undef s
+    deriving (Eq, Ord, Show)
+
+instance Error WyError where
+  noMsg  = Undef "Undefined error. Sucks to be you."
+  strMsg = Undef
+
+newType Eval a = E ErrorT WyError IO a
+
 data WyType = WyString String
             | WyInt Integer
             | WyFloat Double
             | WyBool Bool
             | WyNull
-            | WyList [WyType] -- todo change to sequence
-            | WyMap (M.Map WyType WyType)
+            | WyUndefined -- purely internal type representing undefined symbols
+            | WyRef { extractRef:: (IORef WyType) }
+            | WyList [WyType] -- todo change to sequence / todo use reference
+            | WyMap (M.Map WyType WyType) -- todo use reference as value
             | WyTemplate ASTType
             | WyLambda WyL
-            | WyMacro {
-                macroPattern:: ASTType,
-                macroBody:: ASTType,
-                macroPriority:: Integer,
-                macroEnv:: WyEnv 
-              }
+            | WyMacro { macroPattern:: ASTType, macroBody:: ASTType, macroPriority:: Integer, macroEnv:: WyEnv }
             | WyPrim WyPrimitive
     deriving (Show, Eq, Ord)
             
-data WyPrimitive = WyPrimitive String ([ASTType] -> WyEnv -> IO WyType)
+data WyPrimitive = WyPrimitive String ([ASTType] -> WyEnv -> Eval WyType)
 wyP n = WyPrim . WyPrimitive n
 
 data WyL = WyL [String] ASTType WyEnv
 wyL ss ast = WyLambda . WyL ss ast
+
+readRef (WyRef r) = readIORef r
+readRef x         = return x
+
+truthy (WyBool s) = s
+truthy WyNull = False
+truthy _ = True
 
 instance Num WyType where
   WyString s1 + WyString s2 = WyString (s1 ++ s2)
@@ -173,8 +189,8 @@ instance Num WyType where
   WyInt i1 + WyFloat f2 = WyFloat ((fromInteger i1) + f2)
   WyFloat f1 + WyInt i2 = WyFloat (f1 + (fromInteger i2))
   WyList l1 + WyList l2 = WyList (l1 ++ l2)
-  WyString s1 + x = WyString (s1 ++ showWy x)
-  x + WyString s1 = WyString (showWy x ++ s1)
+  WyString s1 + x = WyString (s1 ++ show x)
+  x + WyString s1 = WyString (show x ++ s1)
   x1 + x2 = error ("can't add " ++ (show x1) ++ " and " ++ (show x2))
   -- todo merge maps
 
@@ -223,10 +239,10 @@ instance Eq WyL where
   (WyL ps1 ast1 _) == (WyL ps2 ast2 _) = (ps1 == ps2) && (ast1 == ast2)
 instance Ord WyL where
   (WyL ps1 ast1 _) <= (WyL ps2 ast2 _) = (ps1 <= ps2) && (ast1 <= ast2)
-
-truthy (WyBool s) = s
-truthy WyNull = False
-truthy _ = True
+instance Show (IORef WyType) where
+  show x = "<ref>"
+instance Ord (IORef WyType) where
+  x <= y = True
 
 wyToAST (WyString s) = ASTString s
 wyToAST (WyInt i) = ASTInt i
@@ -239,17 +255,22 @@ wyToAST (WyTemplate t) = t
 wyToAST (WyLambda (WyL ss ast env)) = ASTApplic (ASTId "lambda") (map ASTId ss ++ [ast])
 wyToAST (WyPrim (WyPrimitive n _)) = ASTId n
 
-showWy (WyString s) = show s
-showWy (WyInt s) = show s
-showWy (WyFloat s) = show s
-showWy (WyBool s) = map toLower $ show s
-showWy WyNull = "null"
-showWy (WyList s) = "[" ++ (intercalate "," $ map showWy s) ++ "]"
-showWy (WyMap s) = show s
-showWy (WyTemplate ast) = "`(" ++ (show ast) ++ ")"
-showWy (WyLambda (WyL ss ast env)) = "lambda(" ++ (show ss) ++ ", " ++ (show ast) ++ ")"
-showWy (WyMacro p b _ env) = "macro(" ++ (show p) ++ ", " ++ (show b) ++ ")"
-showWy (WyPrim (WyPrimitive n _)) = "<primitive " ++ (show n) ++ ">"
+showWy (WyString s) = showRet s
+showWy (WyInt s) = showRet $ s
+showWy (WyFloat s) = showRet s
+showWy (WyBool b) = return $ (toLower . head) bs : tail bs
+  where bs = show b
+showWy WyNull = return "null"
+showWy (WyRef r) = readIORef r >>= showWy
+showWy (WyList s) = liftM (\x -> "[" ++ (intercalate "," x) ++ "]") $ mapM showWy s
+showWy (WyMap s) = showRet s
+showWy (WyTemplate ast) = return $ "`(" ++ (show ast) ++ ")"
+showWy (WyLambda (WyL ss ast env)) = return $ "lambda(" ++ (show ss) ++ ", " ++ (show ast) ++ ")"
+showWy (WyMacro p b _ env) = return $ "macro(" ++ (show p) ++ ", " ++ (show b) ++ ")"
+showWy (WyPrim (WyPrimitive n _)) = return $ "<primitive " ++ (show n) ++ ">"
+
+showRet:: (Monad m, Show x) => x -> m String
+showRet = return . show
 
 -- Environment definition
 --
@@ -346,10 +367,10 @@ matchMacro stmt env (m@(WyMacro p b _ e), idx) = matchOffset [-1, 0, 1] stmt p i
                       Nothing -> matchOffset offss stmt mi idx
               else matchOffset offss stmt mi idx
         matchOffset [] stmt mi idx = return Nothing
-        toFrame b env = liftM (flip Frame $ M.empty) $ T.mapM (toWyRef env) b
-        toWyRef env exp = newIORef $ WyTemplate exp
+        toFrame b env = liftM (flip Frame $ M.empty) $ T.mapM (toTemplateRef env) b
+        toTemplateRef env exp = newIORef $ WyTemplate exp
 
-runMacro :: WyType -> Frame -> WyEnv -> IO WyType
+runMacro :: WyType -> Frame -> WyEnv -> Eval WyType
 runMacro m f env = do newEnv <- envAdd f env
                       res <- eval newEnv $ macroBody m
                       return res
@@ -377,14 +398,14 @@ macroPivot (WyMacro p b _ e) = firstNonVar p
 -- liftM (macroPivot . (WyMacro (ASTApplic "foo" []) ASTNull)) (newIORef $ S.empty |> (Frame M.empty))
 
 applyMacros :: [ASTType] -> WyEnv -> IO [ASTType]
-applyMacros stmt env = liftM orderFound (findMacros stmt 0 env) >>= rewriteMatch stmt
+applyMacros stmt env = liftM (map pruneAST) $ liftM orderFound (findMacros stmt 0 env) >>= rewriteMatch stmt
   where rewriteMatch stmt [] = return stmt
         rewriteMatch stmt (mi@(m,idx):ms) = do
           matchM <- matchMacro stmt env mi
           case matchM of
             Just match -> do newStmt <- liftM (rewriteStmt stmt) $ runMatch match
-                             rm <- rewriteMatch (fst newStmt) $ updIndexes idx (snd newStmt) ms
-                             return rm
+                             putStrLn $ show newStmt
+                             rewriteMatch (fst newStmt) $ updIndexes idx (snd newStmt) ms
             Nothing -> rewriteMatch stmt ms
         runMatch (m, idx, f) = do res <- runMacro m f env
                                   return (m, idx, [wyToAST res])
@@ -400,32 +421,55 @@ parseWy input = pruneAST $ case (parse wyParser "(unknown)" input) of
                              Right out -> out
                              Left msg -> error $ "Parsing error: " ++ (show msg)
 
-eval :: WyEnv -> ASTType -> IO WyType
+eval :: WyEnv -> ASTType -> IO (Either WyType)
 
-eval env (ASTBlock xs) = liftM last $ mapM (eval env) xs
+eval env (ASTBlock xs) = leftOrLast env xs
+
 -- todo alter the AST instead of constantly rewriting it
-eval env (ASTStmt xs) = liftM last $ applyMacros xs env >>=mapM (eval env)
+eval env (ASTStmt xs) = applyMacros xs env >>= leftOrLast env
 
 eval env (ASTApplic fn ps) = eval env fn >>= apply ps env
 
-eval _ (ASTId idn) | idn == "true" = return $ WyBool True
-eval _ (ASTId idn) | idn == "false" = return $ WyBool False
-eval _ (ASTId idn) | idn == "null" = return $ WyNull
+eval _ (ASTId idn)   | idn == "true" = rR $ WyBool True
+eval _ (ASTId idn)   | idn == "false" = rR $ WyBool False
+eval _ (ASTId idn)   | idn == "null" = rR $ WyNull
 eval env (ASTId idn) | otherwise = 
-  do valMaybe <- envLookupVar idn env
-     readIORef $ maybeErr valMaybe ("Unknown reference: " ++ idn)
+  liftM (maybe (Left $ "Unknown reference: " ++ idn) Right) $ envLookupVar idn env
 
-eval env (ASTList xs) = liftM WyList $ mapM (eval env) xs
-eval env (ASTMap m) = liftM (WyMap . M.fromList) $ T.mapM evalKeyVal $ M.toList m
-  where evalKeyVal (k,v) = liftM2 (,) (eval env k) (eval env v)
+eval env (ASTList xs) = liftM (either Left (Right . WyList)) $ leftOrArr xs
+eval env (ASTMap m) = liftM (either Left (Right . WyMap . M.fromList)) $ leftOrHash (M.toList m)
 
-eval _ ASTNull = return WyNull
-eval _ (ASTBool b) = return $ WyBool b
-eval _ (ASTFloat f) = return $ WyFloat f 
-eval _ (ASTInt i) = return $ WyInt i
-eval _ (ASTString s) = return $ WyString s
+eval _ ASTNull = rR WyNull
+eval _ (ASTBool b) = rR $ WyBool b
+eval _ (ASTFloat f) = rR $ WyFloat f 
+eval _ (ASTInt i) = rR $ WyInt i
+eval _ (ASTString s) = rR $ WyString s
 
-apply:: [ASTType] -> WyEnv -> WyType -> IO WyType
+rR = return . Right
+
+leftOrLast (x:xs) = do
+  res <- eval env x
+  case res of
+    Right r -> leftOrLast xs
+    Left r  -> return $ Left r
+leftOrLast [x] = eval env x
+
+leftOrArr (x:xs) = do
+  res <- eval env x
+  case res of
+    Right r -> liftM (Right . (r :) . either (error "Impossible!") id) leftOrArr xs
+    Left r  -> return $ Left r
+leftOrArr [] = []
+
+leftOrHash ((xk,vx):xs) = do
+  res <- liftM2 (,) (eval env xk) (eval env xv)
+  case res of
+    (Right rk, Right rv) -> liftM (Right . ((rk, rv) :) . either (error "Impossible!") id) leftOrArr xs
+    (Left rk, _)  -> return $ Left rk
+    (_, Left rv)  -> return $ Left rv
+leftOrArr [] = []
+
+apply:: [ASTType] -> WyEnv -> WyType -> IO (Maybe WyType)
 apply vals env (WyPrim (WyPrimitive n fn)) = fn vals env
 apply vals env wl@(WyLambda _) =
   mapM (eval env) vals >>= applyDirect env wl
@@ -434,6 +478,8 @@ apply ps env other = error $ "Don't know how to apply: " ++ show other
 applyDirect env (WyLambda (WyL params ast lenv)) evals =
   let newEnv = envStack params evals lenv
   in newEnv >>= (flip eval) ast
+
+evalNoRef env ast = eval env ast >>= readRef
 
 maybeErr m msg = case m of
                     Just wy -> wy
@@ -451,6 +497,10 @@ basePrim f =
                                   in do envUpdateMacro n m env
                                         return $ WyString n ) >>=
   liftInsert "=" (\ps env -> (evalSnd env ps) >>= (flip $ envUpdateVar (extractId . head $ ps)) env) >>=
+  liftInsert "=" (\ps env -> do
+    
+  
+  (evalSnd env ps) >>= (flip $ envUpdateVar (extractId . head $ ps)) env) >>=
   liftInsert "`" (\ps env -> liftM WyTemplate $ unescapeBq env . head $ ps) >>=
   liftInsert "if" (\ps env -> do
     expr <- eval env . head $ ps
@@ -473,19 +523,27 @@ basePrim f =
 
 -- todo |> and <| to return a new array with a new value at its beginning / end
 dataPrim f =
-  liftInsert "empty?" (\ps env -> onContainers ps env (WyBool . null) (WyBool . null) (WyBool . M.null) ) f >>=
-  liftInsert "length" (\ps env -> onContainers ps env wyLength wyLength (WyInt . toInteger . M.size) ) >>=
-  liftInsert "reverse" (\ps env -> onContainers ps env (WyList . reverse) (WyString . reverse) (WyMap . id) ) >>=
-  liftInsert "@" (\ps env -> liftM elemAt $ evalAtParams ps env) >>=
+  liftInsert "empty?" (\ps env -> 
+    onContainers ps env (WyBool . null) (WyBool . null) (WyBool . M.null) ) f >>=
+  liftInsert "length" (\ps env -> 
+    onContainers ps env wyLength wyLength (WyInt . toInteger . M.size) ) >>=
+  liftInsert "reverse" (\ps env -> 
+    onContainers ps env (WyList . reverse) (WyString . reverse) (WyMap . id) ) >>=
+  liftInsert "@" (\ps env -> 
+    liftM elemAt $ evalAtParams ps env ) >>=
   liftInsert "@!" (\ps env -> do oldVal <- eval env $ head ps
-                                 idx <- eval env $ ps !! 1
+                                 let idx = ps !! 1
                                  newVal <- eval env $ last ps
                                  let updVal = updatedVal oldVal idx newVal
                                  envUpdateVar (extractId $ head ps) updVal env
                                  return newVal ) >>=
-  liftInsert "push!" (\ps env -> do arr <- eval env $ head ps
-                                    val <- eval env $ last ps
-                                    envUpdateVar (extractId $ head ps) (push arr val) env)
+  liftInsert "<<" (\ps env -> do 
+    arr <- eval env $ head ps
+    val <- evalNoRef env (last ps)
+    newVal <- liftM (flip push $ val) $ readRef arr
+    case head ps of
+      (ASTId n) -> writeIORef (extractRef arr) newVal >> return newVal
+      x         -> return newVal )
 
   where onContainers ps env fnl fns fnm = 
           do e <- eval env $ head ps
@@ -510,12 +568,12 @@ dataPrim f =
                                    (WyMap _) -> return (obj, WyString . extractId . last $ ps)
                                    x         -> liftM ((,) obj) (eval env $ last ps)
 
-        updatedVal (WyList xs) (WyInt n) val = -- sparse list 
+        updatedVal (WyList xs) (ASTInt n) val = -- sparse list 
           WyList $ takeOrFill (fromInteger n) xs ++ [val] ++ drop ((fromInteger n)+1) xs
-        updatedVal (WyString s) (WyInt n) (WyString ns) = 
+        updatedVal (WyString s) (ASTInt n) (WyString ns) = 
           WyString $ take (fromInteger n) s ++ ns ++ drop ((fromInteger n)+1) s
-        updatedVal (WyMap m) k v = WyMap $ M.insert k v m
-        updatedVal x _ _ = error $ "Can't update an element in " ++ show x
+        updatedVal (WyMap m) (ASTId i) v = WyMap $ M.insert (WyString i) v m
+        updatedVal x y _ = error $ "Can't update an element in " ++ show x ++ " at position " ++ show y
         takeOrFill n xs = if (length xs > n) then take n xs
                                              else take n xs ++ take (n - length xs) (repeat WyNull)
 
@@ -577,12 +635,12 @@ metaPrim f =
 
 stdIOPrim f =
   liftInsert "print" (\ps env -> do eps <- mapM (eval env) ps 
-                                    putStrLn (concatWyStr eps)
+                                    concatWyStr eps >>= putStrLn
                                     return WyNull ) f >>=
   liftInsert "arguments" (\ps env -> liftM (WyList . map WyString . safeTail) getArgs ) >>=
-  liftInsert "load" (\ps env -> liftM literalStr (eval env $ head ps) >>= readFile >>= eval env . parseWy)
-  where concatWyStr = concat . map literalStr
-        literalStr (WyString s) = s
+  liftInsert "load" (\ps env -> eval env (head ps) >>= literalStr >>= readFile >>= eval env . parseWy)
+  where concatWyStr s = liftM concat $ mapM literalStr s
+        literalStr (WyString s) = return s
         literalStr anyWy = showWy anyWy
         safeTail [] = []
         safeTail (x:xs) = xs
@@ -626,7 +684,7 @@ repl env = do
     Just l | l == "q"  -> return () 
            | otherwise -> do addHistory l
                              e <- wyInterpr env l
-                             putStrLn (showWy . fst $ e)
+                             (showWy . fst $ e) >>= putStrLn
                              repl $ snd e
  
 mhead []      = Nothing
