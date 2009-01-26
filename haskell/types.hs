@@ -4,14 +4,16 @@
 
 module Wy.Types
   ( WyError(..),
-    Eval,
-    WyType(..), readRef, truthy
+    WyType(..), readRef, truthy, wyToAST, showWy,
+    WyEnv, Frame, envLookupMacro, envLookupVar, envUpdateMacro, envUpdateVar, envStack, envAdd,
+    Eval, liftE
   ) where
 
 import qualified Data.Sequence as S
 import qualified Data.Map as M
 import Data.List(intercalate, (\\))
 import Control.Monad.Error
+import Control.Monad.Reader
 import Data.IORef
 import Data.Char(toLower)
 import Data.Sequence ((<|))
@@ -21,24 +23,11 @@ import Wy.Parser
 --
 -- Language types and supporting function
 
-data WyError = UnknownRef String
-             | Undef String
-    deriving (Eq, Ord, Show)
-
-instance Error WyError where
-  noMsg  = Undef "Undefined error. Sucks to be you."
-  strMsg = Undef
-
-newtype Eval a = E {
-    runE :: ErrorT WyError IO a
-  } deriving (Monad, MonadError WyError)
-
 data WyType = WyString String
             | WyInt Integer
             | WyFloat Double
             | WyBool Bool
             | WyNull
-            | WyUndefined -- purely internal type representing undefined symbols
             | WyRef { extractRef:: (IORef WyType) }
             | WyList [WyType] -- todo change to sequence / todo use reference
             | WyMap (M.Map WyType WyType) -- todo use reference as value
@@ -124,6 +113,7 @@ wyToAST (WyTemplate t) = t
 wyToAST (WyLambda ss ast env) = ASTApplic (ASTId "lambda") (map ASTId ss ++ [ast])
 wyToAST (WyPrimitive n _) = ASTId n
 
+showWy :: WyType -> IO String
 showWy (WyString s) = showRet s
 showWy (WyInt s) = showRet $ s
 showWy (WyFloat s) = showRet s
@@ -195,3 +185,22 @@ envAdd :: Frame -> WyEnv -> IO (WyEnv)
 envAdd frame env = do envVal <- readIORef env
                       newEnv <- newIORef $ frame <| envVal
                       return newEnv
+
+--
+-- Evaluation monad
+
+newtype Eval a = E {
+    runE :: ErrorT WyError (ReaderT WyEnv IO) a
+  } deriving (Monad, MonadIO, MonadError WyError)
+
+data WyError = UnknownRef String
+             | Undef String
+    deriving (Eq, Ord, Show)
+
+instance Error WyError where
+  noMsg  = Undef "Undefined error. Sucks to be you."
+  strMsg = Undef
+
+liftE:: ReaderT WyEnv IO a -> Eval a
+liftE m = E (lift m)
+
