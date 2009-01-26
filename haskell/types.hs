@@ -5,8 +5,8 @@
 module Wy.Types
   ( WyError(..),
     WyType(..), readRef, truthy, wyToAST, showWy,
-    WyEnv, Frame, envLookupMacro, envLookupVar, envUpdateMacro, envUpdateVar, envStack, envAdd,
-    Eval, liftE
+    WyEnv, Frame(..), envLookupMacro, envLookupVar, envUpdateMacro, envUpdateVar, envStack, envAdd,
+    Eval, localIO
   ) where
 
 import qualified Data.Sequence as S
@@ -194,6 +194,7 @@ newtype Eval a = E {
   } deriving (Monad, MonadIO, MonadError WyError, MonadReader WyEnv)
 
 data WyError = UnknownRef String
+             | ApplicationErr String
              | Undef String
     deriving (Eq, Ord, Show)
 
@@ -204,3 +205,7 @@ instance Error WyError where
 liftE:: ReaderT WyEnv IO a -> Eval a
 liftE m = E (lift m)
 
+localIO f a = do 
+  env <- ask
+  newEnv <- liftIO (f env)
+  local (const newEnv) a
