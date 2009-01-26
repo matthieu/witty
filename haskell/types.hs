@@ -34,7 +34,7 @@ data WyType = WyString String
             | WyTemplate ASTType
             | WyLambda [String] ASTType WyEnv
             | WyMacro { macroPattern:: ASTType, macroBody:: ASTType, macroPriority:: Integer, macroEnv:: WyEnv }
-            | WyPrimitive String ([ASTType] -> WyEnv -> Eval WyType)
+            | WyPrimitive String ([ASTType] -> Eval WyType)
     deriving (Show, Eq, Ord)
             
 readRef (WyRef r) = readIORef r
@@ -89,15 +89,15 @@ instance Fractional WyType where
 
   fromRational r = WyFloat (fromRational r)
 
-instance Show ([ASTType] -> WyEnv -> Eval WyType) where
+instance Show ([ASTType] -> Eval WyType) where
   show _ = "<prim>"
 instance Show (IORef WyType) where
   show _ = "<ref>"
 
-instance Eq ([ASTType] -> WyEnv -> Eval WyType) where
+instance Eq ([ASTType] -> Eval WyType) where
   _ == _ = False
 
-instance Ord ([ASTType] -> WyEnv -> Eval WyType) where
+instance Ord ([ASTType] -> Eval WyType) where
   _ <= _ = True
 instance Ord (IORef WyType) where
   x <= y = True
@@ -191,7 +191,7 @@ envAdd frame env = do envVal <- readIORef env
 
 newtype Eval a = E {
     runE :: ErrorT WyError (ReaderT WyEnv IO) a
-  } deriving (Monad, MonadIO, MonadError WyError)
+  } deriving (Monad, MonadIO, MonadError WyError, MonadReader WyEnv)
 
 data WyError = UnknownRef String
              | Undef String
