@@ -1,6 +1,6 @@
--- module Wy.Interpr
---   (eval
---   ) where
+module Wy.Interpr
+  (eval
+  ) where
 
 import Control.Monad(liftM, liftM2)
 import Control.Monad.Error(mapErrorT)
@@ -33,6 +33,10 @@ eval (ASTFloat f) = return $ WyFloat f
 eval (ASTInt i) = return $ WyInt i
 eval (ASTString s) = return $ WyString s
 
+eval (ASTList xs) = liftM WyList $ mapM eval xs
+eval (ASTMap m) = liftM (WyMap . M.fromList) $ T.mapM evalKeyVal $ M.toList m
+  where evalKeyVal (k,v) = liftM2 (,) (eval k) (eval v)
+
 eval (ASTId idn) | idn == "true" = return $ WyBool True
 eval (ASTId idn) | idn == "false" = return $ WyBool False
 eval (ASTId idn) | idn == "null" = return $ WyNull
@@ -42,6 +46,11 @@ eval (ASTId idn) | otherwise = do
   case val of
     Nothing -> throwError $ UnknownRef ("Unknown reference: " ++ idn)
     Just v  -> return $ WyRef v
+
+eval (ASTApplic fn ps) = eval fn >>= apply ps
+
+eval (ASTStmt xs) = liftM last $ applyMacros xs >>= mapM eval
+eval (ASTBlock xs) = liftM last $ mapM eval xs
 
 apply:: [ASTType] -> WyType -> Eval WyType
 apply vals (WyPrimitive n fn) = fn vals
