@@ -51,16 +51,3 @@ if(length(failures) > 0,
   for(failures, lambda(f, print("  " + f)))
 )
 
-// think of how to make functions like toString or + work on user provided structures
-// generalized variables
-// cond/case with pattern matching: cond([], true, [x], x, [x, rest\], ...)
-// optional function parameters, parameters with default values
-// provide primitives allowing read/write access to witty code so code can be created or altered directly
-// assign with := returns old value to allow a = b := a (exchange value)
-// lambdas shortcut y(...) ?
-// multiline strings
-// recursive macros
-// function composition
-// delay and force
-// tail calls
-// destructured assignment
