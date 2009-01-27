@@ -4,9 +4,9 @@
 
 module Wy.Types
   ( WyError(..),
-    WyType(..), readRef, truthy, wyToAST, showWy,
+    WyType(..), readRef, truthy, wyToAST, showWy, macroPivot,
     WyEnv, Frame(..), envLookupMacro, envLookupVar, envUpdateMacro, envUpdateVar, envStack, envAdd,
-    Eval, localIO
+    Eval, localIO, runEval
   ) where
 
 import qualified Data.Sequence as S
@@ -43,6 +43,14 @@ readRef x         = return x
 truthy (WyBool s) = s
 truthy WyNull = False
 truthy _ = True
+
+macroPivot :: (Num t) => WyType -> (t, String)
+macroPivot (WyMacro p b _ e) = firstNonVar p
+  where firstNonVar (ASTStmt [ASTApplic (ASTId n) _]) = (0, n)
+        firstNonVar (ASTStmt es) = firstNonVar' es 0
+        firstNonVar' ((ASTId i):es) idx | i !! 0 /= '`' = (idx, i)
+        firstNonVar' [] idx = error $ "No pivot found in macro pattern " ++ (show p)
+        firstNonVar' (e:es) idx = firstNonVar' es (idx+1)
 
 instance Num WyType where
   WyString s1 + WyString s2 = WyString (s1 ++ s2)
@@ -190,8 +198,11 @@ envAdd frame env = do envVal <- readIORef env
 -- Evaluation monad
 
 newtype Eval a = E {
-    runE :: ErrorT WyError (ReaderT WyEnv IO) a
+    runE :: ReaderT WyEnv (ErrorT WyError IO) a
   } deriving (Monad, MonadIO, MonadError WyError, MonadReader WyEnv)
+
+runEval :: Eval a -> WyEnv -> IO (Either WyError a)
+runEval e env = runErrorT (runReaderT (runE e) env)
 
 data WyError = UnknownRef String
              | ApplicationErr String
@@ -201,9 +212,6 @@ data WyError = UnknownRef String
 instance Error WyError where
   noMsg  = Undef "Undefined error. Sucks to be you."
   strMsg = Undef
-
-liftE:: ReaderT WyEnv IO a -> Eval a
-liftE m = E (lift m)
 
 localIO f a = do 
   env <- ask

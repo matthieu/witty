@@ -9,7 +9,7 @@ import Control.Monad(liftM)
 import Wy.Parser
 import Wy.Types
 import Wy.Prim
-import Wy.Interpr
+import Wy.Interpr(eval)
 
 doEval :: S.Seq Frame -> ASTType -> IO (Either WyError WyType, S.Seq Frame)
 doEval env p = do 

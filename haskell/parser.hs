@@ -1,6 +1,6 @@
 module Wy.Parser
   ( ASTType(..), 
-    wyParser, 
+    parseWy, 
     pruneAST
   ) where
 
@@ -12,6 +12,9 @@ import Text.ParserCombinators.Parsec
 import qualified Text.ParserCombinators.Parsec.Token as P
 import Text.ParserCombinators.Parsec.Language(javaStyle)
 
+parseWy input = pruneAST $ case (parse wyParser "(unknown)" input) of
+                             Right out -> out
+                             Left msg -> error $ "Parsing error: " ++ (show msg)
 --
 -- AST Nodes
 

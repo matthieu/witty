@@ -394,8 +394,6 @@ macroPivot (WyMacro p b _ e) = firstNonVar p
         firstNonVar' ((ASTId i):es) idx | i !! 0 /= '`' = (idx, i)
         firstNonVar' [] idx = error $ "No pivot found in macro pattern " ++ (show p)
         firstNonVar' (e:es) idx = firstNonVar' es (idx+1)
--- liftM (macroPivot . (WyMacro (ASTStmt [ASTId "`a", ASTId "+", ASTId "`b"]) ASTNull)) (newIORef $ S.empty |> (Frame M.empty))
--- liftM (macroPivot . (WyMacro (ASTApplic "foo" []) ASTNull)) (newIORef $ S.empty |> (Frame M.empty))
 
 applyMacros :: [ASTType] -> WyEnv -> IO [ASTType]
 applyMacros stmt env = liftM (map pruneAST) $ liftM orderFound (findMacros stmt 0 env) >>= rewriteMatch stmt

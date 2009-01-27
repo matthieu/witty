@@ -1,5 +1,6 @@
 module Wy.Interpr
-  (eval
+  ( eval,
+    applyDirect
   ) where
 
 import Control.Monad(liftM, liftM2)
@@ -20,10 +21,6 @@ import Wy.Types
 
 --
 -- Interpreter
-
-parseWy input = pruneAST $ case (parse wyParser "(unknown)" input) of
-                             Right out -> out
-                             Left msg -> error $ "Parsing error: " ++ (show msg)
 
 eval:: ASTType -> Eval WyType
 
@@ -120,14 +117,6 @@ macroPattLgth m =
     (ASTStmt es)    -> length es
     (ASTApplic _ _) -> 1
     _               -> error $ "Bad macro pattern: " ++ (show $ macroPattern m)
-
-macroPivot :: (Num t) => WyType -> (t, String)
-macroPivot (WyMacro p b _ e) = firstNonVar p
-  where firstNonVar (ASTStmt [ASTApplic (ASTId n) _]) = (0, n)
-        firstNonVar (ASTStmt es) = firstNonVar' es 0
-        firstNonVar' ((ASTId i):es) idx | i !! 0 /= '`' = (idx, i)
-        firstNonVar' [] idx = error $ "No pivot found in macro pattern " ++ (show p)
-        firstNonVar' (e:es) idx = firstNonVar' es (idx+1)
 
 applyMacros :: [ASTType] -> Eval [ASTType]
 applyMacros stmt = liftM (map pruneAST) $ liftM orderFound (findMacros stmt 0) >>= rewriteMatch stmt
