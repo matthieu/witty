@@ -1,3 +1,5 @@
+module Main() where
+
 import Data.IORef
 import qualified Data.Sequence as S
 import System.Console.Readline

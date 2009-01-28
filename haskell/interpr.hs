@@ -1,5 +1,5 @@
 module Wy.Interpr
-  ( eval,
+  ( eval, evalNoRef,
     applyDirect
   ) where
 
@@ -44,7 +44,7 @@ eval (ASTId idn) | otherwise = do
     Nothing -> throwError $ UnknownRef ("Unknown reference: " ++ idn)
     Just v  -> return $ WyRef v
 
-eval (ASTApplic fn ps) = eval fn >>= apply ps
+eval (ASTApplic fn ps) = evalNoRef fn >>= apply ps
 
 eval (ASTStmt xs) = liftM last $ applyMacros xs >>= mapM eval
 eval (ASTBlock xs) = liftM last $ mapM eval xs
