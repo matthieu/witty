@@ -11,6 +11,7 @@ macrop(`a = `b, 1,
 )
 macropx(`a += `b, 1, =($a, +($a, $b)));
 macropx(`a -= `b, 1, =($a, -($a, $b)));
+macropx(`a << `b, 1, <<($a, $b));
 macropx(`a || `b, 2, ||($a, $b));
 macropx(`a && `b, 3, &&($a, $b));
 macropx(`a == `b, 4, ==($a, $b));
@@ -22,7 +23,6 @@ macropx(`a + `b, 6, +($a, $b));
 macropx(`a - `b, 6, -($a, $b));
 macropx(`a * `b, 7, *($a, $b));
 macropx(`a / `b, 7, /($a, $b));
-macropx(`a << `b, 8, <<($a, $b));
 
 // todo generalize to be able to execute a.b.c in a hash
 // macro(`arr . `idx, `(@($arr, $idx)))

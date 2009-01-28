@@ -72,14 +72,14 @@ arithmPrim f =
   defp "||" (boolEval (||) (return False) True)
 
 opEval op [p] = liftM (op 0) $ eval p
-opEval op ps  = liftM (foldl1' op) (mapM evalNoRef ps)
+opEval op ps  = liftM (foldl1' op) (mapM eval ps)
         
 boolEval op init stop ps = liftM WyBool $ foldr (boolContinue op stop) init (reverse ps)
   where boolContinue op stop p accM = do 
           acc <- accM
           if acc == stop 
             then return acc
-            else liftM (op acc . truthy) $ evalNoRef p
+            else liftM (op acc . truthy) $ eval p
 
 boolComp c a b = WyBool (c a b)
 
@@ -102,8 +102,8 @@ dataPrim f =
     liftIO $ envUpdateVar n updVal env
     return newVal ) >>=
   defp "<<" (\ps -> do 
-    arr <- eval $ head ps
-    val <- evalNoRef (last ps)
+    arr <- evalWy $ head ps
+    val <- eval (last ps)
     ref <- liftIO (readRef arr)
     newVal <- push ref val
     case head ps of

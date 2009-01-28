@@ -1,5 +1,5 @@
 module Wy.Interpr
-  ( eval, evalNoRef,
+  ( eval, evalWy,
     applyDirect
   ) where
 
@@ -22,32 +22,32 @@ import Wy.Types
 --
 -- Interpreter
 
-eval:: ASTType -> Eval WyType
+evalWy:: ASTType -> Eval WyType
 
-eval ASTNull = return WyNull
-eval (ASTBool b) = return $ WyBool b
-eval (ASTFloat f) = return $ WyFloat f 
-eval (ASTInt i) = return $ WyInt i
-eval (ASTString s) = return $ WyString s
+evalWy ASTNull = return WyNull
+evalWy (ASTBool b) = return $ WyBool b
+evalWy (ASTFloat f) = return $ WyFloat f 
+evalWy (ASTInt i) = return $ WyInt i
+evalWy (ASTString s) = return $ WyString s
 
-eval (ASTList xs) = liftM WyList $ mapM eval xs
-eval (ASTMap m) = liftM (WyMap . M.fromList) $ T.mapM evalKeyVal $ M.toList m
+evalWy (ASTList xs) = liftM WyList $ mapM eval xs
+evalWy (ASTMap m) = liftM (WyMap . M.fromList) $ T.mapM evalKeyVal $ M.toList m
   where evalKeyVal (k,v) = liftM2 (,) (eval k) (eval v)
 
-eval (ASTId idn) | idn == "true" = return $ WyBool True
-eval (ASTId idn) | idn == "false" = return $ WyBool False
-eval (ASTId idn) | idn == "null" = return $ WyNull
-eval (ASTId idn) | otherwise = do
+evalWy (ASTId idn) | idn == "true" = return $ WyBool True
+evalWy (ASTId idn) | idn == "false" = return $ WyBool False
+evalWy (ASTId idn) | idn == "null" = return $ WyNull
+evalWy (ASTId idn) | otherwise = do
   env <- ask
   val <- liftIO $ envLookupVar idn env
   case val of
     Nothing -> throwError $ UnknownRef ("Unknown reference: " ++ idn)
     Just v  -> return $ WyRef v
 
-eval (ASTApplic fn ps) = evalNoRef fn >>= apply ps
+evalWy (ASTApplic fn ps) = eval fn >>= apply ps
 
-eval (ASTStmt xs) = liftM last $ applyMacros xs >>= mapM eval
-eval (ASTBlock xs) = liftM last $ mapM eval xs
+evalWy (ASTStmt xs) = trace (show xs) $ liftM last $ applyMacros xs >>= mapM eval
+evalWy (ASTBlock xs) = liftM last $ mapM eval xs
 
 apply:: [ASTType] -> WyType -> Eval WyType
 apply vals (WyPrimitive n fn) = fn vals
@@ -56,7 +56,7 @@ apply ps other = throwError . ApplicationErr $ "Don't know how to apply: " ++ sh
 
 applyDirect (WyLambda params ast lenv) evals = localIO (envStack params evals) $ eval ast
 
-evalNoRef ast = eval ast >>= liftIO . readRef
+eval ast = evalWy ast >>= liftIO . readRef
 
 --
 -- Macro system
@@ -104,7 +104,7 @@ matchMacro stmt (m@(WyMacro p b _ e), idx) = matchOffset [-1, 0, 1] stmt p idx
         toTemplateRef env exp = newIORef $ WyTemplate exp
 
 runMacro :: WyType -> Frame -> Eval WyType
-runMacro (WyMacro pat b pr env) f = localIO (const $ envAdd f env) $ eval b
+runMacro (WyMacro _ b _ _) f = localIO (envAdd f) $ eval b
 
 rewriteStmt :: [ASTType] -> (WyType, Int, [ASTType]) -> ([ASTType], Int)
 rewriteStmt stmt (m , idx, nast) =
@@ -125,8 +125,7 @@ applyMacros stmt = liftM (map pruneAST) $ liftM orderFound (findMacros stmt 0) >
           matchM <- matchMacro stmt mi
           case matchM of
             Just match -> do newStmt <- liftM (rewriteStmt stmt) $ runMatch match
-                             trace (show newStmt) $
-                               rewriteMatch (fst newStmt) $ updIndexes idx (snd newStmt) ms
+                             rewriteMatch (fst newStmt) $ updIndexes idx (snd newStmt) ms
             Nothing -> rewriteMatch stmt ms
         runMatch (m, idx, f) = do res <- runMacro m f
                                   return (m, idx, [wyToAST res])
