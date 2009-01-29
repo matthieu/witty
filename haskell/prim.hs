@@ -10,6 +10,7 @@ import qualified Data.Traversable as T
 import Control.Monad.Reader
 import Control.Monad.Error
 import System.Environment(getArgs)
+import Debug.Trace
 
 import Wy.Parser(ASTType(..), parseWy)
 import Wy.Interpr

@@ -46,7 +46,7 @@ evalWy (ASTId idn) | otherwise = do
 
 evalWy (ASTApplic fn ps) = eval fn >>= apply ps
 
-evalWy (ASTStmt xs) = trace (show xs) $ liftM last $ applyMacros xs >>= mapM eval
+evalWy (ASTStmt xs) = liftM last $ applyMacros xs >>= mapM eval
 evalWy (ASTBlock xs) = liftM last $ mapM eval xs
 
 apply:: [ASTType] -> WyType -> Eval WyType
@@ -54,7 +54,7 @@ apply vals (WyPrimitive n fn) = fn vals
 apply vals wl@(WyLambda _ _ _) = mapM eval vals >>= applyDirect wl
 apply ps other = throwError . ApplicationErr $ "Don't know how to apply: " ++ show other
 
-applyDirect (WyLambda params ast lenv) evals = localIO (envStack params evals) $ eval ast
+applyDirect (WyLambda params ast lenv) evals = localIO (const $ envStack params evals lenv) $ eval ast
 
 eval ast = evalWy ast >>= liftIO . readRef
 
@@ -104,7 +104,7 @@ matchMacro stmt (m@(WyMacro p b _ e), idx) = matchOffset [-1, 0, 1] stmt p idx
         toTemplateRef env exp = newIORef $ WyTemplate exp
 
 runMacro :: WyType -> Frame -> Eval WyType
-runMacro (WyMacro _ b _ _) f = localIO (envAdd f) $ eval b
+runMacro (WyMacro _ b _ env) f = localIO (const $ envAdd f env) $ eval b
 
 rewriteStmt :: [ASTType] -> (WyType, Int, [ASTType]) -> ([ASTType], Int)
 rewriteStmt stmt (m , idx, nast) =
