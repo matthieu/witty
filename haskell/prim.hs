@@ -102,22 +102,21 @@ dataPrim f =
   defp "@" (\ps -> 
     evalAtParams ps >>= elemAt ) $
   defp "@!" (\ps -> do 
-    oldVal <- eval $ head ps
-    newVal <- eval $ last ps
+    ref <- evalWy $ head ps
+    oldVal <- liftIO $ readRef ref
+    newVal <- evalWy $ last ps
     let updVal = updatedVal oldVal (ps !! 1) newVal
-    env <- ask
-    n <- extractId $ head ps
-    liftIO $ varUpdate env n updVal
+    liftIO $ writeIORef (extractRef ref) updVal
     return newVal ) $
   defp "<<" (\ps -> do 
     arr <- evalWy $ head ps
-    val <- eval (last ps)
+    val <- evalWy (last ps)
     ref <- liftIO (readRef arr)
     newVal <- push ref val
     case arr of
       (WyRef r) -> liftIO (writeIORef r newVal) >> return (WyRef r)
       x         -> return newVal ) f
-
+-- [ASTApplic (ASTId "@!") [ASTStmt [ASTApplic (ASTId "@") [ASTId "b",ASTId "foo"]], ASTId "bar",ASTInt 2]]
   where onContainers ps fnl fns fnm = 
           do e <- eval $ head ps
              case e of
