@@ -7,18 +7,17 @@ import System.Environment(getArgs)
 import Data.Sequence ((|>))
 import qualified Data.Map as M
 import Control.Monad(liftM)
+import Debug.Trace
 
 import Wy.Parser
 import Wy.Types
 import Wy.Prim
-import Wy.Interpr(eval)
+import Wy.Interpr(eval, evalWy)
 
 doEval :: S.Seq Frame -> ASTType -> IO (Either WyError WyType, S.Seq Frame)
 doEval env p = do 
-  runEnv <- newIORef env
-  res <- runEval (eval p) runEnv
-  newEnv <- readIORef runEnv
-  return (res, newEnv)
+  res <- runEval (evalWy p) env
+  return (res, env)
 
 wyInterpr env = doEval env . parseWy
 
@@ -38,8 +37,9 @@ mhead []      = Nothing
 mhead (x:xs)  = Just x
 
 main = do params <- getArgs
-          p <- primitives M.empty
-          let blankEnv = S.empty |> (Frame p M.empty)
+          p <- newIORef $ primitives M.empty
+          m <- newIORef  M.empty
+          let blankEnv = S.empty |> Frame p m
           ast <- liftM parseWy (readFile "foundation.wy")
           env <- liftM snd $ readFile "foundation.wy" >>= wyInterpr blankEnv
           case mhead params of

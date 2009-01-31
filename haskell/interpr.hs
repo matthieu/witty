@@ -28,11 +28,11 @@ evalWy ASTNull = return WyNull
 evalWy (ASTBool b) = return $ WyBool b
 evalWy (ASTFloat f) = return $ WyFloat f 
 evalWy (ASTInt i) = return $ WyInt i
-evalWy (ASTString s) = return $ WyString s
+evalWy (ASTString s) = newWyRef $ WyString s
 
-evalWy (ASTList xs) = liftM WyList $ mapM eval xs
-evalWy (ASTMap m) = liftM (WyMap . M.fromList) $ T.mapM evalKeyVal $ M.toList m
-  where evalKeyVal (k,v) = liftM2 (,) (eval k) (eval v)
+evalWy (ASTList xs) = liftM WyList (mapM evalWy xs) >>= newWyRef
+evalWy (ASTMap m) = liftM (WyMap . M.fromList) (T.mapM evalKeyVal $ M.toList m) >>= newWyRef
+  where evalKeyVal (k,v) = liftM2 (,) (evalWy k) (evalWy v)
 
 evalWy (ASTId idn) | idn == "true" = return $ WyBool True
 evalWy (ASTId idn) | idn == "false" = return $ WyBool False
@@ -42,25 +42,19 @@ evalWy (ASTId idn) | otherwise = do
   val <- liftIO $ varValue idn env
   case val of
     Nothing -> throwError $ UnknownRef ("Unknown reference: " ++ idn)
-    Just v  -> do
-      w <- liftIO $ readIORef v
-      case w of
-        (WyString s) -> return $ WyRef v
-        (WyList l)   -> return $ WyRef v
-        (WyMap m)    -> return $ WyRef v
-        x            -> return w
+    Just v  -> return v
     
-evalWy (ASTApplic fn ps) = eval fn >>= apply ps
+evalWy (ASTApplic fn ps) = evalWy fn >>= apply ps
 
-evalWy (ASTStmt xs) = liftM last $ applyMacros xs >>= mapM eval
-evalWy (ASTBlock xs) = liftM last $ mapM eval xs
+evalWy (ASTStmt xs) = liftM last $ applyMacros xs >>= mapM evalWy
+evalWy (ASTBlock xs) = liftM last $ mapM evalWy xs
 
 apply:: [ASTType] -> WyType -> Eval WyType
 apply vals (WyPrimitive n fn) = fn vals
-apply vals wl@(WyLambda _ _ _) = mapM eval vals >>= applyDirect wl
+apply vals wl@(WyLambda _ _ _) = mapM evalWy vals >>= applyDirect wl
 apply ps other = throwError . ApplicationErr $ "Don't know how to apply: " ++ show other
 
-applyDirect (WyLambda params ast lenv) evals = localIO (const $ envStack params evals lenv) $ eval ast
+applyDirect (WyLambda params ast lenv) evals = localIO (const $ envStack params evals lenv) $ evalWy ast
 
 eval ast = evalWy ast >>= liftIO . readRef
 
@@ -91,26 +85,23 @@ lookupMacro n xs num = do
   m <- liftIO $ macroValue n env
   case m of
     Just res -> do t <- findMacros xs (num+1)
-                   v <- liftIO $ readIORef res
-                   return $ (v, num) : t
+                   return $ (res, num) : t
     Nothing -> findMacros xs (num+1)
 
-matchMacro :: [ASTType] -> (WyType, Int) -> Eval (Maybe (WyType, Int, Frame))
+matchMacro :: [ASTType] -> (WyType, Int) -> Eval (Maybe (WyType, Int, M.Map String WyType))
 matchMacro stmt (m@(WyMacro p b _ e), idx) = matchOffset [-1, 0, 1] stmt p idx
   where matchOffset (offs:offss) stmt mi idx = 
           if offs + idx >= 0
               then case patternMatch mi (ASTStmt $ drop (offs + idx) stmt) (Just M.empty) of
                       Just f -> do env <- ask
-                                   fr  <- liftIO $ toFrame f env
+                                   let fr = M.map WyTemplate f
                                    return $ Just (m, idx, fr)
                       Nothing -> matchOffset offss stmt mi idx
               else matchOffset offss stmt mi idx
         matchOffset [] stmt mi idx = return Nothing
-        toFrame b env = liftM (flip Frame $ M.empty) $ T.mapM (toTemplateRef env) b
-        toTemplateRef env exp = newIORef $ WyTemplate exp
 
-runMacro :: WyType -> Frame -> Eval WyType
-runMacro (WyMacro _ b _ env) f = localIO (const $ envAdd f env) $ eval b
+runMacro :: WyType -> M.Map String WyType -> Eval WyType
+runMacro (WyMacro _ b _ env) f = localIO (const $ envAdd f env) $ evalWy b
 
 rewriteStmt :: [ASTType] -> (WyType, Int, [ASTType]) -> ([ASTType], Int)
 rewriteStmt stmt (m , idx, nast) =

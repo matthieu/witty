@@ -4,7 +4,7 @@
 
 module Wy.Types
   ( WyError(..),
-    WyType(..), readRef, truthy, wyToAST, showWy, macroPivot,
+    WyType(..), readRef, newWyRef, truthy, wyToAST, showWy, macroPivot,
     WyEnv, Frame(..), macroValue, varValue, macroUpdate, varUpdate, envStack, envAdd,
     Eval, localIO, runEval
   ) where
@@ -39,6 +39,9 @@ data WyType = WyString String
             
 readRef (WyRef r) = readIORef r
 readRef x         = return x
+
+newWyRef:: WyType -> Eval WyType
+newWyRef v = liftM WyRef $ liftIO (newIORef v)
 
 truthy (WyBool s) = s
 truthy WyNull = False
@@ -183,8 +186,8 @@ varInsertAt i n v f env frameAcc = do
 varInsert n v env frameAcc = varInsertAt 0 n v f env frameAcc
   where f = S.index env 0
 
-varUpdate :: String -> WyType -> WyEnv -> IO WyType
-varUpdate n v env = varUpdate' n v env frameVars
+varUpdate :: WyEnv -> String -> WyType -> IO WyType
+varUpdate env n v = varUpdate' n v env frameVars
 
 macroUpdate n v env = varUpdate' n v env frameMacros
 
