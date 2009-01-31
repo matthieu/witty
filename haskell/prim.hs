@@ -34,8 +34,12 @@ basePrim f =
 
   defp "=" (\ps -> do
     env <- ask
-    lv <- extractId . head $ ps
-    rv <- evalSnd ps
+    lv <- evalWy $ head ps `catchError` const (liftM WyString (extractId $ head ps))
+    rv <- evalWy . head . tails $ ps
+    case (lv,rv) of
+      (WyRef _, WyRef _) -> liftIO $ envUpdateVar (extractId . head $ ps) rv env
+      (WyRef _, x)       -> liftIO $ envUpdateVar (extractId . head $ ps) x env
+      (x, WyRef r)       -> 
     liftIO $ envUpdateVar lv rv env ) >>=
 
   defp "`" (\ps -> liftM WyTemplate $ unescapeBq . head $ ps) >>=
@@ -107,8 +111,8 @@ dataPrim f =
     val <- eval (last ps)
     ref <- liftIO (readRef arr)
     newVal <- push ref val
-    case head ps of
-      (ASTId n) -> liftIO (writeIORef (extractRef arr) newVal) >> return newVal
+    case arr of
+      (WyRef r) -> trace "ref" $ liftIO (writeIORef r newVal) >> return (WyRef r)
       x         -> return newVal )
 
   where onContainers ps fnl fns fnm = 

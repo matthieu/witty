@@ -39,11 +39,17 @@ evalWy (ASTId idn) | idn == "false" = return $ WyBool False
 evalWy (ASTId idn) | idn == "null" = return $ WyNull
 evalWy (ASTId idn) | otherwise = do
   env <- ask
-  val <- liftIO $ envLookupVar idn env
+  val <- liftIO $ varValue idn env
   case val of
     Nothing -> throwError $ UnknownRef ("Unknown reference: " ++ idn)
-    Just v  -> return $ WyRef v
-
+    Just v  -> do
+      w <- liftIO $ readIORef v
+      case w of
+        (WyString s) -> return $ WyRef v
+        (WyList l)   -> return $ WyRef v
+        (WyMap m)    -> return $ WyRef v
+        x            -> return w
+    
 evalWy (ASTApplic fn ps) = eval fn >>= apply ps
 
 evalWy (ASTStmt xs) = liftM last $ applyMacros xs >>= mapM eval
@@ -82,7 +88,7 @@ findMacros ((ASTApplic (ASTId n) _):xs) num = lookupMacro n xs num
 findMacros (x:xs) num = findMacros xs (num+1)
 lookupMacro n xs num = do
   env <- ask
-  m <- liftIO $ envLookupMacro n env
+  m <- liftIO $ macroValue n env
   case m of
     Just res -> do t <- findMacros xs (num+1)
                    v <- liftIO $ readIORef res

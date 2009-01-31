@@ -5,7 +5,7 @@
 module Wy.Types
   ( WyError(..),
     WyType(..), readRef, truthy, wyToAST, showWy, macroPivot,
-    WyEnv, Frame(..), envLookupMacro, envLookupVar, envUpdateMacro, envUpdateVar, envStack, envAdd,
+    WyEnv, Frame(..), macroValue, varValue, macroUpdate, varUpdate, envStack, envAdd,
     Eval, localIO, runEval
   ) where
 
@@ -142,57 +142,66 @@ showRet = return . show
 -- Environment definition
 --
 
-type WyEnv = IORef (S.Seq Frame)
-
-instance Show WyEnv where show _ = "<env>"
-instance Ord WyEnv where _ <= _ = False
+type WyEnv = S.Seq Frame
 
 data Frame = Frame {
-    frameVars :: M.Map String (IORef WyType),
-    macroVars :: M.Map String (IORef WyType)
-  }
+  frameVars :: IORef (M.Map String WyType),
+  frameMacros :: IORef (M.Map String WyType)
+}
 
-envLookup name env frameFn = liftM (envLookup' name) (readIORef env)
-  where envLookup' name env | S.null env = Nothing
-                            | otherwise = case fstFrameLookup name env of
-                                            Just value -> Just value
-                                            Nothing -> envLookup' name $ S.drop 1 env
-        fstFrameLookup name env = M.lookup name $ frameFn $ S.index env 0
+instance Show Frame where show _ = "<frame>"
+instance Ord Frame where _ <= _ = False
+instance Eq Frame where _ == _ = False
 
-envLookupVar :: String -> WyEnv -> IO (Maybe (IORef WyType))
-envLookupVar name env = envLookup name env frameVars
-envLookupMacro name env = envLookup name env macroVars
+readFrmVars = readIORef . frameVars
+readFrmMacros = readIORef . frameMacros
 
-envInsert name value env varFn macFn = do val <- newIORef value
-                                          envVal <- readIORef env
-                                          writeIORef env $ envInsert' name val envVal
-                                          return value
-  where envInsert' name value env = S.update 0 (fstFrameUpdate name value env) env
-        fstFrameUpdate name value env = Frame (varFn name value $ S.index env 0) (macFn name value $ S.index env 0)
+varFrameIdx' n env readFrm = varFrameIdx' n env 0
+  where varFrameIdx' n env idx | idx == S.length env = return Nothing
+                               | otherwise = do
+          found <- liftM (M.member n) (readFrm $ S.index env idx)
+          if found
+            then return $ Just (idx, S.index env idx)
+            else varFrameIdx' n env (idx + 1)
 
-envInsertVar :: String -> WyType -> WyEnv -> IO WyType
-envInsertVar name value env = envInsert name value env (\n v -> M.insert n v . frameVars) (\n v -> macroVars)
-envInsertMacro name value env = envInsert name value env (\n v -> frameVars) (\n v -> M.insert n v . macroVars)
+varValue :: String -> WyEnv -> IO (Maybe WyType)
+varValue n env = varValue' n env readFrmVars
 
-envUpdate name value env lookupFn insertFn = do
-  val <- lookupFn name env
-  case val of
-    Just ref -> writeIORef ref value >> return value
-    Nothing -> insertFn name value env
-envUpdateVar name value env = envUpdate name value env envLookupVar envInsertVar
-envUpdateMacro name value env = envUpdate name value env envLookupMacro envInsertMacro
+macroValue n env = varValue' n env readFrmMacros
+
+varValue' n env readFrm = do
+  fidx <- varFrameIdx' n env readFrm
+  case fidx of
+    Just (i, f) -> liftM (M.lookup n) $ readFrm f
+    Nothing     -> return Nothing
+
+varInsertAt i n v f env frameAcc = do
+  fv <- (readIORef . frameAcc) f
+  writeIORef (frameAcc f) $ M.insert n v fv
+  return v
+
+varInsert n v env frameAcc = varInsertAt 0 n v f env frameAcc
+  where f = S.index env 0
+
+varUpdate :: String -> WyType -> WyEnv -> IO WyType
+varUpdate n v env = varUpdate' n v env frameVars
+
+macroUpdate n v env = varUpdate' n v env frameMacros
+
+varUpdate' n v env frameAcc = do
+  f <- varFrameIdx' n env (readIORef . frameAcc)
+  case f of
+    Nothing      -> varInsert n v env frameAcc
+    Just (i, f)  -> varInsertAt i n v f env frameAcc
 
 envStack :: [String] -> [WyType] -> WyEnv -> IO (WyEnv)
-envStack params values env = do envVal <- readIORef env
-                                valRefs <- mapM newIORef values
-                                newEnv <- newIORef $ extend params valRefs envVal
-                                return newEnv
-  where extend params values env = ((<| env) . (flip Frame $ M.empty) . M.fromList . (zip params)) values
+envStack params values env = envAdd (M.fromList $ zip params values) env
 
-envAdd :: Frame -> WyEnv -> IO (WyEnv)
-envAdd frame env = do envVal <- readIORef env
-                      newEnv <- newIORef $ frame <| envVal
-                      return newEnv
+envAdd :: (M.Map String WyType) -> WyEnv -> IO (WyEnv)
+envAdd fv env = do
+  newf <- newIORef $ fv
+  newm <- newIORef M.empty
+  return $ (<| env) $ Frame newf newm
 
 --
 -- Evaluation monad
