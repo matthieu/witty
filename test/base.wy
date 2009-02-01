@@ -1,35 +1,40 @@
 verbose = arguments().0 == "-v"
-descriptions = L()
+descriptions = []
 
 macro(describe(`str, `descBody), `(
   lambda(
-    cases = L()
+    cases = []
     before = null
- 
+
     macro(before(`freq, `befBody), `(
       if($freq == "each", before = lambda($befBody))
     ))
-    macro(it(`desc, `itBody), `(
-      push(cases, L($desc, lambda($itBody)))
-    ))
-    $descBody
 
-    push(descriptions, L("describe", $str, before, cases));
+    macro(it(`desc, `itBody), `(
+      cases << [$desc, lambda($itBody)]
+    ))
+
+    $descBody
+    
+    descriptions << ["describe", $str, before, cases]
+
   )()
 ))
 
-load("test/arithmetics.wy")
-load("test/string.wy")
-load("test/list.wy")
-load("test/hash.wy")
-load("test/stdlib.wy")
-load("test/control.wy")
-load("test/lambda.wy")
-load("test/macro.wy")
-load("test/package.wy")
+load("arithmetics.wy")
+// load("test/string.wy")
+// load("test/list.wy")
+// load("test/hash.wy")
+// load("test/stdlib.wy")
+// load("test/control.wy")
+// load("test/lambda.wy")
+// load("test/macro.wy")
+// load("test/package.wy")
 
-failures = L()
+
+failures = []
 testCount = 0
+
 for(descriptions, lambda(desc,
   if(verbose, print(desc.1))
   for(desc.3, lambda(case,
@@ -37,11 +42,11 @@ for(descriptions, lambda(desc,
     if (desc.2,
       bef = desc.2
       bef()
-    )
+    );
     success = caseBody()
     if(verbose, print("  " + case.0 + " -> " + if(success, "OK", "FAILED")))
     testCount += 1
-    if(!success, push(failures, desc.1 + " " + case.0))
+    if(!(success), failures << desc.1 + " " + case.0)
   ))
 ))
 
@@ -50,4 +55,3 @@ if(length(failures) > 0,
   print("There were " + length(failures) + " failure(s)!")
   for(failures, lambda(f, print("  " + f)))
 )
-
