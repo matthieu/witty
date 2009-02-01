@@ -44,7 +44,9 @@ main = do params <- getArgs
           env <- liftM snd $ wyInterpr blankEnv foundationText
           case mhead params of
             Just x -> do cnt <- readFile x
-                         doEval env . parseWy $ cnt
-                         return ()
+                         e <- wyInterpr env cnt
+                         case fst e of
+                           Left e  -> putStrLn (show e)
+                           Right w -> return ()
             Nothing -> repl env
 

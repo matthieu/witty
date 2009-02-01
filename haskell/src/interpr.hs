@@ -46,6 +46,7 @@ evalWy (ASTId idn) | otherwise = do
     
 evalWy (ASTApplic fn ps) = evalWy fn >>= apply ps
 
+-- evalWy (ASTStmt xs) = liftM last $ applyMacros xs >>= (\x -> trace (show x) (return x)) >>= mapM evalWy
 evalWy (ASTStmt xs) = liftM last $ applyMacros xs >>= mapM evalWy
 evalWy (ASTBlock xs) = liftM last $ mapM evalWy xs
 

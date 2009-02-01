@@ -78,13 +78,24 @@ literalMap = liftM (ASTMap . M.fromList) $ braces (commaSep keyVal)
                     return (key, value)
         parseMapKey = literalString <|> (liftM ASTString $ identifier)
 
-literalString = liftM ASTString $ stringLiteral
+literalString = liftM ASTString $ (stringLiteral <|> charString)
 
 literalNumber = try literalFloat <|> literalInt -- todo negative floats
 literalInt = liftM ASTInt $ integer
 literalFloat = liftM ASTFloat $ float
 literalBool = (symbol "true" >> (return $ ASTBool True))
           <|> (symbol "false" >> (return $ ASTBool False))
+
+charString = lexeme ( do {
+    str <- between (char '\'')
+                   (char '\'' <?> "end of string")
+                   (many characterChar)
+    ; return str
+  } <?> "character")
+
+characterChar = charLetter <?> "literal character"
+
+charLetter = satisfy (\c -> (c /= '\'') && (c /= '\\') && (c > '\026'))
 
 eol = many1 $ (lexeme . many1 . oneOf $ ";\n") >> skipChar '\n'
 cr = skipChar '\n'
