@@ -9,6 +9,7 @@ import qualified Data.Map as M
 import Control.Monad(liftM)
 import Debug.Trace
 
+import Wy.Foundation
 import Wy.Parser
 import Wy.Types
 import Wy.Prim
@@ -40,8 +41,7 @@ main = do params <- getArgs
           p <- newIORef $ primitives M.empty
           m <- newIORef  M.empty
           let blankEnv = S.empty |> Frame p m
-          ast <- liftM parseWy (readFile "foundation.wy")
-          env <- liftM snd $ readFile "foundation.wy" >>= wyInterpr blankEnv
+          env <- liftM snd $ wyInterpr blankEnv foundationText
           case mhead params of
             Just x -> do cnt <- readFile x
                          doEval env . parseWy $ cnt

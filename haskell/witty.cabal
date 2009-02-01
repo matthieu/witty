@@ -1,0 +1,18 @@
+name:         witty
+cabal-version: >= 1.2
+version:      0.1
+synopsis:     Go figure.
+license:      BSD3
+license-file: LICENSE
+copyright:    Copyright: (c) 2009 Matthieu Riou
+author:       Matthieu Riou <matthieu@offthelip.org>
+maintainer:   Matthieu Riou <matthieu@offthelip.org>
+category:     Programming Language
+build-type:   Simple
+
+executable wy
+  main-is:      repl.hs
+  build-depends:  base, containers, mtl, parsec >= 3.0.1, readline
+  hs-source-dirs: src
+  other-modules: Wy.Parser, Wy.Types, Wy.Interpr, Wy.Prim
+  extensions:   GeneralizedNewtypeDeriving, FlexibleInstances, TypeSynonymInstances
