@@ -32,7 +32,7 @@ evalWy (ASTString s) = newWyRef $ WyString s
 
 evalWy (ASTList xs) = liftM WyList (mapM evalWy xs) >>= newWyRef
 evalWy (ASTMap m) = liftM (WyMap . M.fromList) (T.mapM evalKeyVal $ M.toList m) >>= newWyRef
-  where evalKeyVal (k,v) = liftM2 (,) (evalWy k) (evalWy v)
+  where evalKeyVal (k,v) = liftM2 (,) (eval k) (evalWy v)
 
 evalWy (ASTId idn) | idn == "true" = return $ WyBool True
 evalWy (ASTId idn) | idn == "false" = return $ WyBool False
@@ -46,7 +46,7 @@ evalWy (ASTId idn) | otherwise = do
     
 evalWy (ASTApplic fn ps) = evalWy fn >>= apply ps
 
-evalWy (ASTStmt xs) = liftM last $ applyMacros xs >>= (\x -> trace (show x) (return x)) >>= mapM evalWy
+evalWy (ASTStmt xs) = liftM last $ applyMacros xs >>= mapM evalWy
 evalWy (ASTBlock xs) = liftM last $ mapM evalWy xs
 
 apply:: [ASTType] -> WyType -> Eval WyType
