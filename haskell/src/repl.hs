@@ -6,7 +6,7 @@ import System.Console.Readline
 import System.Environment(getArgs)
 import Data.Sequence ((|>))
 import qualified Data.Map as M
-import Control.Monad(liftM)
+import Control.Monad(liftM, (>=>))
 import Debug.Trace
 
 import Wy.Foundation
@@ -29,9 +29,7 @@ repl env = do
     Just l | l == "q"  -> return () 
            | otherwise -> do addHistory l
                              e <- wyInterpr env l
-                             case fst e of
-                               Right w -> (showWy w) >>= putStrLn
-                               Left e  -> putStrLn (show e)
+                             either (putStrLn . show) (showWy >=> putStrLn) $ fst e
                              repl $ snd e
  
 mhead []      = Nothing
@@ -45,8 +43,6 @@ main = do params <- getArgs
           case mhead params of
             Just x -> do cnt <- readFile x
                          e <- wyInterpr env cnt
-                         case fst e of
-                           Left e  -> putStrLn (show e)
-                           Right w -> return ()
+                         either (putStrLn . show) (const $ return ()) $ fst e
             Nothing -> repl env
 

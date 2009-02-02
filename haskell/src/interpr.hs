@@ -1,6 +1,6 @@
 module Wy.Interpr
   ( eval, evalWy,
-    applyDirect
+    apply, applyDirect
   ) where
 
 import Control.Monad(liftM, liftM2)

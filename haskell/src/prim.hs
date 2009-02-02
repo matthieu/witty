@@ -60,8 +60,7 @@ basePrim f =
 
   where extractInt (ASTInt i) = return i
         extractInt x = throwError $ ApplicationErr $ (show x) ++ " isn't an integer value"
-        evalSnd = eval . head . tail
-        applySeq l elmt acc = applyDirect l [elmt]
+        applySeq l elmt acc = apply [wyToAST elmt] l
         wyFold f z (WyList xs) = foldl' (\x xs -> x >>= f xs) z xs
         wyFold f z (WyString xs) = foldl' (\x xs -> x >>= f xs) z (map (WyString . (:"")) xs)
 
@@ -116,7 +115,7 @@ dataPrim f =
     case arr of
       (WyRef r) -> liftIO (writeIORef r newVal) >> return (WyRef r)
       x         -> return newVal ) f
--- [ASTApplic (ASTId "@!") [ASTStmt [ASTApplic (ASTId "@") [ASTId "b",ASTId "foo"]], ASTId "bar",ASTInt 2]]
+  
   where onContainers ps fnl fns fnm = 
           do e <- eval $ head ps
              case e of
@@ -208,6 +207,8 @@ defp n l = M.insert n (WyPrimitive n l)
 extractId (ASTId i) = return i
 extractId (ASTStmt [ASTId i]) = return i
 extractId x = throwError $ ApplicationErr $ "Non identifier value when one was expected: " ++ (show x)
+        
+evalSnd = eval . head . tail
 
 unescapeBq :: ASTType -> Eval ASTType
 unescapeBq ai@(ASTId i) | i !! 0 == '$' = do
