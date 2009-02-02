@@ -50,6 +50,8 @@ evalWy (ASTApplic fn ps) = evalWy fn >>= apply ps
 evalWy (ASTStmt xs) = liftM last $ applyMacros xs >>= mapM evalWy
 evalWy (ASTBlock xs) = liftM last $ mapM evalWy xs
 
+evalWy (ASTWyWrapper w) = return w
+
 apply:: [ASTType] -> WyType -> Eval WyType
 apply vals (WyPrimitive n fn) = fn vals
 apply vals wl@(WyLambda _ _ _) = mapM evalWy vals >>= applyDirect wl

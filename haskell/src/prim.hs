@@ -60,7 +60,8 @@ basePrim f =
 
   where extractInt (ASTInt i) = return i
         extractInt x = throwError $ ApplicationErr $ (show x) ++ " isn't an integer value"
-        applySeq l elmt acc = apply [wyToAST elmt] l
+        applySeq l elmt acc = do re <- liftIO $ readRef elmt
+                                 apply [wyToAST re] l
         wyFold f z (WyList xs) = foldl' (\x xs -> x >>= f xs) z xs
         wyFold f z (WyString xs) = foldl' (\x xs -> x >>= f xs) z (map (WyString . (:"")) xs)
 
@@ -108,6 +109,10 @@ dataPrim f =
     liftIO $ writeIORef (extractRef ref) updVal
     return newVal ) $
   defp "<<" (\ps -> do 
+    arr <- eval $ head ps
+    val <- evalSnd ps
+    push arr val ) $
+  defp "push!" (\ps -> do 
     arr <- evalWy $ head ps
     val <- evalWy (last ps)
     ref <- liftIO (readRef arr)

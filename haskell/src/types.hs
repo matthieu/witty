@@ -3,7 +3,8 @@
 {-# LANGUAGE TypeSynonymInstances #-}
 
 module Wy.Types
-  ( WyError(..),
+  ( ASTType(..),
+    WyError(..),
     WyType(..), readRef, newWyRef, truthy, wyToAST, showWy, macroPivot,
     WyEnv, Frame(..), macroValue, varValue, macroUpdate, varUpdate, envStack, envAdd,
     Eval, localIO, runEval
@@ -18,7 +19,22 @@ import Data.IORef
 import Data.Char(toLower)
 import Data.Sequence ((<|))
 
-import Wy.Parser
+--
+-- AST Nodes
+
+data ASTType = ASTString String
+                | ASTInt Integer
+                | ASTFloat Double
+                | ASTBool Bool
+                | ASTNull
+                | ASTList [ASTType]
+                | ASTMap (M.Map ASTType ASTType)
+                | ASTId String
+                | ASTApplic ASTType [ASTType]
+                | ASTStmt [ASTType]
+                | ASTBlock [ASTType]
+                | ASTWyWrapper WyType
+    deriving (Show, Eq, Ord)
 
 --
 -- Language types and supporting function
@@ -51,6 +67,7 @@ macroPivot :: (Num t) => WyType -> (t, String)
 macroPivot (WyMacro p b _ e) = firstNonVar p
   where firstNonVar (ASTStmt [ASTApplic (ASTId n) _]) = (0, n)
         firstNonVar (ASTStmt es) = firstNonVar' es 0
+        firstNonVar x            = error $ "wtf " ++ (show x)
         firstNonVar' ((ASTId i):es) idx | i !! 0 /= '`' = (idx, i)
         firstNonVar' [] idx = error $ "No pivot found in macro pattern " ++ (show p)
         firstNonVar' (e:es) idx = firstNonVar' es (idx+1)
@@ -113,16 +130,8 @@ instance Ord ([ASTType] -> Eval WyType) where
 instance Ord (IORef WyType) where
   x <= y = True
 
-wyToAST (WyString s) = ASTString s
-wyToAST (WyInt i) = ASTInt i
-wyToAST (WyFloat f) = ASTFloat f
-wyToAST (WyBool b) = ASTBool b
-wyToAST WyNull = ASTNull
-wyToAST (WyList ss) = ASTList $ map wyToAST ss
-wyToAST (WyMap m) = ASTMap $ M.mapKeys wyToAST . M.map wyToAST $ m
 wyToAST (WyTemplate t) = t
-wyToAST (WyLambda ss ast env) = ASTApplic (ASTId "lambda") (map ASTId ss ++ [ast])
-wyToAST (WyPrimitive n _) = ASTId n
+wyToAST x = ASTWyWrapper x
 
 showWy :: WyType -> IO String
 showWy (WyString s) = showRet s

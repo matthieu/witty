@@ -11,12 +11,12 @@ macro(describe(`str, `descBody), `(
     ))
 
     macro(it(`desc, `itBody), `(
-      cases << [$desc, lambda($itBody)]
+      push!(cases, [$desc, lambda($itBody)])
     ))
 
     $descBody
     
-    descriptions << ["describe", $str, before, cases]
+    push!(descriptions, ["describe", $str, before, cases])
 
   )()
 ))
@@ -46,7 +46,7 @@ for(descriptions, lambda(desc,
     success = caseBody()
     if(verbose, print("  " + case.0 + " -> " + if(success, "OK", "FAILED")))
     testCount += 1
-    if(!(success), failures << desc.1 + " " + case.0)
+    if(!(success), push!(failures, desc.1 + " " + case.0))
   ))
 ))
 

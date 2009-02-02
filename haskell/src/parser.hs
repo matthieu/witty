@@ -12,25 +12,11 @@ import Text.ParserCombinators.Parsec
 import qualified Text.ParserCombinators.Parsec.Token as P
 import Text.ParserCombinators.Parsec.Language(javaStyle)
 
+import Wy.Types
+
 parseWy input = pruneAST $ case (parse wyParser "(unknown)" input) of
                              Right out -> out
                              Left msg -> error $ "Parsing error: " ++ (show msg)
---
--- AST Nodes
-
-data ASTType = ASTString String
-                | ASTInt Integer
-                | ASTFloat Double
-                | ASTBool Bool
-                | ASTNull
-                | ASTList [ASTType]
-                | ASTMap (M.Map ASTType ASTType)
-                | ASTId String
-                | ASTApplic ASTType [ASTType]
-                | ASTStmt [ASTType]
-                | ASTBlock [ASTType]
-    deriving (Show, Eq, Ord)
-
 --
 -- Parser definition
 
