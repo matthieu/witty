@@ -7,6 +7,7 @@ import qualified Data.Map as M
 import Data.List(foldl', foldl1')
 import Data.IORef
 import qualified Data.Traversable as T
+import Data.Foldable (foldrM)
 import Control.Monad.Reader
 import Control.Monad.Error
 import System.Environment(getArgs)
@@ -51,6 +52,14 @@ basePrim f =
     if (truthy expr)
       then evalSnd ps
       else if length ps < 3 then return WyNull else evalSnd $ tail ps) $
+  defp "foldr" (\ps -> do
+    fn   <- eval $ head ps
+    init <- evalSnd ps
+    arr  <- eval $ last ps
+    case arr of
+      (WyList a)   -> foldrM (\x acc -> apply [wyToAST x, wyToAST acc] fn) init a
+      x            -> throwError $ ApplicationErr $ "Can't fold on " ++ show x
+  ) $
   defp "for" (\ps ->
     if length ps /= 2
       then throwError $ ApplicationErr "not implemented yet"
