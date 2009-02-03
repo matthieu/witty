@@ -62,6 +62,7 @@ basePrim f =
           arr  <- eval $ last ps
           case arr of
             (WyList a)   -> foldFn (\x acc -> apply [wyToAST x, wyToAST acc] fn) init a
+            (WyString s) -> foldFn (\x acc -> apply [wyToAST x, wyToAST acc] fn) init (map (WyString . (:[])) s)
             x            -> throwError $ ApplicationErr $ "Can't fold on " ++ show x
 
 arithmPrim f = 
