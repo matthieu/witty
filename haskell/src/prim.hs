@@ -7,7 +7,7 @@ import qualified Data.Map as M
 import Data.List(foldl', foldl1')
 import Data.IORef
 import qualified Data.Traversable as T
-import Data.Foldable (foldrM)
+import Data.Foldable (foldrM, foldlM)
 import Control.Monad.Reader
 import Control.Monad.Error
 import System.Environment(getArgs)
@@ -40,9 +40,6 @@ basePrim f =
     rv <- evalWy . head . tail $ ps
     n <- extractId . head $ ps
     case rv of
---      WyList y   -> newWyRef (WyList y) >>= liftIO . varUpdate env n
---      WyMap y    -> newWyRef (WyMap y) >>= liftIO . varUpdate env n
---      WyString y -> newWyRef (WyString y) >>= liftIO . varUpdate env n
       WyRef y    -> liftIO $ varUpdate env n $ WyRef y
       y          -> liftIO $ varUpdate env n y ) $
 
@@ -52,27 +49,20 @@ basePrim f =
     if (truthy expr)
       then evalSnd ps
       else if length ps < 3 then return WyNull else evalSnd $ tail ps) $
-  defp "foldr" (\ps -> do
-    fn   <- eval $ head ps
-    init <- evalSnd ps
-    arr  <- eval $ last ps
-    case arr of
-      (WyList a)   -> foldrM (\x acc -> apply [wyToAST x, wyToAST acc] fn) init a
-      x            -> throwError $ ApplicationErr $ "Can't fold on " ++ show x
-  ) $
-  defp "for" (\ps ->
-    if length ps /= 2
-      then throwError $ ApplicationErr "not implemented yet"
-      else do list <- eval (head ps)
-              lambda <- eval (last ps)
-              wyFold (applySeq lambda) (return WyNull) list ) f
+  defp "foldr" (\ps -> wyFold foldrM ps) $
+  defp "foldl" (\ps -> wyFold foldlM ps) f
 
   where extractInt (ASTInt i) = return i
         extractInt x = throwError $ ApplicationErr $ (show x) ++ " isn't an integer value"
         applySeq l elmt acc = do re <- liftIO $ readRef elmt
                                  apply [wyToAST re] l
-        wyFold f z (WyList xs) = foldl' (\x xs -> x >>= f xs) z xs
-        wyFold f z (WyString xs) = foldl' (\x xs -> x >>= f xs) z (map (WyString . (:"")) xs)
+        wyFold foldFn ps = do
+          fn   <- eval $ head ps
+          init <- evalSnd ps
+          arr  <- eval $ last ps
+          case arr of
+            (WyList a)   -> foldFn (\x acc -> apply [wyToAST x, wyToAST acc] fn) init a
+            x            -> throwError $ ApplicationErr $ "Can't fold on " ++ show x
 
 arithmPrim f = 
   defp "+" (opEval (+)) $

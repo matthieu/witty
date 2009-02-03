@@ -34,3 +34,7 @@ macro(`arr . `idx,
     `(@($arr, $idx))
   )
 )
+
+for = lambda(arr, l, 
+  foldl(lambda(acc, x, l(x)), null, arr)
+)
