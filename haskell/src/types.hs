@@ -5,7 +5,8 @@
 module Wy.Types
   ( ASTType(..),
     WyError(..),
-    WyType(..), readRef, newWyRef, truthy, wyToAST, showWy, macroPivot, wyPlus,
+    WyType(..), readRef, newWyRef, truthy, wyToAST, showWy, macroPivot, 
+    wyPlus, wyMinus, wyDiv, wyMult,
     WyEnv, Frame(..), macroValue, varValue, macroUpdate, varUpdate, envStack, envAdd,
     Eval, localIO, runEval
   ) where
@@ -75,73 +76,33 @@ macroPivot (WyMacro p b _ e) = firstNonVar p
 
 wyPlus:: WyType -> WyType -> Eval WyType
 wyPlus (WyString s1) (WyString s2) = return $ WyString (s1 ++ s2)
+wyPlus (WyString s1) (WyInt i2) = return $ WyString (s1 ++ (show i2))
 wyPlus (WyInt i1) (WyInt i2) = return $ WyInt (i1 + i2)
 wyPlus (WyFloat f1) (WyFloat f2) = return $ WyFloat (f1 + f2)
 wyPlus (WyInt i1) (WyFloat f2) = return $ WyFloat ((fromInteger i1) + f2)
 wyPlus (WyFloat f1) (WyInt i2) = return $ WyFloat (f1 + (fromInteger i2))
 wyPlus (WyList l1) (WyList l2) = return $ WyList (l1 ++ l2)
-wyPlus x1 x2 = liftM2 (\x y -> "can't add " ++ x ++ " and " ++ y) (showWyE x1) (showWyE x2) >>= (throwError . ApplicationErr)
+wyPlus x1 x2 = appErr2 (\x y -> "can't add " ++ x ++ " and " ++ y) x1 x2
 
-instance Num WyType where
-  WyString s1 + WyString s2 = WyString (s1 ++ s2)
-  WyInt i1 + WyInt i2 = WyInt (i1 + i2)
-  WyFloat f1 + WyFloat f2 = WyFloat (f1 + f2)
-  WyInt i1 + WyFloat f2 = WyFloat ((fromInteger i1) + f2)
-  WyFloat f1 + WyInt i2 = WyFloat (f1 + (fromInteger i2))
-  WyList l1 + WyList l2 = WyList (l1 ++ l2)
-  WyString s1 + x = WyString (s1 ++ show x)
-  x + WyString s1 = WyString (show x ++ s1)
-  x1 + x2 = error ("can't add " ++ (show x1) ++ " and " ++ (show x2))
-  -- todo merge maps
+wyMinus (WyString s1) (WyString s2) = return $ WyString (s1 \\ s2)
+wyMinus (WyInt i1) (WyInt i2) = return $ WyInt (i1 - i2)
+wyMinus (WyFloat f1) (WyFloat f2) = return $ WyFloat (f1 - f2)
+wyMinus (WyInt i1) (WyFloat f2) = return $ WyFloat ((fromInteger i1) - f2)
+wyMinus (WyFloat f1) (WyInt i2) = return $ WyFloat (f1 - (fromInteger i2))
+wyMinus (WyList l1) (WyList l2) = return $ WyList (l1 \\ l2)
+wyMinus x1 x2 = appErr2 (\x y -> "can't subtract " ++ y ++ " from " ++ x) x1 x2
 
-  WyString s1 - WyString s2 = WyString (s1 \\ s2)
-  WyInt i1 - WyInt i2 = WyInt (i1 - i2)
-  WyFloat f1 - WyFloat f2 = WyFloat (f1 - f2)
-  WyInt i1 - WyFloat f2 = WyFloat ((fromInteger i1) - f2)
-  WyFloat f1 - WyInt i2 = WyFloat (f1 - (fromInteger i2))
-  WyList l1 - WyList l2 = WyList (l1 \\ l2)
-  x1 - x2 = error ("can't add " ++ (show x1) ++ " and " ++ (show x2))
+wyMult (WyInt i1) (WyInt i2) = return $ WyInt (i1 * i2)
+wyMult (WyFloat f1) (WyFloat f2) = return $ WyFloat (f1 * f2)
+wyMult (WyInt i1) (WyFloat f2) = return $ WyFloat (fromInteger i1 * f2)
+wyMult (WyFloat f1) (WyInt i2) = return $ WyFloat (f1 * fromInteger i2)
+wyMult x1 x2 = appErr2 (\x y -> "can't multiply " ++ x ++ " and " ++ y) x1 x2
 
-  WyInt i1 * WyInt i2 = WyInt (i1 * i2)
-  WyFloat f1 * WyFloat f2 = WyFloat (f1 * f2)
-  WyInt i1 * WyFloat f2 = WyFloat (fromInteger i1 * f2)
-  WyFloat f1 * WyInt i2 = WyFloat (f1 * fromInteger i2)
-  x1 * x2 = error ("can't multiply " ++ (show x1) ++ " and " ++ (show x2))
-
-  abs (WyInt i1) = WyInt (abs i1)
-  abs (WyFloat f1) = WyFloat (abs f1)
-  abs x1 = error ("can't calculate absolute of " ++ (show x1))
-
-  signum (WyInt i1) = WyInt (signum i1)
-  signum (WyFloat f1) = WyFloat (signum f1)
-  signum x1 = error ("can't calculate the sign of " ++ (show x1))
-
-  fromInteger intg = WyInt intg
-
-instance Fractional WyType where
-  WyInt i1 / WyInt i2 = WyFloat ((fromInteger i1) / (fromInteger i2))
-  WyFloat f1 / WyFloat f2 = WyFloat (f1 / f2)
-  WyInt i1 / WyFloat f2 = WyFloat ((fromInteger i1) / f2)
-  WyFloat f1 / WyInt i2 = WyFloat (f1 / (fromInteger i2))
-  x1 / x2 = error ("can't divide " ++ (show x1) ++ " and " ++ (show x2))
-
-  fromRational r = WyFloat (fromRational r)
-
-instance Show ([ASTType] -> Eval WyType) where
-  show _ = "<prim>"
-instance Show (IORef WyType) where
-  show _ = "<ref>"
-
-instance Eq ([ASTType] -> Eval WyType) where
-  _ == _ = False
-
-instance Ord ([ASTType] -> Eval WyType) where
-  _ <= _ = True
-instance Ord (IORef WyType) where
-  x <= y = True
-
-wyToAST (WyTemplate t) = t
-wyToAST x = ASTWyWrapper x
+wyDiv (WyInt i1) (WyInt i2) = return $ WyFloat ((fromInteger i1) / (fromInteger i2))
+wyDiv (WyFloat f1) (WyFloat f2) = return $ WyFloat (f1 / f2)
+wyDiv (WyInt i1) (WyFloat f2) = return $ WyFloat ((fromInteger i1) / f2)
+wyDiv (WyFloat f1) (WyInt i2) = return $ WyFloat (f1 / (fromInteger i2))
+wyDiv x1 x2 = appErr2 (\x y -> "can't multiply " ++ x ++ " and " ++ y) x1 x2
 
 showWy :: WyType -> IO String
 showWy (WyString s) = showRet s
@@ -162,6 +123,22 @@ showWyE = liftIO . showWy
 
 showRet:: (Monad m, Show x) => x -> m String
 showRet = return . show
+
+instance Show ([ASTType] -> Eval WyType) where
+  show _ = "<prim>"
+instance Show (IORef WyType) where
+  show _ = "<ref>"
+
+instance Eq ([ASTType] -> Eval WyType) where
+  _ == _ = False
+
+instance Ord ([ASTType] -> Eval WyType) where
+  _ <= _ = True
+instance Ord (IORef WyType) where
+  x <= y = True
+
+wyToAST (WyTemplate t) = t
+wyToAST x = ASTWyWrapper x
 
 -- Environment definition
 --
@@ -241,6 +218,8 @@ data WyError = UnknownRef String
              | ApplicationErr String
              | Undef String
     deriving (Eq, Ord, Show)
+
+appErr2 txtFn x1 x2 = liftM2 txtFn (showWyE x1) (showWyE x2) >>= (throwError . ApplicationErr)
 
 instance Error WyError where
   noMsg  = Undef "Undefined error. Sucks to be you."

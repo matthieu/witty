@@ -72,10 +72,10 @@ basePrim f =
             x            -> throwError $ ApplicationErr $ "Can't fold on " ++ show x
 
 arithmPrim f = 
-  defp "+" (opEval2 (wyPlus)) $
-  defp "-" (opEval (-)) $
-  defp "*" (opEval (*)) $
-  defp "/" (opEval (/)) $
+  defp "+" (opEvalM wyPlus) $
+  defp "-" (opEvalM wyMinus) $
+  defp "*" (opEvalM wyMult) $
+  defp "/" (opEvalM wyDiv) $
   defp "!" (\ps -> liftM (WyBool . not . truthy) (eval $ ps !! 0)) $
   defp "==" (opEval $ boolComp (==)) $
   defp "<=" (opEval $ boolComp (<=)) $
@@ -85,19 +85,17 @@ arithmPrim f =
   defp "&&" (boolEval (&&) (return True) False) $
   defp "||" (boolEval (||) (return False) True) f
 
-opEval op [p] = liftM (op 0) $ eval p
+opEval op [p] = liftM (op $ WyInt 0) $ eval p
 opEval op ps  = liftM (foldl1' op) (mapM eval ps)
 
-opEval2 op [p] = eval p >>= op 0
-opEval2 op ps  = mapM eval ps >>= foldM1 op
+opEvalM op [p] = eval p >>= op (WyInt 0)
+opEvalM op ps  = mapM eval ps >>= foldM1 op
   where foldM1 op arr = foldM op (head arr) (tail arr)
         
 boolEval op init stop ps = liftM WyBool $ foldr (boolContinue op stop) init (reverse ps)
   where boolContinue op stop p accM = do 
           acc <- accM
-          if acc == stop 
-            then return acc
-            else liftM (op acc . truthy) $ eval p
+          if acc == stop then return acc else liftM (op acc . truthy) $ eval p
 
 boolComp c a b = WyBool (c a b)
 

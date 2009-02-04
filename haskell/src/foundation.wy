@@ -48,7 +48,6 @@ split = lambda(str, sep,
       [""] + split(tail(str), sep),
 
       rest = split(tail(str), sep)
-      print("- " + rest)
       [head(str) + head(rest)] + tail(rest)
     )
   )
