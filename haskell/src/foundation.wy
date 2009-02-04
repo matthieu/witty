@@ -38,3 +38,19 @@ macro(`arr . `idx,
 for = lambda(arr, l, 
   foldl(lambda(acc, x, l(x)), null, arr)
 )
+
+head = lambda(a, a.0)
+
+split = lambda(str, sep,
+  if(empty?(str), 
+    [""],
+    if(head(str) == sep,
+      [""] + split(tail(str), sep),
+
+      rest = split(tail(str), sep)
+      print("- " + rest)
+      [head(str) + head(rest)] + tail(rest)
+    )
+  )
+)
+

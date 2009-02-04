@@ -5,7 +5,7 @@
 module Wy.Types
   ( ASTType(..),
     WyError(..),
-    WyType(..), readRef, newWyRef, truthy, wyToAST, showWy, macroPivot,
+    WyType(..), readRef, newWyRef, truthy, wyToAST, showWy, macroPivot, wyPlus,
     WyEnv, Frame(..), macroValue, varValue, macroUpdate, varUpdate, envStack, envAdd,
     Eval, localIO, runEval
   ) where
@@ -18,6 +18,7 @@ import Control.Monad.Reader
 import Data.IORef
 import Data.Char(toLower)
 import Data.Sequence ((<|))
+import Control.Monad(liftM, liftM2)
 
 --
 -- AST Nodes
@@ -71,6 +72,15 @@ macroPivot (WyMacro p b _ e) = firstNonVar p
         firstNonVar' ((ASTId i):es) idx | i !! 0 /= '`' = (idx, i)
         firstNonVar' [] idx = error $ "No pivot found in macro pattern " ++ (show p)
         firstNonVar' (e:es) idx = firstNonVar' es (idx+1)
+
+wyPlus:: WyType -> WyType -> Eval WyType
+wyPlus (WyString s1) (WyString s2) = return $ WyString (s1 ++ s2)
+wyPlus (WyInt i1) (WyInt i2) = return $ WyInt (i1 + i2)
+wyPlus (WyFloat f1) (WyFloat f2) = return $ WyFloat (f1 + f2)
+wyPlus (WyInt i1) (WyFloat f2) = return $ WyFloat ((fromInteger i1) + f2)
+wyPlus (WyFloat f1) (WyInt i2) = return $ WyFloat (f1 + (fromInteger i2))
+wyPlus (WyList l1) (WyList l2) = return $ WyList (l1 ++ l2)
+wyPlus x1 x2 = liftM2 (\x y -> "can't add " ++ x ++ " and " ++ y) (showWyE x1) (showWyE x2) >>= (throwError . ApplicationErr)
 
 instance Num WyType where
   WyString s1 + WyString s2 = WyString (s1 ++ s2)
@@ -147,6 +157,8 @@ showWy (WyTemplate ast) = return $ "`(" ++ (show ast) ++ ")"
 showWy (WyLambda ss ast env) = return $ "lambda(" ++ (show ss) ++ ", " ++ (show ast) ++ ")"
 showWy (WyMacro p b _ env) = return $ "macro(" ++ (show p) ++ ", " ++ (show b) ++ ")"
 showWy (WyPrimitive n _) = return $ "<primitive " ++ (show n) ++ ">"
+
+showWyE = liftIO . showWy
 
 showRet:: (Monad m, Show x) => x -> m String
 showRet = return . show

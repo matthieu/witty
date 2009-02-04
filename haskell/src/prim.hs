@@ -2,7 +2,7 @@ module Wy.Prim
   ( primitives
   ) where
 
-import Control.Monad(liftM, liftM2)
+import Control.Monad(liftM, liftM2, foldM)
 import qualified Data.Map as M
 import Data.List(foldl', foldl1')
 import Data.IORef
@@ -49,6 +49,12 @@ basePrim f =
     if (truthy expr)
       then evalSnd ps
       else if length ps < 3 then return WyNull else evalSnd $ tail ps) $
+
+  defp "toS" (\ps -> do 
+    arg <- eval (head ps)
+    argS <- liftIO $ showWy arg 
+    return $ WyString argS ) $ 
+
   defp "foldr" (\ps -> wyFold foldrM ps) $
   defp "foldl" (\ps -> wyFold foldlM ps) f
 
@@ -66,7 +72,7 @@ basePrim f =
             x            -> throwError $ ApplicationErr $ "Can't fold on " ++ show x
 
 arithmPrim f = 
-  defp "+" (opEval (+)) $
+  defp "+" (opEval2 (wyPlus)) $
   defp "-" (opEval (-)) $
   defp "*" (opEval (*)) $
   defp "/" (opEval (/)) $
@@ -81,6 +87,10 @@ arithmPrim f =
 
 opEval op [p] = liftM (op 0) $ eval p
 opEval op ps  = liftM (foldl1' op) (mapM eval ps)
+
+opEval2 op [p] = eval p >>= op 0
+opEval2 op ps  = mapM eval ps >>= foldM1 op
+  where foldM1 op arr = foldM op (head arr) (tail arr)
         
 boolEval op init stop ps = liftM WyBool $ foldr (boolContinue op stop) init (reverse ps)
   where boolContinue op stop p accM = do 
@@ -119,7 +129,13 @@ dataPrim f =
     newVal <- push ref val
     case arr of
       (WyRef r) -> liftIO (writeIORef r newVal) >> return (WyRef r)
-      x         -> return newVal ) f
+      x         -> return newVal ) $
+  defp "tail" (\ps -> do
+    arr <- eval $ head ps
+    case arr of
+      (WyList l)   -> return . WyList . tail $ l
+      (WyString s) -> return . WyString . tail $ s
+  ) f
   
   where onContainers ps fnl fns fnm = 
           do e <- eval $ head ps
