@@ -40,6 +40,7 @@ for = lambda(arr, l,
 )
 
 head = lambda(a, a.0)
+tail = lambda(a, slice(a, 1))
 
 split = lambda(str, sep,
   if(empty?(str), 

@@ -128,11 +128,13 @@ dataPrim f =
     case arr of
       (WyRef r) -> liftIO (writeIORef r newVal) >> return (WyRef r)
       x         -> return newVal ) $
-  defp "tail" (\ps -> do
+  defp "slice" (\ps -> do
     arr <- eval $ head ps
+    from <- liftM fromInteger $ (eval . head . tail $ ps) >>= asInt
+    tor <- liftM fromInteger $ (if length ps == 3 then eval (last ps) else return $ WyInt (-1)) >>= asInt
     case arr of
-      (WyList l)   -> return . WyList . tail $ l
-      (WyString s) -> return . WyString . tail $ s
+      (WyList l)   -> return $ WyList (take (if tor >= 0 then tor else length l + tor) . drop from $ l)
+      (WyString s) -> return $ WyString (take (if tor >= 0 then tor else length s + tor) . drop from $ s)
   ) f
   
   where onContainers ps fnl fns fnm = 
@@ -228,6 +230,9 @@ extractId (ASTStmt [ASTId i]) = return i
 extractId x = throwError $ ApplicationErr $ "Non identifier value when one was expected: " ++ (show x)
         
 evalSnd = eval . head . tail
+
+asInt (WyInt i) = return i
+asInt x         = appErr1 (\y -> "An int was expected, got " ++ y) x
 
 unescapeBq :: ASTType -> Eval ASTType
 unescapeBq ai@(ASTId i) | i !! 0 == '$' = do

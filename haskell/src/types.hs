@@ -8,7 +8,7 @@ module Wy.Types
     WyType(..), readRef, newWyRef, truthy, wyToAST, showWy, macroPivot, 
     wyPlus, wyMinus, wyDiv, wyMult,
     WyEnv, Frame(..), macroValue, varValue, macroUpdate, varUpdate, envStack, envAdd,
-    Eval, localIO, runEval
+    Eval, localIO, runEval, appErr1, appErr2
   ) where
 
 import qualified Data.Sequence as S
@@ -69,7 +69,6 @@ macroPivot :: (Num t) => WyType -> (t, String)
 macroPivot (WyMacro p b _ e) = firstNonVar p
   where firstNonVar (ASTStmt [ASTApplic (ASTId n) _]) = (0, n)
         firstNonVar (ASTStmt es) = firstNonVar' es 0
-        firstNonVar x            = error $ "wtf " ++ (show x)
         firstNonVar' ((ASTId i):es) idx | i !! 0 /= '`' = (idx, i)
         firstNonVar' [] idx = error $ "No pivot found in macro pattern " ++ (show p)
         firstNonVar' (e:es) idx = firstNonVar' es (idx+1)
@@ -220,6 +219,7 @@ data WyError = UnknownRef String
     deriving (Eq, Ord, Show)
 
 appErr2 txtFn x1 x2 = liftM2 txtFn (showWyE x1) (showWyE x2) >>= (throwError . ApplicationErr)
+appErr1 txtFn x = liftM txtFn (showWyE x) >>= (throwError . ApplicationErr)
 
 instance Error WyError where
   noMsg  = Undef "Undefined error. Sucks to be you."
