@@ -38,6 +38,7 @@ macro(`arr . `idx,
 for = lambda(arr, l, 
   foldl(lambda(acc, x, l(x)), null, arr)
 )
+macrox(unless(`cond, `body), if(!($cond), $body)) 
 
 head = lambda(a, a.0)
 tail = lambda(a, slice(a, 1))
@@ -45,6 +46,7 @@ tail = lambda(a, slice(a, 1))
 split = lambda(str, sep,
   if(empty?(str), 
     [""],
+
     if(head(str) == sep,
       [""] + split(tail(str), sep),
 

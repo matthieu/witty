@@ -101,6 +101,7 @@ boolComp c a b = WyBool (c a b)
 
 -- todo |> and <| to return a new array with a new value at its beginning / end
 dataPrim f =
+  defp "L" (\ps -> liftM WyList (mapM evalWy ps) >>= newWyRef ) $
   defp "empty?" (\ps -> 
     onContainers ps (WyBool . null) (WyBool . null) (WyBool . M.null) ) $
   defp "length" (\ps -> 

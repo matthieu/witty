@@ -41,7 +41,7 @@ describe("List length",
 )
 
 describe("List map",
-  add2 = lcurry(+, 2)
+  add2 = lambda(a, a + 2)
   it("should map a list with a function adding 2 to each element",
     newlist = map(L(1,2,3), add2)
     newlist.0 == 3 && newlist.1 == 4 && newlist.2 == 5

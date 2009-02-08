@@ -23,7 +23,7 @@ macro(describe(`str, `descBody), `(
 
 load("test/arithmetics.wy")
 load("test/string.wy")
-// load("test/list.wy")
+load("test/list.wy")
 // load("test/hash.wy")
 // load("test/stdlib.wy")
 // load("test/control.wy")

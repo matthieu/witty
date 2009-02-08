@@ -8,7 +8,7 @@ module Wy.Types
     WyType(..), readRef, newWyRef, truthy, wyToAST, showWy, macroPivot, 
     wyPlus, wyMinus, wyDiv, wyMult,
     WyEnv, Frame(..), macroValue, varValue, macroUpdate, varUpdate, envStack, envAdd,
-    Eval, localIO, runEval, appErr1, appErr2
+    Eval, localM, localIO, runEval, appErr1, appErr2
   ) where
 
 import qualified Data.Sequence as S
@@ -228,4 +228,10 @@ instance Error WyError where
 localIO f a = do 
   env <- ask
   newEnv <- liftIO (f env)
+  local (const newEnv) a
+
+localM:: (WyEnv -> Eval WyEnv) -> Eval a -> Eval a
+localM f a = do 
+  env <- ask
+  newEnv <- f env
   local (const newEnv) a
