@@ -1,6 +1,8 @@
 module Wy.Interpr
   ( eval, evalWy,
-    apply, applyDirect
+    apply, applyDirect,
+    -- only exported for tests
+    adjust
   ) where
 
 import Control.Monad(liftM, liftM2)
@@ -52,39 +54,50 @@ evalWy (ASTBlock xs) = liftM last $ mapM evalWy xs
 
 evalWy (ASTWyWrapper w) = return w
 
+eval ast = evalWy ast >>= liftIO . readRef
+
+-- Function application, either primitive or lambdas
 apply:: [ASTType] -> WyType -> Eval WyType
 apply vals (WyPrimitive n fn) = fn vals
 apply vals wl@(WyLambda _ _ _) = mapM evalWy vals >>= applyDirect wl
 apply ps other = appErr1 (\x -> "Don't know how to apply: " ++ x) other
 
+-- Application of lambdas from argument list and evaluted values
 applyDirect (WyLambda ps body lenv) vals = 
     localM (const $ buildFrame ps vals lenv) $ evalWy body
   where 
-    buildFrame ps vs e  = 
-      let adjV = adjust ps vs $ length vs - length ps
-      in if length adjV /= length ps
-           then appErr1 (\x -> "Wrong number of arguments in function call: " ++ x) (WyList vs)
-           else liftIO $ envStack (unslurp ps) (adjust ps vs $ length vs - length ps) e
+    buildFrame ps vs e  =
+      case adjust ps vs $ length vs - (fst $ unslurp ps) of
+        Nothing   -> appErr1 (\x -> "Wrong number of arguments in function call: " ++ x) (WyList vs)
+        Just adjV -> liftIO $ envStack (snd $ unslurp ps) adjV e
 
-    adjust (p:ps) (v:vs) dif | last p == '?' && dif < 0   = WyNull : adjust ps vs (dif + 1)                             
-                             | last p == '\\' && dif >= 0 = 
-                                let s = slurp (v:vs) dif 
-                                in WyList s : adjust ps vs (dif - length s)
-                             | otherwise = v : adjust ps vs dif
+-- Adjusts the values provided for an application to a function's arguments. Handles
+-- optionals and varargs
+adjust (p:ps) (v:vs) dif | last p == '?' && dif <= 0  = liftM (WyNull :) $ adjust ps (v:vs) dif
+                         | last p == '?' && dif > 0  = liftM (v :) $ adjust ps vs (dif - 1)
+                         | last p == '\\' && dif >= 0 =
+                            let s = slurp (v:vs) dif 
+                            in liftM (WyList s :) $ adjust ps (drop (length s - 1) vs) (dif - length s)
+                         | otherwise = liftM (v :) $ adjust ps vs dif
 
-    adjust [x] [] dif | dif <= 0  = [WyNull]
-    adjust [] [] dif  | dif == 0  = []
-    adjust _  _  x = []
+adjust (p:ps) [] dif | last p == '?' && dif <= 0  = liftM (WyNull :) $ adjust ps [] dif
+                     | last p == '\\' && dif == 0 = liftM (WyNull :) $ adjust ps [] dif
+adjust [] [] dif | dif >= 0 = Just []
+adjust _  _  x = Nothing
 
-    slurp (v:vs) dif | dif >= 0 = v : slurp vs (dif - 1)
-                     | dif < 0  = []
-    slurp [] _ = []
+-- Consumes values matched to a vararg
+slurp (v:vs) dif | dif > 0 = v : slurp vs (dif - 1)
+                 | dif <= 0  = []
+slurp [] _ = []
 
-    unslurp = map (\x -> if last x == '?' || last x == '\\' then init x else x)
+-- Removing slurpy and optional postfix from arguments. Reuse the same iteration
+-- to compute the number of fixed parameters (used by adjust).
+unslurp:: [String] -> (Int, [String])
+unslurp = foldr (\x acc -> if last x == '?' || last x == '\\' 
+                             then (fst acc, init x : snd acc) 
+                             else (fst acc + 1, x : snd acc)) (0, [])
 
-eval ast = evalWy ast >>= liftIO . readRef
-
---
+-------------------------------------------------------------------------------
 -- Macro system
 
 patternMatch :: ASTType -> ASTType -> Maybe (M.Map String ASTType) -> Maybe (M.Map String ASTType)

@@ -35,6 +35,10 @@ macro(`arr . `idx,
   )
 )
 
+ArgumentError = {type: 'ArgumentError'}
+
+// macrox(catch(`err, `var?, `body?), lambda($err, $var, $body))
+
 for = lambda(arr, l, 
   foldl(lambda(acc, x, l(x)), null, arr)
 )
