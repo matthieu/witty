@@ -2,13 +2,15 @@ module Wy.Interpr
   ( eval, evalWy,
     apply, applyDirect,
     -- only exported for tests
-    adjust
+    adjust, patternMatch
   ) where
 
 import Control.Monad(liftM, liftM2)
 import Control.Monad.Error(mapErrorT)
 import Control.Monad.Reader
 import Control.Monad.Error
+import Control.Monad.State
+import Data.Foldable(foldrM)
 import Text.ParserCombinators.Parsec(parse)
 
 import qualified Data.Map as M
@@ -67,23 +69,26 @@ applyDirect (WyLambda ps body lenv) vals =
     localM (const $ buildFrame ps vals lenv) $ evalWy body
   where 
     buildFrame ps vs e  =
-      case adjust ps vs $ length vs - (fst $ unslurp ps) of
+      case adjust WyNull WyList ps vs $ length vs - (fst $ unslurps ps) of
         Nothing   -> appErr1 (\x -> "Wrong number of arguments in function call: " ++ x) (WyList vs)
-        Just adjV -> liftIO $ envStack (snd $ unslurp ps) adjV e
+        Just adjV -> liftIO $ envStack (snd $ unslurps ps) adjV e
 
 -- Adjusts the values provided for an application to a function's arguments. Handles
--- optionals and varargs
-adjust (p:ps) (v:vs) dif | last p == '?' && dif <= 0  = liftM (WyNull :) $ adjust ps (v:vs) dif
-                         | last p == '?' && dif > 0  = liftM (v :) $ adjust ps vs (dif - 1)
-                         | last p == '\\' && dif >= 0 =
-                            let s = slurp (v:vs) dif 
-                            in liftM (WyList s :) $ adjust ps (drop (length s - 1) vs) (dif - length s)
-                         | otherwise = liftM (v :) $ adjust ps vs dif
+-- optionals and varargs. Needs a zero to replace a missing optional and a list
+-- wrapper function to wrap varargs.
+adjust z l (p:ps) (v:vs) dif 
+  | last p == '?' && dif <= 0 = liftM (z :) $ adjust z l ps (v:vs) dif
+  | last p == '?' && dif > 0  = liftM (v :) $ adjust z l ps vs (dif - 1)
+  | last p == '\\' && dif >= 0 =
+      let s = slurp (v:vs) dif 
+      in liftM (l s :) $ adjust z l ps (drop (length s - 1) vs) (dif - length s)
+  | otherwise = liftM (v :) $ adjust z l ps vs dif
 
-adjust (p:ps) [] dif | last p == '?' && dif <= 0  = liftM (WyNull :) $ adjust ps [] dif
-                     | last p == '\\' && dif == 0 = liftM (WyNull :) $ adjust ps [] dif
-adjust [] [] dif | dif >= 0 = Just []
-adjust _  _  x = Nothing
+adjust z l (p:ps) [] dif 
+  | last p == '?' && dif <= 0  = liftM (z :) $ adjust z l ps [] dif
+  | last p == '\\' && dif == 0 = liftM (z :) $ adjust z l ps [] dif
+adjust z l [] [] dif | dif >= 0 = Just []
+adjust z l _  _  x = Nothing
 
 -- Consumes values matched to a vararg
 slurp (v:vs) dif | dif > 0 = v : slurp vs (dif - 1)
@@ -92,22 +97,33 @@ slurp [] _ = []
 
 -- Removing slurpy and optional postfix from arguments. Reuse the same iteration
 -- to compute the number of fixed parameters (used by adjust).
-unslurp:: [String] -> (Int, [String])
-unslurp = foldr (\x acc -> if last x == '?' || last x == '\\' 
-                             then (fst acc, init x : snd acc) 
-                             else (fst acc + 1, x : snd acc)) (0, [])
+unslurps:: [String] -> (Int, [String])
+unslurps = foldr (\x acc -> if last x == '?' || last x == '\\' 
+                              then (fst acc, init x : snd acc) 
+                              else (fst acc + 1, x : snd acc)) (0, [])
+unslurp x | last x == '?' || last x == '\\' = init x
+          | otherwise = x
 
 -------------------------------------------------------------------------------
 -- Macro system
 
+-- Tries to match an AST pattern (like `a + `b) with an AST expression 
+-- (like 2 + 3), producing a map of bindings.
 patternMatch :: ASTType -> ASTType -> Maybe (M.Map String ASTType) -> Maybe (M.Map String ASTType)
 patternMatch _ _ Nothing = Nothing
 patternMatch (ASTId s1) (ASTId s2) f | s1 == s2      = f
-patternMatch (ASTId s) x (Just f)    | s !! 0 == '`' = Just $ M.insert (tail s) x f
+patternMatch (ASTId s) x (Just f)    | head s == '`' = Just $ M.insert (unslurp $ tail s) x f
 patternMatch (ASTStmt (x1:xs1)) (ASTStmt (x2:xs2)) f = patternMatch x1 x2 $ matchList xs1 xs2 f
 patternMatch (ASTStmt [x]) y f = patternMatch x y f
 patternMatch (ASTStmt []) (ASTStmt []) f = f
-patternMatch (ASTApplic n1 (p1:ps1)) (ASTApplic n2 (p2:ps2)) f | n1 == n2 = patternMatch p1 p2 $ matchList ps1 ps2 f
+patternMatch (ASTApplic n1 ps1) (ASTApplic n2 ps2) f | n1 == n2 = 
+  case adjps2 of
+      Just vs -> matchList ps1 vs f
+      Nothing -> Nothing
+  where adjps2 = adjust ASTNull ASTList strps1 ps2 (length ps2 - (fst $ unslurps strps1))
+        strps1 =  map toIdStr ps1
+        toIdStr (ASTId x) = x
+        toIdStr _         = "placeholder"
 patternMatch _ _ _ = Nothing
 
 matchList (x1:xs1) (x2:xs2) f = patternMatch x1 x2 $ matchList xs1 xs2 f
