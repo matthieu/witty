@@ -24,9 +24,9 @@ macropx(`a - `b, 6, -($a, $b));
 macropx(`a * `b, 7, *($a, $b));
 macropx(`a / `b, 7, /($a, $b));
 
+// Standard parsing for foo.bar(baz) is foo.(bar(baz)). We want (foo.bar)(baz).
 macro(`arr . `idx, 
   if(applic?(idx),
-    // Standard parsing for foo.bar(baz) is foo.(bar(baz)). We want (foo.bar)(baz).
     if(empty?(params(idx)),
       `( @($arr, $(fnName(idx)))() ),
       `( @($arr, $(fnName(idx)))($^(params(idx))) )

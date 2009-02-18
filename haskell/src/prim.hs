@@ -55,6 +55,8 @@ basePrim f =
     argS <- liftIO $ showWy arg 
     return $ WyString argS ) $ 
 
+--  defp "callcc" (\ps -> callCC (\c -> applyDirect (eval (head ps)) (WyCont c)) ) $
+
   defp "foldr" (\ps -> wyFold foldrM ps) $
   defp "foldl" (\ps -> wyFold foldlM ps) f
 

@@ -2,15 +2,6 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 
-module Wy.Types
-  ( ASTType(..),
-    WyError(..),
-    WyType(..), readRef, newWyRef, truthy, wyToAST, showWy, macroPivot, 
-    wyPlus, wyMinus, wyDiv, wyMult,
-    WyEnv, Frame(..), macroValue, varValue, macroUpdate, varUpdate, envStack, envAdd,
-    Eval, localM, localIO, runEval, appErr1, appErr2
-  ) where
-
 import qualified Data.Sequence as S
 import qualified Data.Map as M
 import Data.List(intercalate, (\\))
@@ -207,13 +198,28 @@ envAdd fv env = do
 --
 -- Evaluation monad
 
-newtype Eval a = E {
-    runE :: ReaderT WyEnv (ErrorT WyError (ContT (Either WyError WyType) IO)) a
+newtype EvalC r a = E {
+    runE :: ReaderT WyEnv (ErrorT WyError (ContT r IO)) a
   } deriving (Monad, MonadIO, MonadError WyError, MonadReader WyEnv, MonadCont)
 
---runEval :: Eval a -> WyEnv -> IO (Either WyError a)
-runEval :: Eval a -> WyEnv -> (Either WyError a -> IO (Either WyError WyType)) -> IO (Either WyError WyType)
+runEval :: EvalC r r -> WyEnv -> IO (Either WyError r)
 runEval e env = runContT (runErrorT (runReaderT (runE e) env))
+
+newtype Eval a = EvalC (Eval WyType) a
+
+-- newtype RawEval a = RE {
+--     runRE :: ReaderT WyEnv (ErrorT WyError IO) a
+--   } deriving (Monad, MonadIO, MonadError WyError, MonadReader WyEnv)
+-- 
+-- newtype ContRE a = CRE {
+--     runCRE :: ContT (RawEval a) RawEval (RawEval a)
+--   }
+-- 
+-- runCRERaw :: ContRE a -> (RawEval a -> RawEval (RawEval a)) -> RawEval (RawEval a)
+-- runCRERaw a = runContT (runCRE a)
+
+-- instance Monad ContRE where
+--   s >>= m = CRE (ContT (runCRE s >>= runCRE . m))
 
 data WyError = UnknownRef String
              | ApplicationErr String
