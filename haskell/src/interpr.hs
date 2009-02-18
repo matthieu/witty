@@ -62,6 +62,7 @@ eval ast = evalWy ast >>= liftIO . readRef
 apply:: [ASTType] -> WyType -> Eval WyType
 apply vals (WyPrimitive n fn) = fn vals
 apply vals wl@(WyLambda _ _ _) = mapM evalWy vals >>= applyDirect wl
+apply vals (WyCont c) = liftM head (mapM evalWy vals) >>= c
 apply ps other = appErr1 (\x -> "Don't know how to apply: " ++ x) other
 
 -- Application of lambdas from argument list and evaluted values

@@ -10,6 +10,7 @@ import qualified Data.Traversable as T
 import Data.Foldable (foldrM, foldlM)
 import Control.Monad.Reader
 import Control.Monad.Error
+import Control.Monad.Cont
 import System.Environment(getArgs)
 import Debug.Trace
 
@@ -33,10 +34,8 @@ basePrim f =
     liftIO $ macroUpdate n m env
     return $ WyString n ) $
 
-  -- The reference model used in Witty is more or less encoded here
   defp "=" (\ps -> do
     env <- ask
-    --lv <- evalWy $ head ps `catchError` const WyNull
     rv <- evalWy . head . tail $ ps
     n <- extractId . head $ ps
     case rv of
@@ -55,7 +54,9 @@ basePrim f =
     argS <- liftIO $ showWy arg 
     return $ WyString argS ) $ 
 
---  defp "callcc" (\ps -> callCC (\c -> applyDirect (eval (head ps)) (WyCont c)) ) $
+  defp "callcc" (\ps -> callCC (\c -> do
+    l <- eval $ head ps
+    applyDirect l [WyCont c]) ) $
 
   defp "foldr" (\ps -> wyFold foldrM ps) $
   defp "foldl" (\ps -> wyFold foldlM ps) f

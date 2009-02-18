@@ -17,7 +17,7 @@ import Wy.Interpr(eval, evalWy)
 
 doEval :: S.Seq Frame -> ASTType -> IO (Either WyError WyType, S.Seq Frame)
 doEval env p = do 
-  res <- runEval (evalWy p) env (liftM . id)
+  res <- runEval (evalWy p) env return
   return (res, env)
 
 wyInterpr env = doEval env . parseWy

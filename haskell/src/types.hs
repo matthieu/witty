@@ -54,6 +54,7 @@ data WyType = WyString String
             | WyLambda [String] ASTType WyEnv
             | WyMacro { macroPattern:: ASTType, macroBody:: ASTType, macroPriority:: Integer, macroEnv:: WyEnv }
             | WyPrimitive String ([ASTType] -> Eval WyType)
+            | WyCont (WyType -> Eval WyType)
     deriving (Show, Eq, Ord)
             
 readRef (WyRef r) = readIORef r
@@ -118,6 +119,7 @@ showWy (WyTemplate ast) = return $ "`(" ++ (show ast) ++ ")"
 showWy (WyLambda ss ast env) = return $ "lambda(" ++ (show ss) ++ ", " ++ (show ast) ++ ")"
 showWy (WyMacro p b _ env) = return $ "macro(" ++ (show p) ++ ", " ++ (show b) ++ ")"
 showWy (WyPrimitive n _) = return $ "<primitive " ++ (show n) ++ ">"
+showWy (WyCont c) = return "<cont>"
 
 showWyE = liftIO . showWy
 
@@ -126,13 +128,19 @@ showRet = return . show
 
 instance Show ([ASTType] -> Eval WyType) where
   show _ = "<prim>"
+instance Show (WyType -> Eval WyType) where
+  show _ = "<cont>"
 instance Show (IORef WyType) where
   show _ = "<ref>"
 
 instance Eq ([ASTType] -> Eval WyType) where
   _ == _ = False
+instance Eq (WyType -> Eval WyType) where
+  _ == _ = False
 
 instance Ord ([ASTType] -> Eval WyType) where
+  _ <= _ = True
+instance Ord (WyType -> Eval WyType) where
   _ <= _ = True
 instance Ord (IORef WyType) where
   x <= y = True
