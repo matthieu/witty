@@ -37,7 +37,7 @@ macro(`arr . `idx,
 
 UnknownRef = { type: 'UnknownRef' }
 ArgumentError = { type: 'ArgumentError' }
-SysErrors = [UnknownRef, ArgumentError]
+SysError = [UnknownRef, ArgumentError]
 
 macrox(catch(`err, `var?, `body?), [$err, lambda($var, $body)])
 
