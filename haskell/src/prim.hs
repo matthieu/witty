@@ -82,7 +82,7 @@ basePrim f =
         handleErr [] err = throwError err
         handleErr (p:ps) err = do
           catch <- eval p >>= readArrRef
-          merr  <- matchErr catch err
+          merr  <- trace (show catch ++ " // " ++ show err) $ matchErr catch err
           case merr of
             Just res -> return res
             Nothing  -> handleErr ps err
@@ -97,12 +97,12 @@ basePrim f =
                 in case (c, t) of 
                   (Just cv, Just tv) | cv == tv -> liftM Just $ applyDirect (last xs) [wm]
                   otherwise -> return Nothing
-        matchErr (WyList ((WyList (e:es)):xs)) ue@(UserErr y) = do
+        matchErr (WyList ((WyList (e:es)):xs)) err = do
           xe <- liftIO $ readRef e
-          m  <- matchErr (WyList (xe:xs)) ue
+          m  <- trace ("in " ++ show xe) $ matchErr (WyList (xe:xs)) err
           case m of
             Just x  -> return $ Just x
-            Nothing -> matchErr (WyList ((WyList es):xs)) ue
+            Nothing -> matchErr (WyList ((WyList es):xs)) err
         matchErr (WyList (x:xs)) ue@(UserErr y) 
           | x == y    = liftM Just $ applyDirect (last xs) [y]
         matchErr _ _ = return Nothing
