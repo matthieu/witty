@@ -28,11 +28,10 @@ describe("List operators",
   )
 )
 
-/*
 describe("List joining",
   it("should join a list using no separator", join(L("foo", "bar")) == "foobar")
   it("should join a list using a separator", 
-    join(L(192, 168, 0 , 1), ".") == "192.168.0.1"
+    join(L("192", "168", "0" , "1"), ".") == "192.168.0.1"
   )
 )
 
@@ -44,13 +43,14 @@ describe("List length",
 describe("List map",
   add2 = lambda(a, a + 2)
   it("should map a list with a function adding 2 to each element",
-    newlist = map(L(1,2,3), add2)
+    newlist = map(add2, L(1,2,3))
     newlist.0 == 3 && newlist.1 == 4 && newlist.2 == 5
   ) 
-  it("should conserve the original list length", length(map(L(4,5,6,7), add2)) == 4)
-  it("should produce an empty list from an empty list", length(map(L(), add2)) == 0)
+  it("should conserve the original list length", length(map(add2, L(4,5,6,7))) == 4)
+  it("should produce an empty list from an empty list", length(map(add2, L())) == 0)
 )
 
+/*
 describe("List push",
   l = L(1,2)
   it("should increase the length by 1", length(push(l, "abc")) == 3)
