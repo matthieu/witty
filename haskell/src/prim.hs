@@ -49,6 +49,11 @@ basePrim f =
       then evalSnd ps
       else if length ps < 3 then return WyNull else evalSnd $ tail ps) $
 
+  defp "try" (\ps ->
+    eval (head ps) `catchError` handleErr (tail ps) ) $
+
+  defp "raise" (\ps -> eval (head ps) >>= throwError . UserErr ) $
+
   defp "toS" (\ps -> do 
     arg <- eval (head ps)
     argS <- liftIO $ showWy arg 
@@ -62,7 +67,7 @@ basePrim f =
   defp "foldl" (\ps -> wyFold foldlM ps) f
 
   where extractInt (ASTInt i) = return i
-        extractInt x = throwError $ ApplicationErr $ (show x) ++ " isn't an integer value"
+        extractInt x = throwError $ ArgumentErr $ (show x) ++ " isn't an integer value"
         applySeq l elmt acc = do re <- liftIO $ readRef elmt
                                  apply [wyToAST re] l
         wyFold foldFn ps = do
@@ -72,7 +77,44 @@ basePrim f =
           case arr of
             (WyList a)   -> foldFn (\x acc -> apply [wyToAST x, wyToAST acc] fn) init a
             (WyString s) -> foldFn (\x acc -> apply [wyToAST x, wyToAST acc] fn) init (map (WyString . (:[])) s)
-            x            -> throwError $ ApplicationErr $ "Can't fold on " ++ show x
+            x            -> throwError $ ArgumentErr $ "Can't fold on " ++ show x
+
+        handleErr [] err = throwError err
+        handleErr (p:ps) err = do
+          catch <- eval p >>= readArrRef
+          merr  <- trace (show catch ++ " / " ++ show err) $ matchErr catch err
+          case merr of
+            Just res -> return res
+            Nothing  -> handleErr ps err
+
+        -- matchErr caught thrown
+        matchErr (WyList ((WyMap m):xs)) (UnknownRef s) = sysErr m xs s "UnknownRef"
+        matchErr (WyList ((WyMap m):xs)) (ArgumentErr s) = sysErr m xs s "ArgumentErr"
+        matchErr (WyList ((WyMap m1):xs)) (UserErr wm@(WyMap m2))
+          | M.member (WyString "type") m1 &&  M.member (WyString "type") m2 
+              = let c = M.lookup (WyString "type") m1
+                    t = M.lookup (WyString "type") m2
+                in case (c, t) of 
+                  (Just cv, Just tv) | cv == tv -> liftM Just $ applyDirect (last xs) [wm]
+                  otherwise -> return Nothing
+        matchErr (WyList ((WyList (e:es)):xs)) ue@(UserErr y) = do
+          xe <- liftIO $ readRef e
+          m <- trace ("in " ++ show xe) $ matchErr (WyList (xe:xs)) ue
+          case m of
+            Just x  -> return $ Just x
+            Nothing -> matchErr (WyList xs) ue
+        matchErr (WyList (x:xs)) ue@(UserErr y) 
+          | x == y    = liftM Just $ applyDirect (last xs) [y]
+        matchErr _ _ = return Nothing
+
+        readArrRef (WyList l) = liftM WyList $ mapM (liftIO . readRef) l
+        readArrRef x          = error $ "Expected a list but didn't get one, a bug " ++ (show x)
+        sysErr m xs msg errstr = do
+          v <- liftIO . readRef $ M.findWithDefault WyNull (WyString "type") m
+          if (v == WyString "UnknownRef")
+            then liftM Just $ applyDirect (last xs) [WyMap $ M.insert (WyString "message") (WyString errstr) m]
+            else return Nothing
+
 
 arithmPrim f = 
   defp "+" (opEvalM wyPlus) $
@@ -147,13 +189,13 @@ dataPrim f =
                (WyList l) -> return . fnl $ l
                (WyString s) -> return . fns $ s
                (WyMap m) -> return . fnm $ m
-               x -> throwError $ ApplicationErr $ "Can't check the length of " ++ show x
+               x -> throwError $ ArgumentErr $ "Can't check the length of " ++ show x
         wyLength = WyInt .toInteger . length
   
         elemAt ((WyList xs), (WyInt n)) = elemInArr xs n id
         elemAt ((WyString s), (WyInt n)) = elemInArr s n (WyString . (:[]))
         elemAt ((WyMap m), k) = return $ maybe WyNull id $ M.lookup k m
-        elemAt (c, n) = throwError $ ApplicationErr $ "Can't access element " ++ show n ++ " in " ++ show c
+        elemAt (c, n) = throwError $ ArgumentErr $ "Can't access element " ++ show n ++ " in " ++ show c
         elemInArr xs n fn = 
           if m >= length xs || m < -(length xs)
             then return WyNull
@@ -176,7 +218,7 @@ dataPrim f =
 
         push (WyList xs) val = return $ WyList (xs ++ [val])
         push (WyString xs) (WyString val) = return $ WyString (xs ++ val)
-        push x val = throwError $ ApplicationErr $ "Can't push value " ++ (show val) ++ " in " ++ (show x)
+        push x val = throwError $ ArgumentErr $ "Can't push value " ++ (show val) ++ " in " ++ (show x)
 
 metaPrim f =
   defp "applic?" (\ps -> do 
@@ -188,14 +230,14 @@ metaPrim f =
     applic <- eval $ head ps 
     case applic of
       (WyTemplate (ASTStmt [ASTApplic _ ps])) -> return $ WyList $ map WyTemplate ps
-      _                                       -> throwError $ ApplicationErr "Not a function application.") $
+      _                                       -> throwError $ ArgumentErr "Not a function application.") $
 
   defp "fnName" (\ps -> do
     applic <- eval $ head ps 
     case applic of
       (WyTemplate (ASTStmt [ASTApplic (ASTId n) _])) -> return $ WyString n
-      (WyTemplate (ASTStmt [ASTApplic  _ _]))        -> throwError $ ApplicationErr "Function application has no simple name."
-      _                                              -> throwError $ ApplicationErr "Not a function application.") $
+      (WyTemplate (ASTStmt [ASTApplic  _ _]))        -> throwError $ ArgumentErr "Function application has no simple name."
+      _                                              -> throwError $ ArgumentErr "Not a function application.") $
 
   defp "nthParam" (\ps -> do
     applic <- eval $ head ps 
@@ -204,8 +246,8 @@ metaPrim f =
       (WyTemplate (ASTStmt [ASTApplic _ ps])) -> 
         case idx of 
           (WyInt i) -> return . WyTemplate $ ps !! fromInteger i
-          _         -> throwError $ ApplicationErr $ "Index parameter passed to nthParam isn't an int."
-      x                                       -> throwError $ ApplicationErr $ "Not a function application: " ++ (show x)) f
+          _         -> throwError $ ArgumentErr $ "Index parameter passed to nthParam isn't an int."
+      x                                       -> throwError $ ArgumentErr $ "Not a function application: " ++ (show x)) f
 
 stdIOPrim f =
   defp "print" (\ps -> do eps <- mapM eval ps 
@@ -231,7 +273,7 @@ defp n l = M.insert n (WyPrimitive n l)
 
 extractId (ASTId i) = return i
 extractId (ASTStmt [ASTId i]) = return i
-extractId x = throwError $ ApplicationErr $ "Non identifier value when one was expected: " ++ (show x)
+extractId x = throwError $ ArgumentErr $ "Non identifier value when one was expected: " ++ (show x)
         
 evalSnd = eval . head . tail
 

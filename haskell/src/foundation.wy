@@ -35,9 +35,11 @@ macro(`arr . `idx,
   )
 )
 
-ArgumentError = {type: 'ArgumentError'}
+UnknownRef = { type: 'UnknownRef' }
+ArgumentError = { type: 'ArgumentError' }
+SysErrors = [UnknownRef, ArgumentError]
 
-// macrox(catch(`err, `var?, `body?), lambda($err, $var, $body))
+macrox(catch(`err, `var?, `body?), [$err, lambda($var, $body)])
 
 for = lambda(arr, l, 
   foldl(lambda(acc, x, l(x)), null, arr)

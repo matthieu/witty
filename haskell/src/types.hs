@@ -224,12 +224,13 @@ runEval :: Eval a -> WyEnv -> (Either WyError a -> IO (Either WyError WyType)) -
 runEval e env = runContT (runErrorT (runReaderT (runE e) env))
 
 data WyError = UnknownRef String
-             | ApplicationErr String
+             | ArgumentErr String
+             | UserErr WyType
              | Undef String
     deriving (Eq, Ord, Show)
 
-appErr2 txtFn x1 x2 = liftM2 txtFn (showWyE x1) (showWyE x2) >>= (throwError . ApplicationErr)
-appErr1 txtFn x = liftM txtFn (showWyE x) >>= (throwError . ApplicationErr)
+appErr2 txtFn x1 x2 = liftM2 txtFn (showWyE x1) (showWyE x2) >>= (throwError . ArgumentErr)
+appErr1 txtFn x = liftM txtFn (showWyE x) >>= (throwError . ArgumentErr)
 
 instance Error WyError where
   noMsg  = Undef "Undefined error. Sucks to be you."
