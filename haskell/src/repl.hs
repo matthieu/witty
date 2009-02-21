@@ -20,7 +20,7 @@ doEval env p = do
   res <- runEval (evalWy p) env return
   return (res, env)
 
-wyInterpr env = doEval env . parseWy
+wyInterpr env f = doEval env . parseWy f
 
 repl env = do 
   line <- readline "> "
@@ -28,7 +28,7 @@ repl env = do
     Nothing -> repl env
     Just l | l == "q"  -> return () 
            | otherwise -> do addHistory l
-                             e <- wyInterpr env l
+                             e <- wyInterpr env "(unknown)" l
                              either (putStrLn . show) (showWy >=> putStrLn) $ fst e
                              repl $ snd e
  
@@ -39,10 +39,10 @@ main = do params <- getArgs
           p <- newIORef $ primitives M.empty
           m <- newIORef  M.empty
           let blankEnv = S.empty |> Frame p m
-          env <- liftM snd $ wyInterpr blankEnv foundationText
+          env <- liftM snd $ wyInterpr blankEnv "foundation" foundationText
           case mhead params of
             Just x -> do cnt <- readFile x
-                         e <- wyInterpr env cnt
+                         e <- wyInterpr env x cnt
                          either (putStrLn . show) (const $ return ()) $ fst e
             Nothing -> repl env
 

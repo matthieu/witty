@@ -109,6 +109,7 @@ basePrim f =
 
         readArrRef (WyList l) = liftM WyList $ mapM (liftIO . readRef) l
         readArrRef x          = error $ "Expected a list but didn't get one, a bug " ++ (show x)
+
         sysErr m xs msg errstr = do
           v <- liftIO . readRef $ M.findWithDefault WyNull (WyString "type") m
           if (v == WyString "UnknownRef")
@@ -258,7 +259,7 @@ stdIOPrim f =
   defp "load" (\ps -> do
     fname <- eval (head ps) >>= literalStr
     fcnt <- liftIO $ readFile fname
-    eval $ parseWy fcnt ) f
+    eval $ parseWy fname fcnt ) f
   
   where concatWyStr s = liftM concat $ mapM literalStr s
         literalStr (WyString s) = return s

@@ -14,9 +14,9 @@ import Text.ParserCombinators.Parsec.Language(javaStyle)
 
 import Wy.Types
 
-parseWy input = pruneAST $ case (parse wyParser "(unknown)" input) of
-                             Right out -> out
-                             Left msg -> error $ "Parsing error: " ++ (show msg)
+parseWy f input = pruneAST $ case (parse wyParser f input) of
+                               Right out -> out
+                               Left msg -> error $ "Parsing error: " ++ (show msg)
 --
 -- Parser definition
 
