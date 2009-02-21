@@ -11,7 +11,6 @@ describe("List index retrieval",
   it("should access a list value inside a list", l.1.0 == 7)
 )
 
-/*
 describe("List operators", 
   added = L(4,5) + L(7,8)
   subst = L(4,"foo",9,3) - L(3,"foo")
@@ -21,14 +20,15 @@ describe("List operators",
   it("should have correct length after addition",
     length(added) == 4
   )
-  it("should have correct elements after substraction",
+  it("should have correct elements after subtraction",
     subst.0 == 4 && subst.1 == 9
   )
-  it("should have correct length after addition",
+  it("should have correct length after subtraction",
     length(subst) == 2
   )
 )
 
+/*
 describe("List joining",
   it("should join a list using no separator", join(L("foo", "bar")) == "foobar")
   it("should join a list using a separator", 

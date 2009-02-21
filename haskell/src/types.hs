@@ -1,3 +1,4 @@
+{-# LANGUAGE OverlappingInstances #-} 
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE TypeSynonymInstances #-}
@@ -5,7 +6,7 @@
 module Wy.Types
   ( ASTType(..),
     WyError(..),
-    WyType(..), readRef, newWyRef, truthy, wyToAST, showWy, macroPivot, 
+    WyType(..), readRef, mapReadRef, newWyRef, truthy, wyToAST, showWy, macroPivot, 
     wyPlus, wyMinus, wyDiv, wyMult,
     WyEnv, Frame(..), macroValue, varValue, macroUpdate, varUpdate, envStack, envAdd,
     Eval, localM, localIO, runEval, appErr1, appErr2
@@ -21,6 +22,8 @@ import Data.IORef
 import Data.Char(toLower)
 import Data.Sequence ((<|))
 import Control.Monad(liftM, liftM2)
+import System.IO.Unsafe(unsafePerformIO)
+import Debug.Trace
 
 --
 -- AST Nodes
@@ -59,6 +62,7 @@ data WyType = WyString String
             
 readRef (WyRef r) = readIORef r
 readRef x         = return x
+mapReadRef = mapM (liftIO . readRef)
 
 newWyRef:: WyType -> Eval WyType
 newWyRef v = liftM WyRef $ liftIO (newIORef v)
@@ -90,7 +94,7 @@ wyMinus (WyInt i1) (WyInt i2) = return $ WyInt (i1 - i2)
 wyMinus (WyFloat f1) (WyFloat f2) = return $ WyFloat (f1 - f2)
 wyMinus (WyInt i1) (WyFloat f2) = return $ WyFloat ((fromInteger i1) - f2)
 wyMinus (WyFloat f1) (WyInt i2) = return $ WyFloat (f1 - (fromInteger i2))
-wyMinus (WyList l1) (WyList l2) = return $ WyList (l1 \\ l2)
+wyMinus (WyList l1) (WyList l2) = liftM WyList $ liftM2 (\\) (mapReadRef l1) (mapReadRef l2)
 wyMinus x1 x2 = appErr2 (\x y -> "can't subtract " ++ y ++ " from " ++ x) x1 x2
 
 wyMult (WyInt i1) (WyInt i2) = return $ WyInt (i1 * i2)
@@ -131,7 +135,7 @@ instance Show ([ASTType] -> Eval WyType) where
 instance Show (WyType -> Eval WyType) where
   show _ = "<cont>"
 instance Show (IORef WyType) where
-  show _ = "<ref>"
+  show x = show $ unsafePerformIO $ readIORef x
 
 instance Eq ([ASTType] -> Eval WyType) where
   _ == _ = False

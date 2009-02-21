@@ -82,7 +82,7 @@ basePrim f =
         handleErr [] err = throwError err
         handleErr (p:ps) err = do
           catch <- eval p >>= readArrRef
-          merr  <- trace (show catch ++ " // " ++ show err) $ matchErr catch err
+          merr  <- matchErr catch err
           case merr of
             Just res -> return res
             Nothing  -> handleErr ps err
@@ -107,7 +107,7 @@ basePrim f =
           | x == y    = liftM Just $ applyDirect (last xs) [y]
         matchErr _ _ = return Nothing
 
-        readArrRef (WyList l) = liftM WyList $ mapM (liftIO . readRef) l
+        readArrRef (WyList l) = liftM WyList $ mapReadRef l
         readArrRef x          = error $ "Expected a list but didn't get one, a bug " ++ (show x)
 
         sysErr m xs msg errstr = do
