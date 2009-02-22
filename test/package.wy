@@ -1,79 +1,83 @@
-describe("Package declaration",
+describe("Module declaration",
   it("shouldn't leak its scoped definitions",
-    package(Foo, 
+    module(Foo, 
       a = 1
       f = lambda(a, a+1)
     )
-    !defined?(a) && !defined?(f)
+    !(defined?(a) || defined?(f))
   )
   it("should exist in its parent scope",
-    package(Foo, a = 1)
+    module(Foo, a = 1)
     defined?(Foo)
   )
   it("should allow enrichment",
-    package(Foo, a = 1)
-    package(Foo, b = 1)
+    module(Foo, a = 1)
+    module(Foo, b = 1)
     import(Foo)
     defined?(Foo)
   )
-  it("should allow sub package enrichment",
-    package(Foo, package(Bar, a = 2))
-    package(Foo, package(Bar, b = 3))
-    Foo::Bar::a == 2 && Foo::Bar::b == 3
+  it("should allow sub module enrichment",
+    module(Foo, module(Bar, a = 2))
+    module(Foo, module(Bar, b = 3))
+    import(Foo)
+    import(Bar)
+    a == 2 && b == 3
   )
-  it("should be defined in parent package",
-    package(Foo, package(Bar, a = 2))
+  it("should be defined in parent module",
+    module(Foo, module(Bar, a = 2))
     import(Foo)
     defined?(Bar)
   )
 )
 
-describe("Package import",
-  package(Foo, 
+describe("Module import",
+  module(Foo, 
     a = 1
     f = lambda(a, a+1)
   )
   
-  it("should make package definitions accessible",
+  it("should make module definitions accessible",
     import(Foo)
     defined?(a)
   )
-  it("should make package functions local",
+  it("should make module functions local",
     import(Foo)
     f(3) == 4
   )
   it("shouldn't leak to the parent scope when nested",
     lambda(import(Foo))()
-    !defined?(f)
+    !(defined?(f))
   )
-  it("should make all enriched package definitions accessible",
-    package(Foo, a = 1)
-    package(Foo, b = 1)
+  it("should make all enriched module definitions accessible",
+    module(Foo, a = 1)
+    module(Foo, b = 1)
     import(Foo)
     defined?(a) && defined?(b)
   )
-  it("should make a subpackage definition accessible",
-    package(Foo, package(Bar, l = lambda(m,n,m+n)))
+  it("should make a submodule definition accessible",
+    module(Foo, module(Bar, l = lambda(m,n,m+n)))
     import(Foo)
     import(Bar)
     l(3,4) == 7
   )
-  it("should work with a subpackage :: notation",
-    package(Foo, package(Bar, l = lambda(m,n,m+n)))
+  it("should work with a submodule :: notation",
+    module(Foo, module(Bar, l = lambda(m,n,m+n)))
     import(Foo::Bar)
     l(3,4) == 7
   )    
 )
 
-describe("Package external reference",
-  package(Foo, 
+/*
+describe("Module external reference",
+  module(Foo, 
     a = 1
     f = lambda(a, a+1)
   )
   it("should resolve to definition value", Foo::a==1)
-  it("should allow package function application", Foo::f(3) == 4)
-  it("should give access to subpackages",
-    package(Foo, package(Bar, l = lambda(m,n,m+n)))
+  it("should allow module function application", Foo::f(3) == 4)
+  it("should give access to submodules",
+    module(Foo, module(Bar, l = lambda(m,n,m+n)))
     Foo::Bar::l(3,4)==7
   )
 )
+*/

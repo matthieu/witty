@@ -157,7 +157,7 @@ matchMacro stmt (m@(WyMacro p b _ e), idx) = matchOffset [-1, 0, 1] stmt p idx
         matchOffset [] stmt mi idx = return Nothing
 
 runMacro :: WyType -> M.Map String WyType -> Eval WyType
-runMacro (WyMacro _ b _ env) f = localIO (const $ envAdd f env) $ evalWy b
+runMacro (WyMacro _ b _ env) f = localIO (const $ envAdd f M.empty env) $ evalWy b
 
 rewriteStmt :: [ASTType] -> (WyType, Int, [ASTType]) -> ([ASTType], Int)
 rewriteStmt stmt (m , idx, nast) =

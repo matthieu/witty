@@ -96,7 +96,7 @@ wyDef = javaStyle {
           P.identStart = letter <|> oneOf "`$",
           P.identLetter = alphaNum <|> oneOf "!#$%&?@\\^~`",
           P.opStart = P.opLetter wyDef,
-          P.opLetter = oneOf "!#%&*+./<=>?@\\^|-~",
+          P.opLetter = oneOf "!#%&*+./<=>?@\\^|-~:",
           P.caseSensitive = True,
           P.isBlank = (\ch -> ch == ' ' || ch == '\t' || ch == '\r')
         }

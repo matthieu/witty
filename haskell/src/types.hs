@@ -58,6 +58,7 @@ data WyType = WyString String
             | WyMacro { macroPattern:: ASTType, macroBody:: ASTType, macroPriority:: Integer, macroEnv:: WyEnv }
             | WyPrimitive String ([ASTType] -> Eval WyType)
             | WyCont (WyType -> Eval WyType)
+            | WyModule String (M.Map String WyType) (M.Map String WyType)
     deriving (Show, Eq, Ord)
             
 readRef (WyRef r) = readIORef r
@@ -124,6 +125,7 @@ showWy (WyLambda ss ast env) = return $ "lambda(" ++ (show ss) ++ ", " ++ (show 
 showWy (WyMacro p b _ env) = return $ "macro(" ++ (show p) ++ ", " ++ (show b) ++ ")"
 showWy (WyPrimitive n _) = return $ "<primitive " ++ (show n) ++ ">"
 showWy (WyCont c) = return "<cont>"
+showWy (WyModule n _ _) = return $ "module(" ++ n ++ ")"
 
 showWyE = liftIO . showWy
 
@@ -208,13 +210,13 @@ varUpdate' n v env frameAcc = do
     Just (i, f)  -> varInsertAt i n v f env frameAcc
 
 envStack :: [String] -> [WyType] -> WyEnv -> IO (WyEnv)
-envStack params values env = envAdd (M.fromList $ zip params values) env
+envStack params values env = envAdd (M.fromList $ zip params values) M.empty env
 
-envAdd :: (M.Map String WyType) -> WyEnv -> IO (WyEnv)
-envAdd fv env = do
-  newf <- newIORef $ fv
-  newm <- newIORef M.empty
-  return $ (<| env) $ Frame newf newm
+envAdd :: (M.Map String WyType) -> (M.Map String WyType) -> WyEnv -> IO (WyEnv)
+envAdd fv mv env = do
+  newf <- newIORef fv
+  newm <- newIORef mv
+  return . (<| env) $ Frame newf newm
 
 --
 -- Evaluation monad

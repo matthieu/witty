@@ -28,6 +28,11 @@ describe("List operators",
   )
 )
 
+describe("List empty",
+  it("should return true for an empty list", empty?([]) == true)
+  it("should return false for a non-empty list", empty?([3,4]) == false)
+)
+
 describe("List joining",
   it("should join a list using no separator", join(L("foo", "bar")) == "foobar")
   it("should join a list using a separator", 
@@ -55,6 +60,7 @@ describe("List push",
   it("should increase the length by 1", length(push!(l, "abc")) == 3)
   it("should add the right element at the last index", l.2 == "abc")
 )
+
 /*
 describe("List unshift",
   l = L(1,2)
@@ -97,9 +103,5 @@ describe("List index-based modification",
     alist.(1+2) == 10
   )
 )
-
-describe("List empty",
-  it("should return true for an empty list", empty?([]) == true)
-  it("should return false for a non-empty list", empty?([3,4]) == false)
-)
 */
+

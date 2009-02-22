@@ -4,9 +4,10 @@ module Wy.Prim
 
 import Control.Monad(liftM, liftM2, foldM)
 import qualified Data.Map as M
+import qualified Data.Sequence as S
+import qualified Data.Traversable as T
 import Data.List(foldl', foldl1')
 import Data.IORef
-import qualified Data.Traversable as T
 import Data.Foldable (foldrM, foldlM)
 import Control.Monad.Reader
 import Control.Monad.Error
@@ -18,7 +19,7 @@ import Wy.Parser(ASTType(..), parseWy)
 import Wy.Interpr
 import Wy.Types
 
-primitives f = arithmPrim $ basePrim $ dataPrim $ metaPrim $ stdIOPrim f
+primitives f = arithmPrim $ basePrim $ dataPrim $ packagePrim $ metaPrim $ stdIOPrim f
 
 basePrim f =
   defp "lambda" (\ps -> do
@@ -48,6 +49,12 @@ basePrim f =
     if (truthy expr)
       then evalSnd ps
       else if length ps < 3 then return WyNull else evalSnd $ tail ps) $
+
+  defp "defined?" (\ps -> do
+    env <- ask
+    vid <- extractId $ head ps
+    val <- liftIO $ varValue vid env
+    return $ maybe (WyBool False) (const $ WyBool True) val ) $
 
   defp "try" (\ps ->
     eval (head ps) `catchError` handleErr (tail ps) ) $
@@ -99,7 +106,7 @@ basePrim f =
                   otherwise -> return Nothing
         matchErr (WyList ((WyList (e:es)):xs)) err = do
           xe <- liftIO $ readRef e
-          m  <- trace ("in " ++ show xe) $ matchErr (WyList (xe:xs)) err
+          m  <- matchErr (WyList (xe:xs)) err
           case m of
             Just x  -> return $ Just x
             Nothing -> matchErr (WyList ((WyList es):xs)) err
@@ -225,6 +232,35 @@ dataPrim f =
         stickToList fn (WyString xs) (WyString val) _ = return $ WyString (xs ++ val)
         stickToList _ x val errstr = throwError $ ArgumentErr $ 
           "Can't " ++ errstr  ++ " value " ++ (show val) ++ " in " ++ (show x)
+
+packagePrim f =
+  defp "module" (\ps -> do
+    env  <- ask
+    name <- extractId $ head ps
+    xmod <- liftIO $ varValue name env
+    menv <- liftIO $ 
+      case xmod of
+        Just (WyModule _ mvars mmacs) -> envAdd mvars mmacs env
+        Nothing -> envAdd M.empty M.empty env
+    local (const menv) $ evalSnd ps
+    let modfrm = S.index menv 0
+    macfrm <- liftIO . readIORef $ frameMacros modfrm
+    varfrm <- liftIO . readIORef $ frameVars modfrm
+    liftIO $ varUpdate env name (WyModule name varfrm macfrm) ) $
+  
+  defp "import" (\ps -> do
+    mod <- eval $ head ps
+    env <- ask
+    let frm = S.index env 0
+    liftIO $ updateFrame (frameVars frm) (frameMacros frm) mod
+    return mod ) f
+
+  where updateFrame varsRef macsRef (WyModule _ mvars mmacs) = do
+          varfrm <- readIORef varsRef
+          macfrm <- readIORef macsRef
+          writeIORef varsRef $ M.union mvars varfrm
+          writeIORef macsRef $ M.union mmacs macfrm
+
 
 metaPrim f =
   defp "applic?" (\ps -> do 
