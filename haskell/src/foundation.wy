@@ -12,6 +12,7 @@ macrop(`a = `b, 1,
 macropx(`a += `b, 1, $a = $a + $b);
 macropx(`a -= `b, 1, $a = $a - $b);
 macropx(`a << `b, 1, <<($a, $b));
+macropx(`a >> `b, 1, >>($a, $b));
 macropx(`a || `b, 2, ||($a, $b));
 macropx(`a && `b, 3, &&($a, $b));
 macropx(`a == `b, 4, ==($a, $b));

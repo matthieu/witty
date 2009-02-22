@@ -166,13 +166,17 @@ dataPrim f =
   defp "<<" (\ps -> do 
     arr <- eval $ head ps
     val <- evalSnd ps
-    push arr val ) $
+    stickToList (flip (++) . (:[])) arr val "push (<<)" ) $
+  defp ">>" (\ps -> do 
+    val <- eval $ head ps
+    arr <- evalSnd ps
+    stickToList (:) arr val "cons (>>)" ) $
   defp "push!" (\ps -> do 
-    arr <- evalWy $ head ps
+    ref <- evalWy $ head ps
     val <- evalWy (last ps)
-    ref <- liftIO (readRef arr)
-    newVal <- push ref val
-    case arr of
+    arr <- liftIO (readRef ref)
+    newVal <- stickToList (flip (++) . (:[])) arr val "push!"
+    case ref of
       (WyRef r) -> liftIO (writeIORef r newVal) >> return (WyRef r)
       x         -> return newVal ) $
   defp "slice" (\ps -> do
@@ -217,9 +221,10 @@ dataPrim f =
         takeOrFill n xs = if (length xs > n) then take n xs
                                              else take n xs ++ take (n - length xs) (repeat WyNull)
 
-        push (WyList xs) val = return $ WyList (xs ++ [val])
-        push (WyString xs) (WyString val) = return $ WyString (xs ++ val)
-        push x val = throwError $ ArgumentErr $ "Can't push value " ++ (show val) ++ " in " ++ (show x)
+        stickToList fn (WyList xs) val _ = return $ WyList (fn val xs)
+        stickToList fn (WyString xs) (WyString val) _ = return $ WyString (xs ++ val)
+        stickToList _ x val errstr = throwError $ ArgumentErr $ 
+          "Can't " ++ errstr  ++ " value " ++ (show val) ++ " in " ++ (show x)
 
 metaPrim f =
   defp "applic?" (\ps -> do 

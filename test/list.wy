@@ -50,12 +50,12 @@ describe("List map",
   it("should produce an empty list from an empty list", length(map(add2, L())) == 0)
 )
 
-/*
 describe("List push",
   l = L(1,2)
-  it("should increase the length by 1", length(push(l, "abc")) == 3)
+  it("should increase the length by 1", length(push!(l, "abc")) == 3)
   it("should add the right element at the last index", l.2 == "abc")
 )
+/*
 describe("List unshift",
   l = L(1,2)
   it("should increase the length by 1", length(unshift(l, "abc")) == 3)
