@@ -35,6 +35,15 @@ macro(`arr . `idx,
     `(@($arr, $idx))
   )
 )
+macro(`mod :: `def, 
+  if(applic?(def),
+    if(empty?(params(def)),
+      `( ::($mod, $(fnName(def)))() ),
+      `( ::($mod, $(fnName(def)))($^(params(def))) )
+    ),
+    `(::($mod, $def))
+  )
+)
 
 UnknownRef = { type: 'UnknownRef' }
 ArgumentError = { type: 'ArgumentError' }

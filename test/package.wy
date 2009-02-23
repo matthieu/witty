@@ -14,7 +14,8 @@ describe("Module declaration",
     module(Foo, a = 1)
     module(Foo, b = 1)
     import(Foo)
-    defined?(Foo)
+    defined?(a)
+    defined?(b)
   )
   it("should allow sub module enrichment",
     module(Foo, module(Bar, a = 2))
@@ -67,7 +68,6 @@ describe("Module import",
   )    
 )
 
-/*
 describe("Module external reference",
   module(Foo, 
     a = 1
@@ -75,9 +75,8 @@ describe("Module external reference",
   )
   it("should resolve to definition value", Foo::a==1)
   it("should allow module function application", Foo::f(3) == 4)
-  it("should give access to submodules",
+  it("should give access to submodule functions",
     module(Foo, module(Bar, l = lambda(m,n,m+n)))
     Foo::Bar::l(3,4)==7
   )
 )
-*/

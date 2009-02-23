@@ -95,8 +95,8 @@ basePrim f =
             Nothing  -> handleErr ps err
 
         -- matchErr caught thrown
-        matchErr (WyList ((WyMap m):xs)) (UnknownRef s) = sysErr m xs s "UnknownRef"
-        matchErr (WyList ((WyMap m):xs)) (ArgumentErr s) = sysErr m xs s "ArgumentErr"
+        matchErr (WyList ((WyMap m):xs)) (UnknownRef s) = sysErr m xs s $ "UnknownRef" ++ s
+        matchErr (WyList ((WyMap m):xs)) (ArgumentErr s) = sysErr m xs s $ "ArgumentErr" ++ s
         matchErr (WyList ((WyMap m1):xs)) (UserErr wm@(WyMap m2))
           | M.member (WyString "type") m1 &&  M.member (WyString "type") m2 
               = let c = M.lookup (WyString "type") m1
@@ -215,7 +215,7 @@ dataPrim f =
           where m = fromInteger n
         evalAtParams ps = do obj <- eval $ head ps
                              case obj of
-                               (WyMap _) -> do lid <- extractId $ last ps
+                               (WyMap _) -> do lid <- extractName $ last ps
                                                return (obj, WyString lid)
                                x         -> liftM ((,) obj) (eval $ last ps)
 
@@ -253,7 +253,14 @@ packagePrim f =
     env <- ask
     let frm = S.index env 0
     liftIO $ updateFrame (frameVars frm) (frameMacros frm) mod
-    return mod ) f
+    return mod ) $
+
+  defp "::" (\ps -> do
+    env <- ask
+    mod <- eval $ head ps
+    vid <- extractName . head $ tail ps
+    return $ readInMod mod vid
+  ) f
 
   where updateFrame varsRef macsRef (WyModule _ mvars mmacs) = do
           varfrm <- readIORef varsRef
@@ -261,34 +268,36 @@ packagePrim f =
           writeIORef varsRef $ M.union mvars varfrm
           writeIORef macsRef $ M.union mmacs macfrm
 
+        readInMod (WyModule _ mvars mmacs) n = maybe WyNull id $ M.lookup n mvars
+
 
 metaPrim f =
   defp "applic?" (\ps -> do 
     applic <- eval $ head ps
     case applic of
       (WyTemplate (ASTStmt [ASTApplic _ _])) -> return $ WyBool True
+      (WyTemplate (ASTApplic _ _))           -> return $ WyBool True
       _                                      -> return $ WyBool False) $
   defp "params" (\ps -> do
     applic <- eval $ head ps 
     case applic of
       (WyTemplate (ASTStmt [ASTApplic _ ps])) -> return $ WyList $ map WyTemplate ps
+      (WyTemplate (ASTApplic _ ps))           -> return $ WyList $ map WyTemplate ps
       _                                       -> throwError $ ArgumentErr "Not a function application.") $
 
   defp "fnName" (\ps -> do
     applic <- eval $ head ps 
     case applic of
       (WyTemplate (ASTStmt [ASTApplic (ASTId n) _])) -> return $ WyString n
-      (WyTemplate (ASTStmt [ASTApplic  _ _]))        -> throwError $ ArgumentErr "Function application has no simple name."
-      _                                              -> throwError $ ArgumentErr "Not a function application.") $
+      (WyTemplate (ASTApplic (ASTId n) _))           -> return $ WyString n
+      _ -> throwError $ ArgumentErr "Not a function application or no obvious name.") $
 
   defp "nthParam" (\ps -> do
     applic <- eval $ head ps 
-    idx <- eval $ head . tail $ ps 
+    idx <- evalSnd ps >>= asInt
     case applic of
-      (WyTemplate (ASTStmt [ASTApplic _ ps])) -> 
-        case idx of 
-          (WyInt i) -> return . WyTemplate $ ps !! fromInteger i
-          _         -> throwError $ ArgumentErr $ "Index parameter passed to nthParam isn't an int."
+      (WyTemplate (ASTStmt [ASTApplic _ ps])) ->  return . WyTemplate $ ps !! fromInteger idx
+      (WyTemplate (ASTApplic _ ps))           ->  return . WyTemplate $ ps !! fromInteger idx
       x                                       -> throwError $ ArgumentErr $ "Not a function application: " ++ (show x)) f
 
 stdIOPrim f =
@@ -316,6 +325,12 @@ defp n l = M.insert n (WyPrimitive n l)
 extractId (ASTId i) = return i
 extractId (ASTStmt [ASTId i]) = return i
 extractId x = throwError $ ArgumentErr $ "Non identifier value when one was expected: " ++ (show x)
+
+extractName (ASTId i) = return i
+extractName (ASTStmt [ASTId i]) = return i
+extractName (ASTString s) = return s
+extractName (ASTStmt [ASTString s]) = return s
+extractName x = throwError $ ArgumentErr $ "Non identifier or name value when one was expected: " ++ (show x)
         
 evalSnd = eval . head . tail
 
