@@ -330,12 +330,16 @@ extractName (ASTId i) = return i
 extractName (ASTStmt [ASTId i]) = return i
 extractName (ASTString s) = return s
 extractName (ASTStmt [ASTString s]) = return s
+extractName (ASTWyWrapper (WyString s)) = return s
 extractName x = throwError $ ArgumentErr $ "Non identifier or name value when one was expected: " ++ (show x)
         
 evalSnd = eval . head . tail
 
 asInt (WyInt i) = return i
 asInt x         = appErr1 (\y -> "An int was expected, got " ++ y) x
+
+asList (WyList l) = return l
+asList x          = appErr1 (\y -> "A list was expected, got " ++ y) x
 
 unescapeBq :: ASTType -> Eval ASTType
 unescapeBq ai@(ASTId i) | i !! 0 == '$' = do
@@ -346,6 +350,8 @@ unescapeBq ai@(ASTId i) | i !! 0 == '$' = do
     Nothing -> return ai
 unescapeBq (ASTList ss) = mapUnxBq ASTList ss
 unescapeBq (ASTMap m) = liftM ASTMap $ T.mapM unescapeBq m
+unescapeBq (ASTApplic n1 [ASTStmt [ASTApplic (ASTId n2) [p]]]) | n2 == "$^" =
+  liftM2 ASTApplic (unescapeBq n1) $ liftM (map wyToAST) $ eval p >>= asList
 unescapeBq (ASTApplic (ASTId n) ps) | n == "$" = liftM wyToAST $ evalWy (ps !! 0)
 unescapeBq (ASTApplic n ps) = liftM2 ASTApplic (unescapeBq n) $ mapM unescapeBq ps
 unescapeBq (ASTStmt xs) = mapUnxBq ASTStmt xs
