@@ -251,7 +251,6 @@ packagePrim f =
     let modfrm = S.index menv 0
     macfrm <- liftIO . readIORef $ frameMacros modfrm
     varfrm <- liftIO . readIORef $ frameVars modfrm
-    trace ("save " ++ show varfrm) $ return varfrm
 
     -- Only the definitions frame is captured
     liftIO $ varUpdate env name (WyModule name varfrm macfrm) ) $
@@ -277,7 +276,6 @@ packagePrim f =
   where updateFrame varsRef macsRef (WyModule _ mvars mmacs) = do
           varfrm <- readIORef varsRef
           macfrm <- readIORef macsRef
-          trace ("import " ++ show mvars) $ return varfrm
           writeIORef varsRef $ M.union mvars varfrm
           writeIORef macsRef $ M.union mmacs macfrm
 

@@ -67,10 +67,9 @@ describe("Module import",
     l(3,4) == 7
   )
   it("shouldn't be transitive",
-    module(Baz, bz = 3)
-    module(Bar, import(Baz))
+    module(Bar, import(Foo))
     import(Bar)
-    defined?(bz) == false
+    defined?(a) == false
   )
 )
 
