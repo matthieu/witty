@@ -95,8 +95,8 @@ basePrim f =
             Nothing  -> handleErr ps err
 
         -- matchErr caught thrown
-        matchErr (WyList ((WyMap m):xs)) (UnknownRef s) = sysErr m xs s $ "UnknownRef" ++ s
-        matchErr (WyList ((WyMap m):xs)) (ArgumentErr s) = sysErr m xs s $ "ArgumentErr" ++ s
+        matchErr (WyList ((WyMap m):xs)) (UnknownRef s) = sysErr m xs s $ "UnknownRef " ++ s
+        matchErr (WyList ((WyMap m):xs)) (ArgumentErr s) = sysErr m xs s $ "ArgumentError " ++ s
         matchErr (WyList ((WyMap m1):xs)) (UserErr wm@(WyMap m2))
           | M.member (WyString "type") m1 &&  M.member (WyString "type") m2 
               = let c = M.lookup (WyString "type") m1
@@ -238,20 +238,32 @@ packagePrim f =
     env  <- ask
     name <- extractId $ head ps
     xmod <- liftIO $ varValue name env
-    menv <- liftIO $ 
+    -- If the module already exists, extending it
+    menv <- liftIO $ do
+      importFrm <- envAddMod True M.empty M.empty env
       case xmod of
-        Just (WyModule _ mvars mmacs) -> envAdd mvars mmacs env
-        Nothing -> envAdd M.empty M.empty env
+        Just (WyModule _ mvars mmacs) -> envAdd mvars mmacs importFrm
+        Nothing                       -> envAdd M.empty M.empty importFrm
+
+    -- An executing module has 2 frames, one for the module definitions, one
+    -- for eventual imports (don't want to mix to avoid transitivity)
     local (const menv) $ evalSnd ps
     let modfrm = S.index menv 0
     macfrm <- liftIO . readIORef $ frameMacros modfrm
     varfrm <- liftIO . readIORef $ frameVars modfrm
+    trace ("save " ++ show varfrm) $ return varfrm
+
+    -- Only the definitions frame is captured
     liftIO $ varUpdate env name (WyModule name varfrm macfrm) ) $
   
   defp "import" (\ps -> do
     mod <- eval $ head ps
     env <- ask
-    let frm = S.index env 0
+    -- Updating module import frame
+    let frm = if S.length env > 1
+                then let sndFrame = S.index env 1
+                     in if isModuleFrame sndFrame then sndFrame else S.index env 0
+                else S.index env 0
     liftIO $ updateFrame (frameVars frm) (frameMacros frm) mod
     return mod ) $
 
@@ -265,6 +277,7 @@ packagePrim f =
   where updateFrame varsRef macsRef (WyModule _ mvars mmacs) = do
           varfrm <- readIORef varsRef
           macfrm <- readIORef macsRef
+          trace ("import " ++ show mvars) $ return varfrm
           writeIORef varsRef $ M.union mvars varfrm
           writeIORef macsRef $ M.union mmacs macfrm
 

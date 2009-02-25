@@ -38,7 +38,7 @@ mhead (x:xs)  = Just x
 main = do params <- getArgs
           p <- newIORef $ primitives M.empty
           m <- newIORef  M.empty
-          let blankEnv = S.empty |> Frame p m
+          let blankEnv = S.empty |> Frame p m False
           env <- liftM snd $ wyInterpr blankEnv "foundation" foundationText
           case mhead params of
             Just x -> do cnt <- readFile x

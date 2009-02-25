@@ -65,7 +65,13 @@ describe("Module import",
     module(Foo, module(Bar, l = lambda(m,n,m+n)))
     import(Foo::Bar)
     l(3,4) == 7
-  )    
+  )
+  it("shouldn't be transitive",
+    module(Baz, bz = 3)
+    module(Bar, import(Baz))
+    import(Bar)
+    defined?(bz) == false
+  )
 )
 
 describe("Module external reference",

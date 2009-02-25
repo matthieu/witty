@@ -8,7 +8,7 @@ module Wy.Types
     WyError(..),
     WyType(..), readRef, mapReadRef, newWyRef, truthy, wyToAST, showWy, macroPivot, 
     wyPlus, wyMinus, wyDiv, wyMult,
-    WyEnv, Frame(..), macroValue, varValue, macroUpdate, varUpdate, envStack, envAdd,
+    WyEnv, Frame(..), macroValue, varValue, macroUpdate, varUpdate, envStack, envAdd, envAddMod,
     Eval, localM, localIO, runEval, appErr1, appErr2
   ) where
 
@@ -161,7 +161,8 @@ type WyEnv = S.Seq Frame
 
 data Frame = Frame {
   frameVars :: IORef (M.Map String WyType),
-  frameMacros :: IORef (M.Map String WyType)
+  frameMacros :: IORef (M.Map String WyType),
+  isModuleFrame :: Bool
 }
 
 instance Show Frame where show _ = "<frame>"
@@ -213,10 +214,11 @@ envStack :: [String] -> [WyType] -> WyEnv -> IO (WyEnv)
 envStack params values env = envAdd (M.fromList $ zip params values) M.empty env
 
 envAdd :: (M.Map String WyType) -> (M.Map String WyType) -> WyEnv -> IO (WyEnv)
-envAdd fv mv env = do
+envAdd = envAddMod False
+envAddMod isMod fv mv env = do
   newf <- newIORef fv
   newm <- newIORef mv
-  return . (<| env) $ Frame newf newm
+  return . (<| env) $ Frame newf newm isMod
 
 --
 -- Evaluation monad
