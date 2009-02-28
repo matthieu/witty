@@ -36,10 +36,12 @@ mhead []      = Nothing
 mhead (x:xs)  = Just x
 
 main = do params <- getArgs
-          p <- newIORef $ primitives M.empty
-          m <- newIORef  M.empty
+          p <- newIORef $ M.insert "def" (WyPrimitive "def" defWy) M.empty
+          m <- newIORef M.empty
           let blankEnv = S.empty |> Frame p m False
-          env <- liftM snd $ wyInterpr blankEnv "foundation" foundationText
+          e <-  wyInterpr blankEnv "foundation" foundationText
+          either (putStrLn . show) (showWy >=> putStrLn) $ fst e
+          let env = snd e
           case mhead params of
             Just x -> do cnt <- readFile x
                          e <- wyInterpr env x cnt

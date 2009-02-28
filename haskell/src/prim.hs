@@ -1,5 +1,5 @@
 module Wy.Prim
-  ( primitives
+  ( defWy
   ) where
 
 import Control.Monad(liftM, liftM2, foldM)
@@ -18,6 +18,20 @@ import Debug.Trace
 import Wy.Parser(ASTType(..), parseWy)
 import Wy.Interpr
 import Wy.Types
+
+-- Main definition function, used to import all primitives in the running
+-- environment.
+
+defWy ps = do
+  env <- ask
+  case last ps of
+    (ASTStmt [ASTApplic (ASTId n) [ASTString primName]]) | n == "primitive" -> do
+      defName <- extractId $ head ps
+      case M.lookup primName $ primitives M.empty of
+        Nothing -> throwError $ ArgumentErr ("Unknown primitive referenced in def: " ++ primName)
+        Just x  -> liftIO $ varUpdate env defName x
+    x -> do params <- mapM extractId $ init ps
+            return $ WyLambda params (last ps) env
 
 primitives f = arithmPrim $ basePrim $ dataPrim $ packagePrim $ metaPrim $ stdIOPrim f
 
@@ -131,6 +145,7 @@ arithmPrim f =
   defp "/" (opEvalM wyDiv) $
   defp "!" (\ps -> liftM (WyBool . not . truthy) (eval $ ps !! 0)) $
   defp "==" (opEval $ boolComp (==)) $
+  defp "!=" (opEval $ boolComp (/=)) $
   defp "<=" (opEval $ boolComp (<=)) $
   defp ">=" (opEval $ boolComp (>=)) $
   defp "<" (opEval $ boolComp (<)) $
@@ -332,10 +347,6 @@ stdIOPrim f =
 -- Common support functions
 
 defp n l = M.insert n (WyPrimitive n l)
-
-extractId (ASTId i) = return i
-extractId (ASTStmt [ASTId i]) = return i
-extractId x = throwError $ ArgumentErr $ "Non identifier value when one was expected: " ++ (show x)
 
 extractName (ASTId i) = return i
 extractName (ASTStmt [ASTId i]) = return i

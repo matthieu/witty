@@ -1,9 +1,112 @@
-module(Foundation, 
+def(module, name, body,
+  primitive('module')
+)
 
-  // A few macros defining macros to get started
+def(import, name,
+  primitive('import')
+)
+
+module(Foundation, 
+  def(macrop, exp, priority, body,
+    primitive('macrop')
+  )
+
+  def(lambda, parameters\, body,
+    primitive('lambda')
+  )
+
+  def(`, expr,
+    primitive('`')
+  )
+  
   macrop(macro(`exp, `body), 10, `(macrop($exp, 10, $body)));
   macro(macrox(`exp, `body), `(macrop($exp, 10, `($body))));
   macro(macropx(`exp, `priority, `body), `(macrop($exp, $priority, `($body))));
+
+  // Expressions inspection
+  //
+
+  def(applic?, expression,
+    primitive('applic?')
+  )
+
+  def(fnName, expression,
+    primitive('fnName')
+  )
+
+  def(params, expression,
+    primitive('params')
+  )
+
+  def(nthParam, expression, idx,
+    primitive('nthParam')
+  )
+
+  def(defined?, expression,
+    primitive('defined?')
+  )
+
+  def(empty?, expression,
+    primitive('applic?')
+  )
+
+  // Comparison and arithmetic operators
+  //
+  def(==, lexpr, rexpr,
+    primitive('==')
+  )
+
+  def(!=, lexpr, rexpr,
+    primitive('!=')
+  )
+
+  def(<, lexpr, rexpr,
+    primitive('<')
+  )
+
+  def(>, lexpr, rexpr,
+    primitive('>')
+  )
+
+  def(<=, lexpr, rexpr,
+    primitive('<=')
+  )
+
+  def(>=, lexpr, rexpr,
+    primitive('>=')
+  )
+
+  def(!, lexpr, rexpr,
+    primitive('!')
+  )
+
+  def(&&, lexpr, rexpr,
+    primitive('&&')
+  )
+
+  def(||, lexpr, rexpr,
+    primitive('||')
+  )
+
+  def(=, name, value,
+    primitive('=')
+  )
+
+  def(+, lexpr, rexpr,
+    primitive('+')
+  )
+
+  def(-, lexpr, rexpr,
+    primitive('-')
+  )
+
+  def(*, lexpr, rexpr,
+    primitive('*')
+  )
+
+  def(/, lexpr, rexpr,
+    primitive('/')
+  )
 
   // Arithmetic operators
   macrop(`a = `b, 1,
@@ -15,11 +118,10 @@ module(Foundation,
   )
   macropx(`a += `b, 1, $a = $a + $b);
   macropx(`a -= `b, 1, $a = $a - $b);
-  macropx(`a << `b, 1, <<($a, $b));
-  macropx(`a >> `b, 1, >>($a, $b));
   macropx(`a || `b, 2, ||($a, $b));
   macropx(`a && `b, 3, &&($a, $b));
   macropx(`a == `b, 4, ==($a, $b));
+  macropx(`a != `b, 4, !=($a, $b));
   macropx(`a <= `b, 5, <=($a, $b));
   macropx(`a >= `b, 5, >=($a, $b));
   macropx(`a < `b, 5, <($a, $b));
@@ -41,6 +143,10 @@ module(Foundation,
     )
   )
 
+  def(::, elmt, list,
+    primitive('::')
+  )
+
   // Access to module definitions from outside
   macro(`mod :: `def, 
     if(applic?(def),
@@ -52,10 +158,26 @@ module(Foundation,
     )
   )
 
-  macrox(unless(`cond, `body), if(!($cond), $body)) 
+  // Control structures
+  //
+
+  def(if, cond, body, contra,
+    primitive('if')
+  )
+
+  macrox(unless(`cond, `body, `contra?), if(!($cond), $body, $contra)) 
+
+  def(foldr, fn, init, list,
+    primitive('foldr')
+  )
+  
+  foldr1 = lambda(fn, arr, foldr(fn, head(arr), tail(arr)))
+
+  def(foldl, fn, init, list,
+    primitive('foldl')
+  )
 
   foldl1 = lambda(fn, arr, foldl(fn, head(arr), tail(arr)))
-  foldr1 = lambda(fn, arr, foldr(fn, head(arr), tail(arr)))
 
   map = lambda(fn, arr, foldr(lambda(x, ys, [fn(x)] + ys), [], arr))
 
@@ -63,13 +185,74 @@ module(Foundation,
     foldl(lambda(acc, x, l(x)), null, arr)
   )
 
+  def(callcc, fn,
+    primitive('callcc')
+  )
+
+  // Error handling
+  //
+
   UnknownRef = { type: 'UnknownRef' }
   ArgumentError = { type: 'ArgumentError' }
   SysError = [UnknownRef, ArgumentError]
 
+  def(try, body, catches\,
+    primitive('try')
+  )
+
+  def(raise, err,
+    primitive('raise')
+  )
+
   macrox(catch(`err, `var?, `body?), [$err, lambda($var, $body)])
+
+  // Data structures
+
+  def(L, elmts\,
+    primitive('L')
+  )
+
+  def(@, list, elmt,
+    primitive('@')
+  )
+
+  def(<<, list, elmt,
+    primitive('<<')
+  )
+  macropx(`a << `b, 1, <<($a, $b));
+
+  def(>>, elmt, list,
+    primitive('>>')
+  )
+  macropx(`a >> `b, 1, >>($a, $b));
+
+  def(@!, ref, val,
+    primitive('@!')
+  )
+
+  def(push!, list, val,
+    primitive('push!')
+  )
+
+  def(length, l,
+    primitive('length')
+  )
+
   head = lambda(a, a.0)
+
   tail = lambda(a, slice(a, 1))
+
+  def(toS, elmt,
+    primitive('toS')
+  )
+
+  def(slice, list, start, end,
+    primitive('slice')
+  )
+
+  def(reverse, l,
+    primitive('reverse')
+  )
 
   join = lambda(arr, sep?, 
     foldl1(
@@ -91,6 +274,20 @@ module(Foundation,
         [head(str) + head(rest)] + tail(rest)
       )
     )
+  )
+
+  // IO
+
+  def(print, elmts\,
+    primitive('print')
+  )
+
+  def(load, f,
+    primitive('load')
+  )
+
+  def(arguments,
+    primitive(arguments)
   )
 )
 

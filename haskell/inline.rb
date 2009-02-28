@@ -11,7 +11,7 @@ module Wy.Foundation
   ) where
 
 foundationText = unlines [
-  "#{f.split("\n").map { |l| l.gsub('"', '\"') }.join("\",\n  \"")}"]
+  "#{f.split("\n").map { |l| l.gsub("\\", "\\\\\\").gsub('"', '\"') }.join("\",\n  \"")}"]
   EOS
 
   File.open('build/foundation.hs', 'w') { |f| f << cnt }

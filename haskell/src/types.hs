@@ -6,7 +6,8 @@
 module Wy.Types
   ( ASTType(..),
     WyError(..),
-    WyType(..), readRef, mapReadRef, newWyRef, truthy, wyToAST, showWy, macroPivot, 
+    WyType(..), readRef, mapReadRef, newWyRef, truthy, wyToAST, showWy, macroPivot,
+    extractId,
     wyPlus, wyMinus, wyDiv, wyMult,
     WyEnv, Frame(..), macroValue, varValue, macroUpdate, varUpdate, envStack, envAdd, envAddMod,
     Eval, localM, localIO, runEval, appErr1, appErr2
@@ -153,6 +154,10 @@ instance Ord (IORef WyType) where
 
 wyToAST (WyTemplate t) = t
 wyToAST x = ASTWyWrapper x
+
+extractId (ASTId i) = return i
+extractId (ASTStmt [ASTId i]) = return i
+extractId x = throwError $ ArgumentErr $ "Non identifier value when one was expected: " ++ (show x)
 
 -- Environment definition
 --
