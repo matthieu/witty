@@ -1,5 +1,4 @@
 verbose = arguments().0 == "-v"
-print(arguments(), " ", verbose)
 descriptions = []
 
 macro(describe(`str, `descBody), `(
@@ -25,7 +24,7 @@ macro(describe(`str, `descBody), `(
 load("test/arithmetics.wy")
 load("test/string.wy")
 load("test/list.wy")
-// load("test/hash.wy")
+load("test/hash.wy")
 // load("test/stdlib.wy")
 // load("test/control.wy")
 // load("test/lambda.wy")

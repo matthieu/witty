@@ -1,6 +1,6 @@
-describe("Hash creation",
-  it("should work with the H function",
-    h = H("foo",4,"bar",6)
+describe("Map creation",
+  it("should work with the M function",
+    h = M("foo",4,"bar",6)
     h.bar == 6
   )
   it("should work with the {} syntax sugar",
@@ -9,19 +9,19 @@ describe("Hash creation",
   )
 )
 
-describe("Hash length",
+describe("Map length",
   it("should return the number of keys",
-    h = H("foo",4,"bar",6)
+    h = M("foo",4,"bar",6)
     length(h) == 2
   )
   it("should keep an updated number of keys",
-    h = H("foo",4,"bar",6)
+    h = M("foo",4,"bar",6)
     h.baz = 8
     length(h) == 3
   )
 )
 
-describe("Hash mutator",
+describe("Map mutator",
   it("should update an existing value",
     h = {foo: 4, bar: 6}
     h.bar = "abc"
@@ -41,14 +41,14 @@ describe("Hash mutator",
   )
 )
 
-describe("Hash element applications",
+describe("Map element applications",
   h = {foo: lambda(p, "f"+p), bar: lambda("b" + "ar"), baz: lambda(a,b, "z"+(a+b)) }
   it("should execute a one parameter lambda", h.foo(3) == "f3")
   it("should execute a zero parameter lambda", h.bar() == "bar")
   it("should execute a multi-parameter lambda", h.baz(3,7) == "z10")
 )
 
-describe("Hash empty",
+describe("Map empty",
   it("should return true for an empty hash", empty?({}) == true)
   it("should return false for a non-empty hash", empty?({foo:1, bar:4}) == false)
 )

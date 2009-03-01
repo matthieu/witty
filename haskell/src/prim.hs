@@ -109,8 +109,8 @@ basePrim f =
             Nothing  -> handleErr ps err
 
         -- matchErr caught thrown
-        matchErr (WyList ((WyMap m):xs)) (UnknownRef s) = sysErr m xs s $ "UnknownRef " ++ s
-        matchErr (WyList ((WyMap m):xs)) (ArgumentErr s) = sysErr m xs s $ "ArgumentError " ++ s
+        matchErr (WyList ((WyMap m):xs)) (UnknownRef s) = sysErr m xs s "UnknownRef"
+        matchErr (WyList ((WyMap m):xs)) (ArgumentErr s) = sysErr m xs s "ArgumentError"
         matchErr (WyList ((WyMap m1):xs)) (UserErr wm@(WyMap m2))
           | M.member (WyString "type") m1 &&  M.member (WyString "type") m2 
               = let c = M.lookup (WyString "type") m1
@@ -133,8 +133,9 @@ basePrim f =
 
         sysErr m xs msg errstr = do
           v <- liftIO . readRef $ M.findWithDefault WyNull (WyString "type") m
-          if (v == WyString "UnknownRef")
-            then liftM Just $ applyDirect (last xs) [WyMap $ M.insert (WyString "message") (WyString errstr) m]
+          if (v == WyString errstr)
+            then liftM Just $ applyDirect (last xs) 
+              [WyMap $ M.insert (WyString "message") (WyString $ errstr ++ ": " ++ msg) m]
             else return Nothing
 
 
@@ -170,6 +171,10 @@ boolComp c a b = WyBool (c a b)
 -- todo |> and <| to return a new array with a new value at its beginning / end
 dataPrim f =
   defp "L" (\ps -> liftM WyList (mapM evalWy ps) >>= newWyRef ) $
+  defp "M" (\ps ->
+    if odd $ length ps
+      then throwError $ ArgumentErr "Odd number of arguments in map constructor."
+      else evalToAssoc ps >>= newWyRef . WyMap . M.fromList ) $
   defp "empty?" (\ps -> 
     onContainers ps (WyBool . null) (WyBool . null) (WyBool . M.null) ) $
   defp "length" (\ps -> 
@@ -247,6 +252,10 @@ dataPrim f =
         stickToList fn (WyString xs) (WyString val) _ = return $ WyString (xs ++ val)
         stickToList _ x val errstr = throwError $ ArgumentErr $ 
           "Can't " ++ errstr  ++ " value " ++ (show val) ++ " in " ++ (show x)
+
+        -- assumes even number of arguments (faster to check before)
+        evalToAssoc (x1:x2:xs) = liftM2 (:) (liftM2 (,) (eval x1) (evalWy x2)) $ evalToAssoc xs
+        evalToAssoc [] = return []
 
 packagePrim f =
   defp "module" (\ps -> do

@@ -212,6 +212,10 @@ module(Foundation,
     primitive('L')
   )
 
+  def(M, elmts\,
+    primitive('M')
+  )
+
   def(@, list, elmt,
     primitive('@')
   )

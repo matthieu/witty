@@ -94,7 +94,7 @@ skipChar = lexeme . skipMany . char
 lexer = P.makeTokenParser wyDef
 wyDef = javaStyle { 
           P.identStart = letter <|> oneOf "`$",
-          P.identLetter = alphaNum <|> oneOf "!#$%&?@\\^~`",
+          P.identLetter = alphaNum <|> oneOf "!#$%&?@\\^~`_",
           P.opStart = P.opLetter wyDef,
           P.opLetter = oneOf "!#%&*+./<=>?@\\^|-~:",
           P.caseSensitive = True,
