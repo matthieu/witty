@@ -13,8 +13,8 @@ describe("Macro functions",
   it("should allow aliasing for +", other_add(4,7) == 11)
 
   m = 0
-  for(p = 0, p < 4, p+=1, other_add(m,p))
-  it("should be consistent in loops", 6)
+  for([0,1,2,3], lambda(p, m = other_add(m,p)))
+  it("should be consistent in loops", m == 6)
 )
 
 describe("Macros calling lambdas",
@@ -40,7 +40,7 @@ describe("Macros calling lambdas",
 
 describe("Macros manipulating functions",
   bar = lambda(a, "bar" + a)
-  macro(foo(`p), if(applic?(p), `(bar($<(params(p)))), `(bar($p))))
+  macro(foo(`p), if(applic?(p), `(bar($^(params(p)))), `(bar($p))))
   it("should make parameters rewriting possible with list expansion", foo(baz("a")) == "bara")
   it("should detect applications properly", foo("a") == "bara")
 )
