@@ -70,6 +70,18 @@ basePrim f =
     val <- liftIO $ varValue vid env
     return $ maybe (WyBool False) (const $ WyBool True) val ) $
 
+  defp "apply" (\ps -> do
+    env <- ask
+    fnNm <- extractName $ head ps
+    fn   <- liftIO $ varValue fnNm env
+    fstP <- evalWy . head $ tail ps
+    lstP <- astList fstP
+    case fn of
+      Just f  -> case lstP of
+                   Just l  -> apply (map ASTWyWrapper l) f
+                   Nothing -> apply (ASTWyWrapper fstP : (tail . tail) ps) f
+      Nothing -> throwError . ArgumentErr $ "Unknown function: " ++ fnNm ) $
+
   defp "try" (\ps ->
     eval (head ps) `catchError` handleErr (tail ps) ) $
 
@@ -87,7 +99,11 @@ basePrim f =
   defp "foldr" (\ps -> wyFold foldrM ps) $
   defp "foldl" (\ps -> wyFold foldlM ps) f
 
-  where extractInt (ASTInt i) = return i
+  where astList (WyRef r)  = liftIO (readIORef r) >>= astList
+        astList (WyList l) = return $ Just l
+        astList x          = return $ Nothing
+  
+        extractInt (ASTInt i) = return i
         extractInt x = throwError $ ArgumentErr $ (show x) ++ " isn't an integer value"
         applySeq l elmt acc = do re <- liftIO $ readRef elmt
                                  apply [wyToAST re] l
@@ -358,11 +374,14 @@ stdIOPrim f =
 defp n l = M.insert n (WyPrimitive n l)
 
 extractName (ASTId i) = return i
-extractName (ASTStmt [ASTId i]) = return i
+extractName (ASTStmt [x]) = extractName x
 extractName (ASTString s) = return s
-extractName (ASTStmt [ASTString s]) = return s
 extractName (ASTWyWrapper (WyString s)) = return s
-extractName x = throwError $ ArgumentErr $ "Non identifier or name value when one was expected: " ++ (show x)
+extractName x = do
+  vstr <- eval x
+  case vstr of
+    (WyString s) -> return s
+    _ -> throwError $ ArgumentErr $ "Non identifier or name value when one was expected: " ++ (show x)
         
 evalSnd = eval . head . tail
 

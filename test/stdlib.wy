@@ -6,9 +6,12 @@ describe("Function defined?",
   it("should consider a function defined", defined?(defined?) )
 )
 describe("Function apply",
+  add2 = lambda(a, a+2)
   it("should execute arithmetic functions", apply(+, [2,3]) == 5)
   it("should execute variable parameter functions", apply(L, [1,2,3]) == [1,2,3])
   it("should accept direct parameters", apply(-, 7, 3) == 4)
+  it("should execute lambdas", apply(add2, 7) == 9)
+  it("should accept function names as strings", apply("add2", 7) == 9)
 )
 
 describe("Function isa",

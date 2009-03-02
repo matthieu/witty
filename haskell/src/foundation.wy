@@ -23,7 +23,7 @@ module(Foundation,
   macro(macrox(`exp, `body), `(macrop($exp, 10, `($body))));
   macro(macropx(`exp, `priority, `body), `(macrop($exp, $priority, `($body))));
 
-  // Expressions inspection
+  // Meta
   //
 
   def(applic?, expression,
@@ -40,6 +40,15 @@ module(Foundation,
 
   def(nthParam, expression, idx,
     primitive('nthParam')
+  )
+
+  // Applies a named function with provided arguments. The function name
+  // can either be a string or a symbol. Arguments can be specified eiter
+  // directly or as an array.
+  //   ex: apply(+, [1, 2]) -> 3
+  //       apply(split, "192.168.1.1", ".") -> ["192", "168", "1", "1"]
+  def(apply, fn, params\,
+    primitive('apply')
   )
 
   // Accepts either a string or a symbol. Returns true if it corresponds
