@@ -51,6 +51,11 @@ module(Foundation,
     primitive('apply')
   )
 
+  // Evaluates a string as a witty expression, returning its result.
+  def(eval, s,
+    primitive('eval')
+  )
+
   // Accepts either a string or a symbol. Returns true if it corresponds
   // to a known binding in the current environment, false otherwise.
   def(defined?, expression,

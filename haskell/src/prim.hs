@@ -70,6 +70,9 @@ basePrim f =
     val <- liftIO $ varValue vid env
     return $ maybe (WyBool False) (const $ WyBool True) val ) $
 
+  defp "eval" (\ps -> do
+   liftM (parseWy "<eval>") (eval (head ps) >>= asString) >>= evalWy ) $
+
   defp "apply" (\ps -> do
     env <- ask
     fnNm <- extractName $ head ps
@@ -390,6 +393,9 @@ asInt x         = appErr1 (\y -> "An int was expected, got " ++ y) x
 
 asList (WyList l) = return l
 asList x          = appErr1 (\y -> "A list was expected, got " ++ y) x
+
+asString (WyString s) = return s
+asString x          = appErr1 (\y -> "A sting was expected, got " ++ y) x
 
 unescapeBq :: ASTType -> Eval ASTType
 unescapeBq ai@(ASTId i) | i !! 0 == '$' = do
