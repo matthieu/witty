@@ -66,7 +66,7 @@ basePrim f =
 
   defp "defined?" (\ps -> do
     env <- ask
-    vid <- extractId $ head ps
+    vid <- extractName $ head ps
     val <- liftIO $ varValue vid env
     return $ maybe (WyBool False) (const $ WyBool True) val ) $
 

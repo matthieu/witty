@@ -1,7 +1,8 @@
 describe("Function defined?",
-  it("should return false for an unknown name", !defined?(a) )
+  it("should return false for an unknown name", !(defined?(a)) )
   it("should return true for an known name", a = 0; defined?(a) )
-  it("should consider a boolean defined", defined?(false) )
+  it("shouldn't consider true defined", !(defined?(true)) )
+  it("shouldn't consider null defined", !(defined?(null)) )
   it("should consider a function defined", defined?(defined?) )
 )
 describe("Function apply",
@@ -18,8 +19,8 @@ describe("Function isa",
     fn = lambda(x, x+1)
     isa(fn, print)
   )
-  if("should be false for number and string", isa("abc", 7) == false)
-  if("should be false for string and function", isa("abc", print) == false)
+  it("should be false for number and string", isa("abc", 7) == false)
+  it("should be false for string and function", isa("abc", print) == false)
 )
 
 describe("Error throwing",

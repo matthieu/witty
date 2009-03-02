@@ -42,6 +42,8 @@ module(Foundation,
     primitive('nthParam')
   )
 
+  // Accepts either a string or a symbol. Returns true if it corresponds
+  // to a known binding in the current environment, false otherwise.
   def(defined?, expression,
     primitive('defined?')
   )
@@ -52,6 +54,7 @@ module(Foundation,
 
   // Comparison and arithmetic operators
   //
+
   def(==, lexpr, rexpr,
     primitive('==')
   )
