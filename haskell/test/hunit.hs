@@ -86,7 +86,7 @@ testTwoVarExpr = TestCase $ assertEqual
     (ASTStmt [(ASTInt 2) , (ASTId "+"), (ASTInt 3)]) (Just M.empty)
 
 testMissingOptionalPatt = TestCase $ assertEqual
-  "Should match application with missing optional" (Just [("a", ASTString "bar"), ("b", ASTNull)]) $ liftM M.toList $
+  "Should match application with missing optional" (Just [("a", ASTString "bar"), ("b", (ASTId "null"))]) $ liftM M.toList $
   patternMatch (ASTApplic (ASTId "foo") [ASTId "`a", ASTId "`b?"])
       (ASTApplic (ASTId "foo") [ASTString "bar"]) (Just M.empty)
 

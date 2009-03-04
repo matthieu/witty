@@ -17,6 +17,7 @@ describe("Function apply",
 describe("Function eval",
   it("should return the result of the evaluated expression", eval("3 + 11") == 14)
   it("should let exceptions bubble up", try(eval("a"), catch(UnknownRef, e, "caught")) == "caught")
+  it("should affect current environment", a = 0; eval("a += 1"); a == 1)
 )
 
 describe("Function isa",
@@ -33,13 +34,16 @@ describe("Function isa",
 
 describe("Error throwing",
   it("should throw standard errors",
-    try(throw(UserError), catch(UserError, "caught")) == "caught"
+    try(raise(ArgumentError), catch(ArgumentError, ae, "caught")) == "caught"
   )
   it("should throw numbers",
-    try(throw(404), catch(404, "caught")) == "caught"
+    try(raise(404), catch(404, code, "caught")) == "caught"
   )
   it("should throw strings",
-    try(throw("foo"), catch("foo", "caught")) == "caught"
+    try(raise("foo"), catch("foo", s, "caught")) == "caught"
+  )
+  it("should swallow with single parameter",
+    try(raise(UnknownRef), catch(UnknownRef)) == null
   )
 )
 

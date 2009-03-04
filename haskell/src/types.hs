@@ -33,7 +33,6 @@ data ASTType = ASTString String
                 | ASTInt Integer
                 | ASTFloat Double
                 | ASTBool Bool
-                | ASTNull
                 | ASTList [ASTType]
                 | ASTMap (M.Map ASTType ASTType)
                 | ASTId String

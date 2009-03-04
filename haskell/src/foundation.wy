@@ -56,6 +56,13 @@ module(Foundation,
     primitive('eval')
   )
 
+  // Evaluates a literal witty expression.
+  //   ex: evalWy(`(null)) -> null
+  //       evalWy(`(2+3))  -> 5
+  def(evalWy, s,
+    primitive('evalWy')
+  )
+
   // Accepts either a string or a symbol. Returns true if it corresponds
   // to a known binding in the current environment, false otherwise.
   def(defined?, expression,
@@ -221,7 +228,9 @@ module(Foundation,
     primitive('raise')
   )
 
-  macrox(catch(`err, `var?, `body?), [$err, lambda($var, $body)])
+  macro(catch(`err, `var?, `body?),
+    if(var != `(null), `([$err, lambda($var, $body)]), `([$err, null]))
+  )
 
   // Data structures
 
