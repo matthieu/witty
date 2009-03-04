@@ -28,7 +28,6 @@ import Wy.Types
 
 evalWy:: ASTType -> Eval WyType
 
-evalWy ASTNull = return WyNull
 evalWy (ASTBool b) = return $ WyBool b
 evalWy (ASTFloat f) = return $ WyFloat f 
 evalWy (ASTInt i) = return $ WyInt i
@@ -121,7 +120,7 @@ patternMatch (ASTApplic n1 ps1) (ASTApplic n2 ps2) f | n1 == n2 =
   case adjps2 of
       Just vs -> matchList ps1 vs f
       Nothing -> Nothing
-  where adjps2 = adjust ASTNull ASTList strps1 ps2 (length ps2 - (fst $ unslurps strps1))
+  where adjps2 = adjust (ASTId "null") ASTList strps1 ps2 (length ps2 - (fst $ unslurps strps1))
         strps1 =  map toIdStr ps1
         toIdStr (ASTId x) = x
         toIdStr _         = "placeholder"

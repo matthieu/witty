@@ -2,7 +2,7 @@ module Wy.Prim
   ( defWy
   ) where
 
-import Control.Monad(liftM, liftM2, foldM)
+import Control.Monad(liftM, liftM2, foldM, (>=>))
 import qualified Data.Map as M
 import qualified Data.Sequence as S
 import qualified Data.Traversable as T
@@ -73,6 +73,8 @@ basePrim f =
   defp "eval" (\ps -> do
    liftM (parseWy "<eval>") (eval (head ps) >>= asString) >>= evalWy ) $
 
+  defp "evalWy" (eval . head >=> unwrapTemplate >=> evalWy) $
+
   defp "apply" (\ps -> do
     env <- ask
     fnNm <- extractName $ head ps
@@ -135,7 +137,7 @@ basePrim f =
               = let c = M.lookup (WyString "type") m1
                     t = M.lookup (WyString "type") m2
                 in case (c, t) of 
-                  (Just cv, Just tv) | cv == tv -> liftM Just $ applyDirect (last xs) [wm]
+                  (Just cv, Just tv) | cv == tv -> liftM Just $ applyCatch (last xs) [wm]
                   otherwise -> return Nothing
         matchErr (WyList ((WyList (e:es)):xs)) err = do
           xe <- liftIO $ readRef e
@@ -144,8 +146,11 @@ basePrim f =
             Just x  -> return $ Just x
             Nothing -> matchErr (WyList ((WyList es):xs)) err
         matchErr (WyList (x:xs)) ue@(UserErr y) 
-          | x == y    = liftM Just $ applyDirect (last xs) [y]
+          | x == y    = liftM Just $ applyCatch (last xs) [y]
         matchErr _ _ = return Nothing
+
+        applyCatch WyNull xs = return WyNull
+        applyCatch fn xs = applyDirect fn xs
 
         readArrRef (WyList l) = liftM WyList $ mapReadRef l
         readArrRef x          = error $ "Expected a list but didn't get one, a bug " ++ (show x)
@@ -157,6 +162,8 @@ basePrim f =
               [WyMap $ M.insert (WyString "message") (WyString $ errstr ++ ": " ++ msg) m]
             else return Nothing
 
+        unwrapTemplate (WyTemplate ast) = return ast
+        unwrapTemplate x = throwError $ ArgumentErr $ "A witty expression was expected."
 
 arithmPrim f = 
   defp "+" (opEvalM wyPlus) $
@@ -395,7 +402,7 @@ asList (WyList l) = return l
 asList x          = appErr1 (\y -> "A list was expected, got " ++ y) x
 
 asString (WyString s) = return s
-asString x          = appErr1 (\y -> "A sting was expected, got " ++ y) x
+asString x          = appErr1 (\y -> "A string was expected, got " ++ y) x
 
 unescapeBq :: ASTType -> Eval ASTType
 unescapeBq ai@(ASTId i) | i !! 0 == '$' = do
