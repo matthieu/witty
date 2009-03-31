@@ -79,14 +79,14 @@ applyDirect (WyLambda ps body lenv) vals =
 adjust z l (p:ps) (v:vs) dif 
   | last p == '?' && dif <= 0 = liftM (z :) $ adjust z l ps (v:vs) dif
   | last p == '?' && dif > 0  = liftM (v :) $ adjust z l ps vs (dif - 1)
-  | last p == '\\' && dif >= 0 =
+  | last p == '~' && dif >= 0 =
       let s = slurp (v:vs) dif 
       in liftM (l s :) $ adjust z l ps (drop (length s - 1) vs) (dif - length s)
   | otherwise = liftM (v :) $ adjust z l ps vs dif
 
 adjust z l (p:ps) [] dif 
   | last p == '?' && dif <= 0  = liftM (z :) $ adjust z l ps [] dif
-  | last p == '\\' && dif == 0 = liftM (z :) $ adjust z l ps [] dif
+  | last p == '~' && dif == 0 = liftM (z :) $ adjust z l ps [] dif
 adjust z l [] [] dif | dif >= 0 = Just []
 adjust z l _  _  x = Nothing
 
@@ -98,10 +98,10 @@ slurp [] _ = []
 -- Removing slurpy and optional postfix from arguments. Reuse the same iteration
 -- to compute the number of fixed parameters (used by adjust).
 unslurps:: [String] -> (Int, [String])
-unslurps = foldr (\x acc -> if last x == '?' || last x == '\\' 
+unslurps = foldr (\x acc -> if last x == '?' || last x == '~' 
                               then (fst acc, init x : snd acc) 
                               else (fst acc + 1, x : snd acc)) (0, [])
-unslurp x | last x == '?' || last x == '\\' = init x
+unslurp x | last x == '?' || last x == '~' = init x
           | otherwise = x
 
 -------------------------------------------------------------------------------

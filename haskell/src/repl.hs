@@ -9,7 +9,7 @@ import qualified Data.Map as M
 import Control.Monad(liftM, (>=>))
 import Debug.Trace
 
-import Wy.Foundation
+--import Wy.Foundation
 import Wy.Parser
 import Wy.Types
 import Wy.Prim
@@ -39,9 +39,10 @@ main = do params <- getArgs
           p <- newIORef $ M.insert "def" (WyPrimitive "def" defWy) M.empty
           m <- newIORef M.empty
           let blankEnv = S.empty |> Frame p m False
-          e <-  wyInterpr blankEnv "foundation" foundationText
-          either (putStrLn . show) (const $ return ()) $ fst e
-          let env = snd e
+--          e <-  wyInterpr blankEnv "foundation" foundationText
+--          either (putStrLn . show) (const $ return ()) $ fst e
+--          let env = snd e
+          let env = blankEnv
           case mhead params of
             Just x -> do cnt <- readFile x
                          e <- wyInterpr env x cnt

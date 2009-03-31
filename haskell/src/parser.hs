@@ -1,6 +1,6 @@
 module Wy.Parser
-  ( ASTType(..), 
-    parseWy, 
+  ( ASTType(..),
+    parseWy,
     pruneAST
   ) where
 
@@ -11,6 +11,7 @@ import Control.Monad(liftM)
 import Text.ParserCombinators.Parsec
 import qualified Text.ParserCombinators.Parsec.Token as P
 import Text.ParserCombinators.Parsec.Language(javaStyle)
+import Debug.Trace
 
 import Wy.Types
 
@@ -24,36 +25,27 @@ wyParser = whitespace >> block >>= \x -> eof >> return x
 
 block = liftM ASTBlock $ stmt `sepEndBy1` eol
 
-stmt = liftM ASTStmt $ assocOrAtom
+stmt = liftM ASTStmt $ assocOrComp
 
-assocOrAtom = try assoc <|> liftM (:[]) atom -- todo unary operators ! and -
+-- this can probably be optimized, the failure scenario parses atom twice
+assocOrComp = try assoc <|> liftM (:[]) compound
 
-assoc = do ls <- atom
-           rs <- opStmt
-           return $ ls : rs
+assoc = do lv <- compound
+           op <- operator
+           rv <- assocOrComp
+           return $ lv : (ASTId op) : rv
 
-atom = parens stmt <|> compound
+compound = literals <|> idOrApplic <|> parens block
 
-opStmt = do { op <- operator; s <- assocOrAtom; return $ (ASTId op) : s }
+literals = literalList <|> literalMap <|> literalNumber <|> literalString
 
-compound = idOrApplic <|> literalList <|> literalMap 
-          <|> literalNumber <|> literalString <|> literalBool
+idOrApplic =  try ( do { idr <- idRef; notFollowed compound; return idr } ) 
+              <|> do { fn <- try idRef <|> parens block; ps <- many1 (try idRef <|> literals <|> parens block); return $ ASTApplic fn ps }
 
-idOrApplic = do idr <- idRef
-                appl <- applicOrNull
-                case appl of
-                  [] -> return idr
-                  [x]  -> return $ chainedApplics idr x
-  where chainedApplics n ps = foldl ASTApplic n ps
-  
-applicOrNull = do try (symbol "(")
-                  res <- commaSep (cr >> block)
-                  symbol ")"
-                  rest <- many $ parens (commaSep (cr >> block))
-                  return [res:rest]
-               <|> return []
+notFollowed p  = try (do{ c <- p; unexpected (show [c]) }
+                       <|> return () )
 
-idRef = liftM ASTId $ (identifier <|> operator)
+idRef = liftM ASTId (identifier <|> parens operator)
 
 literalList = liftM ASTList $ brackets (commaSep stmt)
 
@@ -69,8 +61,6 @@ literalString = liftM ASTString $ (stringLiteral <|> charString)
 literalNumber = try literalFloat <|> literalInt -- todo negative floats
 literalInt = liftM ASTInt $ integer
 literalFloat = liftM ASTFloat $ float
-literalBool = (symbol "true" >> (return $ ASTBool True))
-          <|> (symbol "false" >> (return $ ASTBool False))
 
 charString = lexeme ( do {
     str <- between (char '\'')
@@ -94,9 +84,9 @@ skipChar = lexeme . skipMany . char
 lexer = P.makeTokenParser wyDef
 wyDef = javaStyle { 
           P.identStart = letter <|> oneOf "`$",
-          P.identLetter = alphaNum <|> oneOf "!#$%&?@\\^~`_",
+          P.identLetter = alphaNum <|> oneOf "!#$%&?@^~`_",
           P.opStart = P.opLetter wyDef,
-          P.opLetter = oneOf "!#%&*+./<=>?@\\^|-~:",
+          P.opLetter = oneOf "!#%&*+./<=>?@^|-~:",
           P.caseSensitive = True,
           P.isBlank = (\ch -> ch == ' ' || ch == '\t' || ch == '\r')
         }
