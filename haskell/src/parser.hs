@@ -25,6 +25,8 @@ wyParser = whitespace >> block >>= \x -> eof >> return x
 
 block = liftM ASTBlock $ stmt `sepEndBy1` eol
 
+parensBlock = parens (try(cr) >> block)
+
 stmt = liftM ASTStmt $ assocOrComp
 
 -- this can probably be optimized, the failure scenario parses atom twice
@@ -35,12 +37,14 @@ assoc = do lv <- compound
            rv <- assocOrComp
            return $ lv : (ASTId op) : rv
 
-compound = literals <|> idOrApplic <|> parens block
+compound = literals <|> idOrApplic <|> parensBlock
 
 literals = literalList <|> literalMap <|> literalNumber <|> literalString
 
 idOrApplic =  try ( do { idr <- idRef; notFollowed compound; return idr } ) 
-              <|> do { fn <- try idRef <|> parens block; ps <- many1 (try idRef <|> literals <|> parens block); return $ ASTApplic fn ps }
+              <|> do { fn <- try idRef <|> parensBlock; ps <- params; return $ ASTApplic fn ps }
+
+params = liftM concat $ many1 (try idRef <|> literals <|> parensBlock) `sepBy` (symbol "\\" >> cr)
 
 notFollowed p  = try (do{ c <- p; unexpected (show [c]) }
                        <|> return () )
@@ -95,6 +99,7 @@ parens = P.parens lexer
 braces = P.braces lexer
 brackets = P.brackets lexer
 commaSep = P.commaSep lexer
+comma = P.comma lexer
 identifier = P.identifier lexer
 operator = P.operator lexer
 colon = P.colon lexer

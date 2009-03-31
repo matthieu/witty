@@ -45,6 +45,7 @@ main = do params <- getArgs
           let env = blankEnv
           case mhead params of
             Just x -> do cnt <- readFile x
+                         print $ parseWy x cnt
                          e <- wyInterpr env x cnt
                          either (putStrLn . show) (const $ return ()) $ fst e
             Nothing -> repl env
