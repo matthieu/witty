@@ -2,10 +2,12 @@ module Main() where
 
 import Data.IORef
 import qualified Data.Sequence as S
-import System.Console.Readline
-import System.Environment(getArgs)
+import Data.Char (isSpace)
 import Data.Sequence ((|>))
 import qualified Data.Map as M
+
+import System.Console.Readline
+import System.Environment(getArgs)
 import Control.Monad(liftM, (>=>))
 import Debug.Trace
 
@@ -35,6 +37,9 @@ repl env = do
 mhead []      = Nothing
 mhead (x:xs)  = Just x
 
+trim = trimR . trimR  
+  where trimR = reverse . dropWhile isSpace
+
 main = do params <- getArgs
           p <- newIORef $ M.insert "def" (WyPrimitive "def" defWy) M.empty
           m <- newIORef M.empty
@@ -45,8 +50,8 @@ main = do params <- getArgs
           let env = blankEnv
           case mhead params of
             Just x -> do cnt <- readFile x
-                         print $ parseWy x cnt
-                         e <- wyInterpr env x cnt
+                         print $ parseWy x (trim cnt)
+                         e <- wyInterpr env x (trim cnt)
                          either (putStrLn . show) (const $ return ()) $ fst e
             Nothing -> repl env
 

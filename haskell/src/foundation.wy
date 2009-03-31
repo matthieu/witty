@@ -1,45 +1,48 @@
-def(module, name, body,
-  primitive('module')
+def module name body (
+  primitive 'module'
 )
 
-def(import, name,
-  primitive('import')
+def import name (
+  primitive 'import'
 )
 
-module(Foundation, 
-  def(macrop, exp, priority, body,
-    primitive('macrop')
+module Foundation (
+
+  def macrop exp priority body (
+    primitive 'macrop'
   )
 
-  def(lambda, parameters\, body,
-    primitive('lambda')
+  def lambda parameters~ body (
+    primitive 'lambda'
   )
 
-  def(`, expr,
-    primitive('`')
+  def (`) expr (
+    primitive '`'
   )
   
-  macrop(macro(`exp, `body), 10, `(macrop($exp, 10, $body)));
-  macro(macrox(`exp, `body), `(macrop($exp, 10, `($body))));
-  macro(macropx(`exp, `priority, `body), `(macrop($exp, $priority, `($body))));
+  macrop (macro `exp `body) 10 (`)(macrop $exp 10 $body)
+
+  macro (macrox `exp, `body) (`)(macrop($exp, 10, `($body))))
+
+  macro (macropx `exp `priority `body) (`)(macrop $exp, $priority, (`)($body))
 
   // Meta
   //
 
-  def(applic?, expression,
-    primitive('applic?')
+  def applic? expression(
+    primitive 'applic?'
   )
 
-  def(fnName, expression,
-    primitive('fnName')
+  def fnName expression(
+    primitive 'fnName'
   )
 
-  def(params, expression,
-    primitive('params')
+  def params expression(
+    primitive 'params'
   )
 
-  def(nthParam, expression, idx,
-    primitive('nthParam')
+  def nthParam expression idx(
+    primitive 'nthParam'
   )
 
   // Applies a named function with provided arguments. The function name
@@ -47,97 +50,99 @@ module(Foundation,
   // directly or as an array.
   //   ex: apply(+, [1, 2]) -> 3
   //       apply(split, "192.168.1.1", ".") -> ["192", "168", "1", "1"]
-  def(apply, fn, params\,
-    primitive('apply')
+  def apply fn params~ (
+    primitive 'apply'
   )
 
   // Evaluates a string as a witty expression, returning its result.
-  def(eval, s,
-    primitive('eval')
+  def eval s (
+    primitive 'eval'
   )
 
   // Evaluates a literal witty expression.
   //   ex: evalWy(`(null)) -> null
   //       evalWy(`(2+3))  -> 5
-  def(evalWy, s,
-    primitive('evalWy')
+  def evalWy s (
+    primitive 'evalWy'
   )
 
   // Accepts either a string or a symbol. Returns true if it corresponds
   // to a known binding in the current environment, false otherwise.
-  def(defined?, expression,
-    primitive('defined?')
+  def defined? expression (
+    primitive 'defined?'
   )
 
-  def(empty?, expression,
-    primitive('empty?')
+  def empty? expression (
+    primitive 'empty?'
   )
 
   // Comparison and arithmetic operators
   //
 
-  def(==, lexpr, rexpr,
-    primitive('==')
+  def (==) lexpr rexpr (
+    primitive '=='
   )
 
-  def(!=, lexpr, rexpr,
-    primitive('!=')
+  def (!=) lexpr rexpr (
+    primitive '!='
   )
 
-  def(<, lexpr, rexpr,
-    primitive('<')
+  def (<) lexpr rexpr (
+    primitive '<')
   )
 
-  def(>, lexpr, rexpr,
-    primitive('>')
+  def (>) lexpr rexpr (
+    primitive '>'
   )
 
-  def(<=, lexpr, rexpr,
-    primitive('<=')
+  def (<=) lexpr rexpr (
+    primitive '<='
   )
 
-  def(>=, lexpr, rexpr,
-    primitive('>=')
+  def (>=) lexpr rexpr (
+    primitive '>='
   )
 
-  def(!, lexpr, rexpr,
-    primitive('!')
+  def (!) lexpr rexpr (
+    primitive '!'
   )
 
-  def(&&, lexpr, rexpr,
-    primitive('&&')
+  def (&&) lexpr rexpr (
+    primitive '&&'
   )
 
-  def(||, lexpr, rexpr,
-    primitive('||')
+  def (||) lexpr rexpr (
+    primitive '||'
   )
 
-  def(=, name, value,
-    primitive('=')
+  def (=) name value (
+    primitive '='
   )
 
-  def(+, lexpr, rexpr,
-    primitive('+')
+  def (+) lexpr rexpr (
+    primitive '+'
   )
 
-  def(-, lexpr, rexpr,
-    primitive('-')
+  def (-) lexpr rexpr (
+    primitive '-'
   )
 
-  def(*, lexpr, rexpr,
-    primitive('*')
+  def (*) lexpr rexpr (
+    primitive '*'
   )
 
-  def(/, lexpr, rexpr,
-    primitive('/')
+  def (/) lexpr rexpr (
+    primitive '/'
   )
 
   // Arithmetic operators
-  macrop(`a = `b, 1,
-    if(applic?(a),
-      if(fnName(a) == "@", 
-        `(@!($(nthParam(a, 0)), $(nthParam(a,1)), $b)) ),
-      `(=($a, $b))
+  macrop (`a = `b) 1 (
+    if (applic? a) (
+      if (fnName a == "@") (
+        (`)(@!($(nthParam(a, 0)), $(nthParam(a,1)), $b)) 
+      )(
+        (`)((=) $a $b)
+      )
     )
   )
   macropx(`a += `b, 1, $a = $a + $b);
@@ -158,8 +163,8 @@ module(Foundation,
   // Index-based acces in container data structures (lists, string, hashes). Standard 
   // parsing for foo.bar(baz) is foo.(bar(baz)). We want (foo.bar)(baz).
   macro(`arr . `idx, 
-    if(applic?(idx),
-      if(empty?(params(idx)),
+    if applic?(idx),
+      if empty?(params(idx)),
         `( @($arr, $(fnName(idx)))() ),
         `( @($arr, $(fnName(idx)))($^(params(idx))) )
       ),
@@ -167,14 +172,14 @@ module(Foundation,
     )
   )
 
-  def(::, elmt, list,
-    primitive('::')
+  def ::, elmt, list,
+    primitive '::')
   )
 
   // Access to module definitions from outside
   macro(`mod :: `def, 
-    if(applic?(def),
-      if(empty?(params(def)),
+    if applic?(def),
+      if empty?(params(def)),
         `( ::($mod, $(fnName(def)))() ),
         `( ::($mod, $(fnName(def)))($^(params(def))) )
       ),
@@ -185,20 +190,20 @@ module(Foundation,
   // Control structures
   //
 
-  def(if, cond, body, contra,
-    primitive('if')
+  def if, cond, body, contra,
+    primitive 'if')
   )
 
-  macrox(unless(`cond, `body, `contra?), if(!($cond), $body, $contra)) 
+  macrox(unless(`cond, `body, `contra?), if !($cond), $body, $contra)) 
 
-  def(foldr, fn, init, list,
-    primitive('foldr')
+  def foldr, fn, init, list,
+    primitive 'foldr')
   )
   
   foldr1 = lambda(fn, arr, foldr(fn, head(arr), tail(arr)))
 
-  def(foldl, fn, init, list,
-    primitive('foldl')
+  def foldl, fn, init, list,
+    primitive 'foldl')
   )
 
   foldl1 = lambda(fn, arr, foldl(fn, head(arr), tail(arr)))
@@ -209,8 +214,8 @@ module(Foundation,
     foldl(lambda(acc, x, l(x)), null, arr)
   )
 
-  def(callcc, fn,
-    primitive('callcc')
+  def callcc, fn,
+    primitive 'callcc')
   )
 
   // Error handling
@@ -220,84 +225,84 @@ module(Foundation,
   ArgumentError = { type: 'ArgumentError' }
   SysError = [UnknownRef, ArgumentError]
 
-  def(try, body, catches\,
-    primitive('try')
+  def try, body, catches\,
+    primitive 'try')
   )
 
-  def(raise, err,
-    primitive('raise')
+  def raise, err,
+    primitive 'raise')
   )
 
   macro(catch(`err, `var?, `body?),
-    if(var != `(null), `([$err, lambda($var, $body)]), `([$err, null]))
+    if var != `(null), `([$err, lambda($var, $body)]), `([$err, null]))
   )
 
   // Data structures
 
-  def(L, elmts\,
-    primitive('L')
+  def L, elmts\,
+    primitive 'L')
   )
 
-  def(M, elmts\,
-    primitive('M')
+  def M, elmts\,
+    primitive 'M')
   )
 
-  def(@, list, elmt,
-    primitive('@')
+  def @, list, elmt,
+    primitive '@')
   )
 
-  def(<<, list, elmt,
-    primitive('<<')
+  def <<, list, elmt,
+    primitive '<<')
   )
   macropx(`a << `b, 1, <<($a, $b));
 
-  def(>>, elmt, list,
-    primitive('>>')
+  def >>, elmt, list,
+    primitive '>>')
   )
   macropx(`a >> `b, 1, >>($a, $b));
 
-  def(@!, ref, val,
-    primitive('@!')
+  def @!, ref, val,
+    primitive '@!')
   )
 
-  def(push!, list, val,
-    primitive('push!')
+  def push!, list, val,
+    primitive 'push!')
   )
 
-  def(length, l,
-    primitive('length')
+  def length, l,
+    primitive 'length')
   )
 
   head = lambda(a, a.0)
 
   tail = lambda(a, slice(a, 1))
 
-  def(toS, elmt,
-    primitive('toS')
+  def toS, elmt,
+    primitive 'toS')
   )
 
-  def(slice, list, start, end,
-    primitive('slice')
+  def slice, list, start, end,
+    primitive 'slice')
   )
 
-  def(reverse, l,
-    primitive('reverse')
+  def reverse, l,
+    primitive 'reverse')
   )
 
   join = lambda(arr, sep?, 
     foldl1(
       lambda(a, b, 
-        if(sep, a + sep + b, a + b)
+        if sep, a + sep + b, a + b)
       ), 
       arr
     )
   )
 
   split = lambda(str, sep,
-    if(empty?(str), 
+    if empty?(str), 
       [""],
 
-      if(head(str) == sep,
+      if head(str) == sep,
         [""] + split(tail(str), sep),
 
         rest = split(tail(str), sep)
@@ -308,16 +313,16 @@ module(Foundation,
 
   // IO
 
-  def(print, elmts\,
-    primitive('print')
+  def print, elmts\,
+    primitive 'print')
   )
 
-  def(load, f,
-    primitive('load')
+  def load, f,
+    primitive 'load')
   )
 
-  def(arguments,
-    primitive('arguments')
+  def arguments,
+    primitive 'arguments')
   )
 )
 
