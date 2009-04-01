@@ -63,7 +63,7 @@ literalMap = liftM (ASTMap . M.fromList) $ braces (commaSep keyVal)
 literalString = liftM ASTString $ (stringLiteral <|> charString)
 
 literalNumber = try literalFloat <|> literalInt -- todo negative floats
-literalInt = liftM ASTInt $ integer
+literalInt = liftM ASTInt $ lexeme decimal
 literalFloat = liftM ASTFloat $ float
 
 charString = lexeme ( do {
@@ -105,6 +105,7 @@ operator = P.operator lexer
 colon = P.colon lexer
 stringLiteral = P.stringLiteral lexer
 integer = P.integer lexer
+decimal = P.decimal lexer
 float = P.float lexer
 symbol = P.symbol lexer
 semi = P.semi lexer
