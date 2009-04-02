@@ -273,7 +273,7 @@ module Foundation (
     primitive 'length'
   )
 
-  head = lambda a a.0
+  head = lambda a (a.0)
 
   tail = lambda a (slice a 1)
 

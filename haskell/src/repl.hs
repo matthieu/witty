@@ -11,7 +11,7 @@ import System.Environment(getArgs)
 import Control.Monad(liftM, (>=>))
 import Debug.Trace
 
---import Wy.Foundation
+import Wy.Foundation
 import Wy.Parser
 import Wy.Types
 import Wy.Prim
@@ -44,13 +44,11 @@ main = do params <- getArgs
           p <- newIORef $ M.insert "def" (WyPrimitive "def" defWy) M.empty
           m <- newIORef M.empty
           let blankEnv = S.empty |> Frame p m False
---          e <-  wyInterpr blankEnv "foundation" foundationText
---          either (putStrLn . show) (const $ return ()) $ fst e
---          let env = snd e
-          let env = blankEnv
+          e <-  wyInterpr blankEnv "foundation" foundationText
+          either (putStrLn . show) (const $ return ()) $ fst e
+          let env = snd e
           case mhead params of
             Just x -> do cnt <- readFile x
-                         print $ parseWy x (trim cnt)
                          e <- wyInterpr env x (trim cnt)
                          either (putStrLn . show) (const $ return ()) $ fst e
             Nothing -> repl env
