@@ -29,25 +29,30 @@ parensBlock = parens (try(cr) >> block)
 
 stmt = liftM ASTStmt $ assocOrComp
 
--- this can probably be optimized, the failure scenario parses atom twice
-assocOrComp = try assoc <|> liftM (:[]) compound
+assocOrComp = do c <- compound
+                 a <- assoc
+                 return (c:a)
 
-assoc = do lv <- compound
-           op <- operator
+assoc = do op <- try(operator)
            rv <- assocOrComp
-           return $ lv : (ASTId op) : rv
+           return $ (ASTId op) : rv
+        <|> return []
 
 compound = literals <|> idOrApplic <|> parensBlock
 
 literals = literalList <|> literalMap <|> literalNumber <|> literalString
 
-idOrApplic =  try ( do { idr <- idRef; notFollowed compound; return idr } ) 
-              <|> do { fn <- try idRef <|> parensBlock; ps <- params; return $ ASTApplic fn ps }
+idOrApplic =  try idOnly <|> applic
+
+idOnly = do idr <- idRef
+            notFollowed compound
+            return idr
+
+applic = do fn <- try idRef <|> parensBlock
+            ps <- params
+            return $ ASTApplic fn ps
 
 params = liftM concat $ many1 (try idRef <|> literals <|> parensBlock) `sepBy` (symbol "\\" >> cr)
-
-notFollowed p  = try (do{ c <- p; unexpected (show [c]) }
-                       <|> return () )
 
 idRef = liftM ASTId (identifier <|> parens operator)
 
@@ -62,16 +67,13 @@ literalMap = liftM (ASTMap . M.fromList) $ braces (commaSep keyVal)
 
 literalString = liftM ASTString $ (stringLiteral <|> charString)
 
-literalNumber = try literalFloat <|> literalInt -- todo negative floats
+literalNumber = try literalFloat <|> literalInt
 literalInt = liftM ASTInt $ lexeme decimal
 literalFloat = liftM ASTFloat $ float
 
-charString = lexeme ( do {
-    str <- between (char '\'')
-                   (char '\'' <?> "end of string")
-                   (many characterChar)
-    ; return str
-  } <?> "character")
+charString = lexeme (
+    between (char '\'') (char '\'' <?> "end of string") (many characterChar)
+  <?> "character")
 
 characterChar = charLetter <?> "literal character"
 
@@ -81,6 +83,8 @@ eol = many1 $ (lexeme . many1 . oneOf $ ";\n") >> skipChar '\n'
 cr = skipChar '\n'
 
 skipChar = lexeme . skipMany . char
+
+notFollowed p = try ( do { c <- p; unexpected (show [c]) } <|> return () )
 
 --
 -- Lexer
@@ -99,7 +103,6 @@ parens = P.parens lexer
 braces = P.braces lexer
 brackets = P.brackets lexer
 commaSep = P.commaSep lexer
-comma = P.comma lexer
 identifier = P.identifier lexer
 operator = P.operator lexer
 colon = P.colon lexer
