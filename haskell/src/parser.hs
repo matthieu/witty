@@ -33,26 +33,24 @@ assocOrComp = do c <- compound
                  a <- assoc
                  return (c:a)
 
-assoc = do op <- try(operator)
+assoc = do op <- try operator
            rv <- assocOrComp
            return $ (ASTId op) : rv
         <|> return []
 
-compound = literals <|> idOrApplic <|> parensBlock
+compound = literals <|> idOrApplic
 
 literals = literalList <|> literalMap <|> literalNumber <|> literalString
 
-idOrApplic =  try idOnly <|> applic
+idOrApplic = do idr <- try idRef <|> parensBlock
+                try (idOnly idr) <|> applic idr
 
-idOnly = do idr <- idRef
-            notFollowed compound
-            return idr
+-- optimizing by enumerating chars instead of full parser primitives
+idOnly idr = notFollowed (oneOf "({[\"'" <|> digit <|> P.identStart wyDef) >> return idr
 
-applic = do fn <- try idRef <|> parensBlock
-            ps <- params
-            return $ ASTApplic fn ps
+applic fn = liftM (ASTApplic fn) params
 
-params = liftM concat $ many1 (try idRef <|> literals <|> parensBlock) `sepBy` (symbol "\\" >> cr)
+params = liftM concat $ (many1 (try idRef <|> literals <|> parensBlock)) `sepBy1` (symbol "\\" >> cr)
 
 idRef = liftM ASTId (identifier <|> parens operator)
 
