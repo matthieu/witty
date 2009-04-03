@@ -137,7 +137,7 @@ module Foundation (
 
   // Arithmetic operators
   macrop (`a = `b) 1 (
-    if (applic? a && (fnName a == "@")) (
+    if (applic? a && fnName a == "@") (
       (`) ((@!) (($) (nthParam a 0))  (($) (nthParam a 1)) $b) 
     )(
       (`)((=) $a $b)
@@ -208,7 +208,7 @@ module Foundation (
     primitive 'foldl'
   )
 
-  foldl1 = lambda fn arr (foldl fn (headarr) (tail arr))
+  foldl1 = lambda fn arr (foldl fn (head arr) (tail arr))
 
   map = lambda fn arr (foldr (lambda x ys ([fn(x)] + ys)) [] arr)
 
