@@ -48,7 +48,7 @@ idOrApplic = do idr <- try idRef <|> parensBlock
 -- optimizing by enumerating chars instead of full parser primitives
 idOnly idr = notFollowed (oneOf "({[\"'" <|> digit <|> P.identStart wyDef) >> return idr
 
-applic fn = liftM (ASTApplic fn) params
+applic fn = liftM (ASTApplic fn) ( try (string "()" >> return []) <|> params)
 
 params = liftM concat $ (many1 (try idRef <|> literals <|> parensBlock)) `sepBy1` (symbol "\\" >> cr)
 
