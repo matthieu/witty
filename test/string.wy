@@ -1,17 +1,17 @@
-describe("String definition",
-  it("should allow single quoted strings", length('abc')==3)
-  it("should allow double quoted strings", length("abc")==3)
-  it("should be equal for a single and a double quoted string", "abc"=='abc')
+describe "String definition" (
+  it "should allow single quoted strings" (length 'abc' ==3)
+  it "should allow double quoted strings" (length "abc" ==3)
+  it "should be equal for a single and a double quoted string" ("abc" == 'abc')
 )
 
-describe("String split",
-  it("should split a simple string", 
-    sp = split("abc", "b")
+describe "String split" (
+  it "should split a simple string" (
+    sp = split "abc" "b"
     sp.0 == "a" && sp.1 == "c"
   )
 )
 
-describe("String empty",
-  it("should return true for an empty string", empty?("") == true)
-  it("should return false for a non-empty string", empty?("abc") == false)
+describe "String empty" (
+  it "should return true for an empty string" (empty? "" == true)
+  it "should return false for a non-empty string" (empty? "abc" == false)
 )

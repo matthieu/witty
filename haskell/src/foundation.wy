@@ -299,7 +299,7 @@ module Foundation (
     if (empty? str) (
       [""]
     )(
-      if head str == sep (
+      if (head str == sep) (
         [""] + split (tail str) sep
       )(
         rest = split (tail str) sep
