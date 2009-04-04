@@ -52,16 +52,16 @@ adjustOptTests = TestList [testAdjustEmpty, testAdjustFixed, testAdjustFixedErr,
 
 testAdjustEmptySlurpy = TestCase $ assertEqual
   "Should nullify missing slurpy" (Just [WyInt 0, WyNull]) $ 
-  adjust WyNull WyList ["a", "b\\"] [WyInt 0] 0
+  adjust WyNull WyList ["a", "b~"] [WyInt 0] 0
 testAdjustEndingSlurpy = TestCase $ assertEqual
   "Should fill ending slurpy" (Just [WyInt 0, WyList [WyInt 1, WyInt 2]]) $ 
-  adjust WyNull WyList ["a", "b\\"] [WyInt 0, WyInt 1, WyInt 2] 2
+  adjust WyNull WyList ["a", "b~"] [WyInt 0, WyInt 1, WyInt 2] 2
 testAdjustMiddleSlurpy = TestCase $ assertEqual
   "Should fill middle slurpy" (Just [WyInt 0, WyList [WyInt 1, WyInt 2], WyInt 3]) $ 
-  adjust WyNull WyList ["a", "b\\", "c"] [WyInt 0, WyInt 1, WyInt 2, WyInt 3] 2
+  adjust WyNull WyList ["a", "b~", "c"] [WyInt 0, WyInt 1, WyInt 2, WyInt 3] 2
 testAdjustFailFixedMissSlurpy = TestCase $ assertEqual
   "Should fail with slurpy but missing fixed params" Nothing $ 
-  adjust WyNull WyList ["a", "b\\", "c"] [WyInt 0] (-1)
+  adjust WyNull WyList ["a", "b~", "c"] [WyInt 0] (-1)
 
 adjustSlurpyTests = TestList [testAdjustEmptySlurpy, testAdjustEndingSlurpy, testAdjustMiddleSlurpy, 
   testAdjustFailFixedMissSlurpy]
