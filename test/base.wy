@@ -22,7 +22,7 @@ macrox (describe `str `descBody) (
 
 load("test/arithmetics.wy")
 load("test/string.wy")
-//load("test/list.wy")
+load("test/list.wy")
 //load("test/map.wy")
 //load("test/stdlib.wy")
 // load("test/control.wy")

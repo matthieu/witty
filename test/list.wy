@@ -1,64 +1,64 @@
-describe("List index retrieval",
-  alist = L(3,4,"bar",6)
+describe "List index retrieval" (
+  alist = L 3 4 "bar" 6
   m=1
-  l = L(L(5), L(7))
+  l = L (L 5) (L 7)
 
-  it("should access a value at index 0", alist.0 == 3)
-  it("should access a value at index 1", alist.1 == 4)
-  it("should access a string value at index 2", alist.2 == "bar")
-  it("should access a value at index 3", alist.3 == 6)
-  it("should access a variable index value", alist.m == 4)
-  it("should access a list value inside a list", l.1.0 == 7)
+  it "should access a value at index 0" (alist.0 == 3)
+  it "should access a value at index 1" (alist.1 == 4)
+  it "should access a string value at index 2" (alist.2 == "bar")
+  it "should access a value at index 3" (alist.3 == 6)
+  it "should access a variable index value" (alist.m == 4)
+  it "should access a list value inside a list" ((l.1).0 == 7)
 )
 
-describe("List operators", 
-  added = L(4,5) + L(7,8)
-  subst = L(4,"foo",9,3) - L(3,"foo")
-  it("should have correct elements after addition",
+describe "List operators" (
+  added = L 4 5 + L 7 8
+  subst = L 4 "foo" 9 3 - L 3 "foo"
+  it "should have correct elements after addition" (
     added.0 == 4 && added.1 == 5 && added.2 == 7 && added.3 == 8
   )
-  it("should have correct length after addition",
-    length(added) == 4
+  it "should have correct length after addition" (
+    length added == 4
   )
-  it("should have correct elements after subtraction",
+  it "should have correct elements after subtraction" (
     subst.0 == 4 && subst.1 == 9
   )
-  it("should have correct length after subtraction",
-    length(subst) == 2
+  it "should have correct length after subtraction" (
+    length subst  == 2
   )
 )
 
-describe("List empty",
-  it("should return true for an empty list", empty?([]) == true)
-  it("should return false for a non-empty list", empty?([3,4]) == false)
+describe "List empty" (
+  it "should return true for an empty list" (empty? [] == true)
+  it "should return false for a non-empty list" (empty? [3,4] == false)
 )
 
-describe("List joining",
-  it("should join a list using no separator", join(L("foo", "bar")) == "foobar")
-  it("should join a list using a separator", 
-    join(L("192", "168", "0" , "1"), ".") == "192.168.0.1"
+describe"List joining" (
+  it "should join a list using no separator" (join (L "foo" "bar") == "foobar")
+  it "should join a list using a separator" (
+    join (L "192" "168" "0" "1") "." == "192.168.0.1"
   )
 )
 
-describe("List length",
-  it("should be 0 for an empty list", length(L()) == 0)
-  it("should be 3 for a 3 elements list", length(L(1,2,3)))
+describe "List length" (
+  it "should be 0 for an empty list" (length (L()) == 0)
+  it "should be 3 for a 3 elements list" (length (L 1 2 3) == 3)
 )
 
-describe("List map",
-  add2 = lambda(a, a + 2)
-  it("should map a list with a function adding 2 to each element",
-    newlist = map(add2, L(1,2,3))
+describe "List map" (
+  add2 = lambda a (a + 2)
+  it "should map a list with a function adding 2 to each element" (
+    newlist = map add2 (L 1 2 3)
     newlist.0 == 3 && newlist.1 == 4 && newlist.2 == 5
   ) 
-  it("should conserve the original list length", length(map(add2, L(4,5,6,7))) == 4)
-  it("should produce an empty list from an empty list", length(map(add2, L())) == 0)
+  it "should conserve the original list length" (length (map add2 (L 4 5 6 7)) == 4)
+  it "should produce an empty list from an empty list" (length (map add2 (L())) == 0)
 )
 
-describe("List push",
-  l = L(1,2)
-  it("should increase the length by 1", length(push!(l, "abc")) == 3)
-  it("should add the right element at the last index", l.2 == "abc")
+describe "List push" (
+  l = L 1 2
+  it "should increase the length by 1" (length (push! l "abc") == 3)
+  it "should add the right element at the last index" (l.2 == "abc")
 )
 
 /*
@@ -79,15 +79,15 @@ describe("List shift",
   it("should decrease the length by 1", length(l) == 3)
   it("should remove the element at the first index", l.0 == 2 && l.1 == 3)
 )
-
-describe("List syntax sugar",
+*/
+describe "List syntax sugar" (
   alist = [3, "foo", 4.1]
-  it("should allow access of a value at index 0", alist.0 == 3)
-  it("should allow access of a value at index 1", alist.1 == "foo")
-  it("should allow access of a value at index 2", alist.2 == 4.1)
-  it("should have a proper length", length(alist) == 3)
+  it "should allow access of a value at index 0" (alist.0 == 3)
+  it "should allow access of a value at index 1" (alist.1 == "foo")
+  it "should allow access of a value at index 2" (alist.2 == 4.1)
+  it "should have a proper length" (length alist == 3)
 )
-
+/*
 describe("List index-based modification",
   alist = [4,5,[6,7],8]
   it("should set a value at a given index",
