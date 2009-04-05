@@ -1,98 +1,97 @@
-describe("If control structure",
+describe "If control structure" (
   a = (b = 2)
-  if(true, null, a = 4)
-  if(false, b = 4, null)
+  if true null (a = 4)
+  if false (b = 4) null
 
-  it("should return the then branch if predicate is true", 
-    if(3 == 3, 5, 10) == 5
+  it "should return the then branch if predicate is true" (
+    if (3 == 3) 5 10 == 5
   )
-  it("should return the else branch if predicate is false", 
-    if(false, 5, 10) == 10
+  it "should return the else branch if predicate is false" (
+    if false 5 10 == 10
   )
-  it("shouldn't evaluate the else branch if predicate is true", a == 2)
-  it("shouldn't evaluate the then branch if predicate is false", b == 2)
+  it "shouldn't evaluate the else branch if predicate is true" (a == 2)
+  it "shouldn't evaluate the then branch if predicate is false" (b == 2)
 )
-
-describe("Basic for loops",
+/* TODO
+describe "Basic for loops" (
   iter = ""
-  for(m1 = 0, m1 < 5, m1=m1+1,
+  for (m1 = 0) (m1 < 5) (m1=m1+1) (
     iter = iter + m1
   )
-  it("should have iterated through all indexes", iter == "01234")
-  it("should have a correct final index value equal", m1 == 5)
+  it "should have iterated through all indexes" (iter == "01234")
+  it "should have a correct final index value equal" (m1 == 5)
 
   str = ""
-  for(m = 0; n = 3 , 
-      n < 11, 
-      m += 1; n += 2,
+  for (m = 0; n = 3) (n < 11) (m += 1; n += 2) (
     str = str + m
     str = str + n
   )
-  it("should iterate with two index variables", str == "03152739")
+  it "should iterate with two index variables" (str == "03152739")
 )
-
-describe("Iterated for loops",
+*/
+describe "Iterated for loops" (
   str = ""
-  for(L(2,3,4), lambda(m, str = str + m))
+  for [2,3,4] (lambda m (str = str + m))
   
-  it("should iterate on each element of the list", str == "234")
-
+  it "should iterate on each element of the list" (str == "234")
+/* TODO
   str2 = ""
-  for(L(2,3,4), 
-    lambda(m, count, 
+  for [2,3,4] (
+    lambda m count (
       str2 = str2 + m
       str2 = str2 + count
     )
   )
-  it("should iterate on each element with setting the counter appropriately", str2 == "203142")
+  it "should iterate on each element while setting the counter appropriately" (str2 == "203142")
+*/
 )
 
-describe("Try/catch blocks",
-  it("should return try last body statement when no error occurs",
-    try(2+3, catch("Foo", "caught")) == 5
+describe "Try/catch blocks" (
+  it "should return try last body statement when no error occurs" (
+    try (2+3) (catch "Foo" "caught") == 5
   )
-  it("should allow try with no catch",
-    try(2+3) == 5
+  it "should allow try with no catch" (
+    try (2+3) == 5
   )
-  it("should catch standard errors",
-    try(10/0, catch(CallError, "caught")) == "caught"
+  it "should catch standard errors" (
+    try (10/0) (catch ArgumentError ae "caught") == "caught"
   )
-  it("should catch directly thrown errors",
-    try(throw("Foo"), catch("Foo", "caught")) == "caught"
+  it "should catch directly thrown errors" (
+    try (raise "Foo") (catch "Foo" f "caught") == "caught"
   )
-  it("shouldn't catch other custom errors",
-    try(
-      try(throw("Bar"), catch("Foo", "caught")),
-    catch("Bar", "through")) == "through"
+  it "shouldn't catch other custom errors" (
+    try (
+      try (raise "Bar") (catch "Foo" f "caught")
+    ) (catch "Bar" b "through") == "through"
   )
-  it("shouldn't catch other standard errors",
-    try(
-      try(throw(UserError), catch(CallError, "caught")),
-    catch(UserError, "through")) == "through"
+  it "shouldn't catch other standard errors" (
+    try (
+      try (raise UserError) (catch ArgumentError ae "caught")
+    ) (catch UserError ue "through") == "through"
   )
-  it("should allow catch predefinition",
-    c = catch("Foo", "caught")
-    try(throw("Foo"), c) == "caught"
+  it "should allow catch predefinition" (
+    c = catch "Foo" f "caught"
+    try (raise "Foo") c == "caught"
   )
-  it("should realize a closure on a predefined catch body",
+  it "should realize a closure on a predefined catch body" (
     val = "before"
-    c = catch("Foo", x, val)
+    c = catch "Foo" x val
     val = "caught"
-    try(throw("Foo"), c) == "caught"
+    try (raise "Foo") c == "caught"
   )
-  it("should catch errors from levels down",
-    errLambda = lambda(throw("Foo"))
-    try(errLambda(), catch("Foo", "caught")) == "caught"
+  it "should catch errors from levels down" (
+    errLambda = lambda (raise "Foo")
+    try (errLambda()) (catch "Foo" f "caught") == "caught"
   )
-  it("should catch all when anonymous",
-    try(10/0, catchAll("caught")) == "caught"
+  it "should catch all when anonymous" (
+    try (10/0) (catchAll "caught") == "caught"
   )
-  it("should allow empty catch to swallow",
-    try(10/0, catchAll()) == null
+  it "should allow empty catch to swallow" (
+    try (10/0) (catchAll()) == null
   )
-  it("should bind error variables",
+  it "should bind error variables" (
     val = null
-    try(throw("Foo", "caught"), catch("Foo", e, val = e))
+    try (raise "caught") (catch "caught" e (val = e))
     val == "caught"
   )
 )

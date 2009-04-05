@@ -223,6 +223,7 @@ module Foundation (
 
   UnknownRef = { type: 'UnknownRef' }
   ArgumentError = { type: 'ArgumentError' }
+  UserError = { type: 'UserError' }
   SysError = [UnknownRef, ArgumentError]
 
   def try body catches~ (

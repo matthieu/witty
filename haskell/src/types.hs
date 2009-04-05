@@ -104,7 +104,9 @@ wyMult (WyInt i1) (WyFloat f2) = return $ WyFloat (fromInteger i1 * f2)
 wyMult (WyFloat f1) (WyInt i2) = return $ WyFloat (f1 * fromInteger i2)
 wyMult x1 x2 = appErr2 (\x y -> "can't multiply " ++ x ++ " and " ++ y) x1 x2
 
-wyDiv (WyInt i1) (WyInt i2) = return $ WyFloat ((fromInteger i1) / (fromInteger i2))
+wyDiv (WyInt i1) (WyInt i2) = 
+  if i2 == 0 then throwError $ ArgumentErr "Division by 0"
+             else return $ WyFloat ((fromInteger i1) / (fromInteger i2))
 wyDiv (WyFloat f1) (WyFloat f2) = return $ WyFloat (f1 / f2)
 wyDiv (WyInt i1) (WyFloat f2) = return $ WyFloat ((fromInteger i1) / f2)
 wyDiv (WyFloat f1) (WyInt i2) = return $ WyFloat (f1 / (fromInteger i2))
