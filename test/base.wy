@@ -28,7 +28,7 @@ load("test/stdlib.wy")
 load("test/control.wy")
 load("test/lambda.wy")
 //load("test/macro.wy")
-//load("test/module.wy")
+load("test/module.wy")
 
 failures = []
 testCount = 0

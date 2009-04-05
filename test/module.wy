@@ -1,87 +1,87 @@
-describe("Module declaration",
-  it("shouldn't leak its scoped definitions",
-    module(Foo, 
+describe "Module declaration" (
+  it "shouldn't leak its scoped definitions" (
+    module Foo (
       a = 1
-      f = lambda(a, a+1)
+      f = lambda a (a+1)
     )
-    !(defined?(a) || defined?(f))
+    (!) (defined? a) || defined? f
   )
-  it("should exist in its parent scope",
-    module(Foo, a = 1)
-    defined?(Foo)
+  it "should exist in its parent scope" (
+    module Foo (a = 1)
+    defined? Foo
   )
-  it("should allow enrichment",
-    module(Foo, a = 1)
-    module(Foo, b = 1)
-    import(Foo)
-    defined?(a)
-    defined?(b)
+  it "should allow enrichment" (
+    module Foo (a = 1)
+    module Foo (b = 1)
+    import Foo
+    defined? a
+    defined? b
   )
-  it("should allow sub module enrichment",
-    module(Foo, module(Bar, a = 2))
-    module(Foo, module(Bar, b = 3))
-    import(Foo)
-    import(Bar)
+  it "should allow sub module enrichment" (
+    module Foo (module Bar (a = 2))
+    module Foo (module Bar (b = 3))
+    import Foo
+    import Bar
     a == 2 && b == 3
   )
-  it("should be defined in parent module",
-    module(Foo, module(Bar, a = 2))
-    import(Foo)
-    defined?(Bar)
+  it "should be defined in parent module" (
+    module Foo (module Bar (a = 2))
+    import Foo
+    defined? Bar
   )
 )
 
-describe("Module import",
-  module(Foo, 
+describe "Module import" (
+  module Foo (
     a = 1
-    f = lambda(a, a+1)
+    f = lambda a (a+1)
   )
   
-  it("should make module definitions accessible",
-    import(Foo)
-    defined?(a)
+  it "should make module definitions accessible" (
+    import Foo
+    defined? a
   )
-  it("should make module functions local",
-    import(Foo)
-    f(3) == 4
+  it "should make module functions local" (
+    import Foo
+    f 3 == 4
   )
-  it("shouldn't leak to the parent scope when nested",
-    lambda(import(Foo))()
-    !(defined?(f))
+  it "shouldn't leak to the parent scope when nested" (
+    (lambda (import Foo))()
+    (!) (defined? f)
   )
-  it("should make all enriched module definitions accessible",
-    module(Foo, a = 1)
-    module(Foo, b = 1)
-    import(Foo)
-    defined?(a) && defined?(b)
+  it "should make all enriched module definitions accessible" (
+    module Foo (a = 1)
+    module Foo (b = 1)
+    import Foo
+    defined? a && defined? b
   )
-  it("should make a submodule definition accessible",
-    module(Foo, module(Bar, l = lambda(m,n,m+n)))
-    import(Foo)
-    import(Bar)
-    l(3,4) == 7
+  it "should make a submodule definition accessible" (
+    module Foo (module Bar (l = lambda m n (m+n)))
+    import Foo
+    import Bar
+    l 3 4 == 7
   )
-  it("should work with a submodule :: notation",
-    module(Foo, module(Bar, l = lambda(m,n,m+n)))
-    import(Foo::Bar)
-    l(3,4) == 7
+  it "should work with a submodule :: notation" (
+    module Foo (module Bar (l = lambda m n (m+n)))
+    import (Foo::Bar)
+    l 3 4 == 7
   )
-  it("shouldn't be transitive",
-    module(Bar, import(Foo))
-    import(Bar)
-    defined?(a) == false
+  it "shouldn't be transitive" (
+    module Bar (import Foo)
+    import Bar
+    defined? a == false
   )
 )
 
-describe("Module external reference",
-  module(Foo, 
+describe "Module external reference" (
+  module Foo (
     a = 1
-    f = lambda(a, a+1)
+    f = lambda a (a+1)
   )
-  it("should resolve to definition value", Foo::a==1)
-  it("should allow module function application", Foo::f(3) == 4)
-  it("should give access to submodule functions",
-    module(Foo, module(Bar, l = lambda(m,n,m+n)))
-    Foo::Bar::l(3,4)==7
+  it "should resolve to definition value" (Foo::a == 1)
+  it "should allow module function application" ((Foo::f)(3) == 4)
+  it "should give access to submodule functions" (
+    module Foo (module Bar (l = lambda m n (m+n)))
+    (Foo::Bar::l) 3 4 ==7
   )
 )
