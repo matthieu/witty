@@ -9,7 +9,7 @@ module Wy.Types
     WyType(..), readRef, mapReadRef, newWyRef, truthy, wyToAST, showWy, macroPivot,
     extractId,
     wyPlus, wyMinus, wyDiv, wyMult,
-    WyEnv, Frame(..), macroValue, varValue, macroUpdate, varUpdate, envStack, envAdd, envAddMod,
+    WyEnv, Frame(..), macroValue, varValue, macroUpdate, varInsert, varUpdate, envStack, envAdd, envAddMod,
     Eval, localM, localIO, runEval, appErr1, appErr2
   ) where
 
@@ -202,7 +202,8 @@ varInsertAt i n v f env frameAcc = do
   writeIORef (frameAcc f) $ M.insert n v fv
   return v
 
-varInsert n v env frameAcc = varInsertAt 0 n v f env frameAcc
+varInsert n v env = varInsert' n v env frameVars
+varInsert' n v env frameAcc = varInsertAt 0 n v f env frameAcc
   where f = S.index env 0
 
 varUpdate :: WyEnv -> String -> WyType -> IO WyType
@@ -213,7 +214,7 @@ macroUpdate n v env = varUpdate' n v env frameMacros
 varUpdate' n v env frameAcc = do
   f <- varFrameIdx' n env (readIORef . frameAcc)
   case f of
-    Nothing      -> varInsert n v env frameAcc
+    Nothing      -> varInsert' n v env frameAcc
     Just (i, f)  -> varInsertAt i n v f env frameAcc
 
 envStack :: [String] -> [WyType] -> WyEnv -> IO (WyEnv)

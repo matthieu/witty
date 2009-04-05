@@ -1,34 +1,34 @@
-describe("Simple lambda definitions",
-  =(add, lambda(a,b, +(a,b)))
-  fact = lambda(n, if(n == 1, 1, n * fact(n - 1)))
+describe "Simple lambda definitions" (
+  add = lambda a b (a + b)
+  fact = lambda n (if (n == 1) 1 (n * fact (n - 1)))
 
-  it("should allow a working definition of a add(1,2) function based on +", ==(add(1,2), 3))
-  it("should allow a working definition of a add(5,10) function based on +", ==(add(5,10), 15))
-  it("should allow a working definition of factorial(5)", fact(5) == 120)
-  it("should allow a working definition of factorial(8)", fact(8) == 40320)
-  it("should allow direct application", (lambda(n, n * 10)(4)) == 40)
-  it("should allow overriding the + operator behavior", 
-    old_plus = +
-    + = lambda(a, b, a - b)
+  it "should allow a working definition of a add(1,2) function based on +" (add 1 2 == 3)
+  it "should allow a working definition of a add(5,10) function based on +" (add 5 10 == 15)
+  it "should allow a working definition of factorial(5)" (fact 5 == 120)
+  it "should allow a working definition of factorial(8)" (fact 8 == 40320)
+  it "should allow direct application" ((lambda n (n * 10))(4) == 40)
+  it "should allow overriding the + operator behavior" (
+    old_plus = (+)
+    (+) = lambda a b (a - b)
     res = 5 + 2
-    + = old_plus
+    (+) = old_plus
     res + 3 == 6
   )
-  it("should redefine previous assignments",
-    add2 = lambda(a, a+2)
-    lambda(add2 = lambda(a, a+3))()
+  it "should redefine previous assignments" (
+    add2 = lambda a (a+2)
+    (lambda (add2 = lambda a (a+3)))()
     add2(3) == 6
   )
 )
 
-describe("Direct def",
-  it("should defined a new named lambda",
-    def(add2, val, val + 2)
-    add2(3) == 5
+describe "Direct def" (
+  it "should defined a new named lambda" (
+    def add2 val (val + 2)
+    add2 3 == 5
   )
-  it("should be defined in the local scope, masking instead of redefining",
-    def(add2, val, val + 2)
-    lambda(def(add2, val, val + 3))()
+  it "should be defined in the local scope, masking instead of redefining" (
+    def add2 val (val + 2)
+    (lambda (def add2 val (val + 3)))()
     add2(3) == 5
   )
 )

@@ -24,14 +24,16 @@ import Wy.Types
 
 defWy ps = do
   env <- ask
+  defName <- extractId $ head ps
   case last ps of
     (ASTStmt [ASTApplic (ASTId n) [ASTString primName]]) | n == "primitive" -> do
-      defName <- extractId $ head ps
       case M.lookup primName $ primitives M.empty of
         Nothing -> throwError $ ArgumentErr ("Unknown primitive referenced in def: " ++ primName)
         Just x  -> liftIO $ varUpdate env defName x
-    x -> do params <- mapM extractId $ init ps
-            return $ WyLambda params (last ps) env
+    x -> do params <- mapM extractId $ tail $ init ps
+            let wl = WyLambda params (last ps) env
+            liftIO $ varInsert defName wl env
+            return wl
 
 primitives f = arithmPrim $ basePrim $ dataPrim $ packagePrim $ metaPrim $ stdIOPrim f
 

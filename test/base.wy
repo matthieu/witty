@@ -26,7 +26,7 @@ load("test/list.wy")
 load("test/map.wy")
 load("test/stdlib.wy")
 load("test/control.wy")
-// load("test/lambda.wy")
+load("test/lambda.wy")
 //load("test/macro.wy")
 //load("test/module.wy")
 

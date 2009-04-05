@@ -70,7 +70,7 @@ applyDirect (WyLambda ps body lenv) vals =
   where 
     buildFrame ps vs e  =
       case adjust WyNull WyList ps vs $ length vs - (fst $ unslurps ps) of
-        Nothing   -> appErr1 (\x -> "Wrong number of arguments in function call: " ++ x ++ show body) (WyList vs)
+        Nothing   -> appErr1 (\x -> "Wrong number of arguments in function call: " ++ x ++ " for " ++ show ps) (WyList vs)
         Just adjV -> liftIO $ envStack (snd $ unslurps ps) adjV e
 
 -- Adjusts the values provided for an application to a function's arguments. Handles
