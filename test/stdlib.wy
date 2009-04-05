@@ -1,68 +1,68 @@
-describe("Function defined?",
-  it("should return false for an unknown name", !(defined?(a)) )
-  it("should return true for an known name", a = 0; defined?(a) )
-  it("shouldn't consider true defined", !(defined?(true)) )
-  it("shouldn't consider null defined", !(defined?(null)) )
-  it("should consider a function defined", defined?(defined?) )
+describe "Function defined?" (
+  it "should return false for an unknown name" ((!) (defined? a))
+  it "should return true for an known name" (a = 0; defined? a)
+  it "shouldn't consider true defined" ((!) (defined? true))
+  it "shouldn't consider null defined" ((!) (defined? null) )
+  it "should consider a function defined" (defined? defined?)
 )
-describe("Function apply",
-  add2 = lambda(a, a+2)
-  it("should execute arithmetic functions", apply(+, [2,3]) == 5)
-  it("should execute variable parameter functions", apply(L, [1,2,3]) == [1,2,3])
-  it("should accept direct parameters", apply(-, 7, 3) == 4)
-  it("should execute lambdas", apply(add2, 7) == 9)
-  it("should accept function names as strings", apply("add2", 7) == 9)
-)
-
-describe("Function eval",
-  it("should return the result of the evaluated expression", eval("3 + 11") == 14)
-  it("should let exceptions bubble up", try(eval("a"), catch(UnknownRef, e, "caught")) == "caught")
-  it("should affect current environment", a = 0; eval("a += 1"); a == 1)
+describe "Function apply" (
+  add2 = lambda a (a+2)
+  it "should execute arithmetic functions" (apply (+) [2,3] == 5)
+  it "should execute variable parameter functions" (apply L [1,2,3] == [1,2,3])
+  it "should accept direct parameters" (apply (-) 7 3 == 4)
+  it "should execute lambdas" (apply add2 7 == 9)
+  it "should accept function names as strings" (apply "add2" 7 == 9)
 )
 
-describe("Function isa",
-  it("should return true for two strings", isa("abc", "cde"))
-  it("should return true for two numbers", isa(3.7, 18))
-  it("should return true for two functions", isa(+, print))
-  it("should return true for primitive and non primitive functions", 
-    fn = lambda(x, x+1)
-    isa(fn, print)
+describe "Function eval" (
+  it "should return the result of the evaluated expression" (eval "3 + 11" == 14)
+  it "should let exceptions bubble up" (try (eval "a") (catch UnknownRef e "caught") == "caught")
+  it "should affect current environment" (a = 0; eval "a += 1"; a == 1)
+)
+
+describe "Function isa" (
+  it "should return true for two strings" (isa "abc" "cde")
+  it "should return true for two numbers" (isa 3.7 18)
+  it "should return true for two functions" (isa (+) print)
+  it "should return true for primitive and non primitive functions" (
+    fn = lambda x (x+1)
+    isa fn print
   )
-  it("should be false for number and string", isa("abc", 7) == false)
-  it("should be false for string and function", isa("abc", print) == false)
+  it "should be false for number and string" (isa "abc" 7 == false)
+  it "should be false for string and function" (isa "abc" print == false)
 )
 
-describe("Error throwing",
-  it("should throw standard errors",
-    try(raise(ArgumentError), catch(ArgumentError, ae, "caught")) == "caught"
+describe "Error throwing" (
+  it "should throw standard errors" (
+    try (raise ArgumentError) (catch ArgumentError ae "caught") == "caught"
   )
-  it("should throw numbers",
-    try(raise(404), catch(404, code, "caught")) == "caught"
+  it "should throw numbers" (
+    try (raise 404) (catch 404 code "caught") == "caught"
   )
-  it("should throw strings",
-    try(raise("foo"), catch("foo", s, "caught")) == "caught"
+  it "should throw strings" (
+    try (raise "foo") (catch "foo" s "caught") == "caught"
   )
-  it("should swallow with single parameter",
-    try(raise(UnknownRef), catch(UnknownRef)) == null
+  it "should swallow with single parameter" (
+    try (raise UnknownRef) (catch UnknownRef) == null
   )
 )
 
-describe("RegExp operator with quoted regexps",
-  it("should return the match index", ("abcd" =~ X("b.d")) == 1)
-  it("should return null when there's no match", ("acbd" =~ X("bc")) == null)
-  it("should convert string to regexp when no regexp provided", ("aabcd" =~ "bc") == 2)
+describe "RegExp operator with quoted regexps" (
+  it "should return the match index" (("abcd" =~ X"b.d") == 1)
+  it "should return null when there's no match" (("acbd" =~ X"bc" ) == null)
+  it "should convert string to regexp when no regexp provided" (("aabcd" =~ "bc") == 2)
 )
 
-describe("Search regexp function",
-  it("should return the match", search("abcd", X("bc")) == "bc")
-  it("should work with strings", search("abcd", "bc") == "bc")
-  it("should return null when no match is found", search("abcd", "cb") == null)
-  it("should match subgroups", search("abcd", "b(c)").1 == "c")
-  it("shouldn't return subsequent matches", length(search("aabccdabdf", "ab")) == 1)
+describe "Search regexp function" (
+  it "should return the match" (search "abcd" (X"bc") == "bc")
+  it "should work with strings" (search "abcd" "bc" == "bc")
+  it "should return null when no match is found" (search "abcd" "cb" == null)
+  it "should match subgroups" ((search "abcd" "b(c)").1 == "c")
+  it "shouldn't return subsequent matches" (length (search "aabccdabdf" "ab") == 1)
 )
 
-describe("Match regexp function",
-  it("should return all matches", length(match("aabccdabdf", X("ab"))) == 2)
-  it("should work with strings", length(match("aabccdabdf", "ab")) == 2)
-  it("should return matched strings", match("aabccdabdf", "a.[cd]").1 == "abd")
+describe "Match regexp function" (
+  it "should return all matches" (length (match "aabccdabdf" (X"ab")) == 2)
+  it "should work with strings" (length (match "aabccdabdf" "ab") == 2)
+  it "should return matched strings" ((match "aabccdabdf" "a.[cd]").1 == "abd")
 )
