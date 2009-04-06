@@ -1,46 +1,44 @@
-describe("Macro expressions",
-  macro(`pred ? `b1 ~ `b2, `(if($pred, $b1, $b2)))
-	macro(sq(`x), `(*($x,$x)))
-  macro(sumOf(`x, `y), `(+($x, $y)))
-  it("should work when having more than one symbol ((5==6) ? 1 ~ 2)", ((5==6) ? 1 ~ 2) == 2)
-  it("should work when having more than one symbol ((5==5) ? 1 ~ 2)", ((5==5) ? 1 ~ 2) == 1)
-  it("should conserve operators precedence on square", sq(3+3) == 36)
-  it("should conserve operators precedence on sumOf", 2*sumOf(1,7) == 16)
+describe "Macro expressions" (
+  macrox (`pred ? `b1 ~ `b2) (if $pred $b1 $b2)
+	macrox (sq `x) ($x * $x)
+  macrox (sumOf `x `y) ($x + $y)
+  it "should work when having more than one symbol ((5==6) ? 1 ~ 2)" ( (5==6) ? 1 ~ 2 == 2)
+  it "should work when having more than one symbol ((5==5) ? 1 ~ 2)" ( (5==5) ? 1 ~ 2 == 1)
+  it "should conserve operators precedence on square" (sq (3+3) == 36)
+  it "should conserve operators precedence on sumOf" (2 * sumOf 1 7 == 16)
 )
 
-describe("Macro functions",
-  macro(other_add(`a,`b), `(+($a, $b)))
-  it("should allow aliasing for +", other_add(4,7) == 11)
+describe "Macro functions" (
+  macrox (other_add `a `b) ($a + $b)
+  it "should allow aliasing for +" (other_add 4 7 == 11)
 
   m = 0
-  for([0,1,2,3], lambda(p, m = other_add(m,p)))
-  it("should be consistent in loops", m == 6)
+  for [0,1,2,3] (lambda p (m = other_add m p))
+  it "should be consistent in loops" (m == 6)
 )
 
-describe("Macros calling lambdas",
-  macro(foo(), `(fooFn()))
+describe "Macros calling lambdas" (
+  macrox (foo()) (fooFn())
   m = "init"
-  fooFn = lambda(m = "changed")
-  it("should return the lambda result", foo() == "changed")
-  it("should have the same side effects as the function", m == "changed")
+  fooFn = lambda (m = "changed")
+  it "should return the lambda result" ((foo()) == "changed")
+  it "should have the same side effects as the function" (m == "changed")
 
-  it("should allow the redefinition of the lambda after the macro definition",
-    fooFn = lambda(m = "changed again")
-    foo() == "changed again"
+  it "should allow the redefinition of the lambda after the macro definition" (
+    fooFn = lambda (m = "changed again")
+    (foo()) == "changed again"
   )
 
-  macro(execCode(`code), `(execCodeFn(lambda(x, $code))))
-  execCodeFn = lambda(fn,
-    fn(3)
-  )
+  macrox (execCode `code) (execCodeFn (lambda x $code))
+  execCodeFn = lambda fn (fn 3)
   y = 0
-  execCode(y = x)
-  it("should allow code capture by wrapping in the lambda", y == 3)
+  execCode (y = x)
+  it "should allow code capture by wrapping in the lambda" (y == 3)
 )
 
-describe("Macros manipulating functions",
-  bar = lambda(a, "bar" + a)
-  macro(foo(`p), if(applic?(p), `(bar($^(params(p)))), `(bar($p))))
-  it("should make parameters rewriting possible with list expansion", foo(baz("a")) == "bara")
-  it("should detect applications properly", foo("a") == "bara")
+describe "Macros manipulating functions" (
+  bar = lambda a ("bar" + a)
+  macro (foo `p) (if (applic?(p)) ((`)(bar(($^)(params p)))) ((`)(bar $p)))
+  it "should make parameters rewriting possible with list expansion" (foo (baz "a") == "bara")
+  it "should detect applications properly" (foo "a" == "bara")
 )
