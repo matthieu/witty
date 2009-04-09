@@ -25,7 +25,7 @@ wyParser = whitespace >> block >>= \x -> eof >> return x
 
 block = liftM ASTBlock $ stmt `sepEndBy1` eol
 
-parensBlock = parens (try(cr) >> block)
+parensBlock = parens (try cr >> block)
 
 stmt = liftM ASTStmt $ assocOrComp
 
@@ -80,7 +80,7 @@ charLetter = satisfy (\c -> (c /= '\'') && (c /= '\\') && (c > '\026'))
 eol = many1 $ (lexeme . many1 . oneOf $ ";\n") >> skipChar '\n'
 cr = skipChar '\n'
 
-skipChar = lexeme . skipMany . char
+skipChar = skipMany . lexeme . char
 
 notFollowed p = try ( do { c <- p; unexpected (show [c]) } <|> return () )
 
