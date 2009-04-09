@@ -324,4 +324,36 @@ module Foundation (
   )
 )
 
+module FileIO (
+  // Returns true if the provided directory path exists and points to a directory, false otherwise.
+  def dirExist? dir (
+    primitive 'dirExist?'
+  )
+  
+  // Returns true if the provided file path exists and points to a file, false otherwise.
+  def fileExist? file (
+    primitive 'fileExist?'
+  )
+
+  // Reads the whole content of file into a string.
+  def readFile file (
+    primitive 'readFile'
+  )
+  
+  // Writes the string cnt to file. If file already existed, it is overwritten.
+  def writeFile file cnt (
+    primitive 'writeFile'
+  )
+  
+  // Appends the string cnt to file, creating the file if it doesn't exist.
+  def appendFile file cnt (
+    primitive 'appendFile'
+  )
+
+  // Deletes a file from the filesystem.
+  def deleteFile file (
+    primitive 'deleteFile'
+  )
+)
+
 import Foundation

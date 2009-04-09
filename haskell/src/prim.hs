@@ -1,5 +1,5 @@
 module Wy.Prim
-  ( defWy
+  ( defWy, primitives
   ) where
 
 import Control.Monad(liftM, liftM2, foldM, (>=>))
@@ -18,6 +18,7 @@ import Debug.Trace
 import Wy.Parser(ASTType(..), parseWy)
 import Wy.Interpr
 import Wy.Types
+import Wy.FileIO
 
 -- Main definition function, used to import all primitives in the running
 -- environment.
@@ -35,7 +36,7 @@ defWy ps = do
             liftIO $ varInsert defName wl env
             return wl
 
-primitives f = arithmPrim $ basePrim $ dataPrim $ packagePrim $ metaPrim $ stdIOPrim f
+primitives f = arithmPrim $ basePrim $ dataPrim $ packagePrim $ metaPrim $ stdIOPrim $ fileIOPrim f
 
 basePrim f =
   defp "lambda" (\ps -> do

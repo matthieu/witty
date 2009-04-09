@@ -1,0 +1,27 @@
+describe "File manipulations" (
+  import FileIO
+
+  macrox (withFile `f `body) (
+    writeFile $f "foo bar"
+    rr = (lambda $body)()
+    deleteFile $f
+    rr
+  )
+
+  it "should say that '.' exists" (dirExist? '.')
+
+  it "should allow reading of new files" (
+    withFile "test1" (readFile "test1" == "foo bar")
+  )
+
+  it "should detect new file existence" (
+    withFile "test2" (fileExist? "test2")
+  )
+
+  it "should update existing files" (
+    withFile "test3" (
+      appendFile "test3" " baz"
+      readFile "test3" == "foo bar baz"
+    )
+  )
+)

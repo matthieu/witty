@@ -29,6 +29,7 @@ load "test/control.wy"
 load "test/lambda.wy"
 load "test/macro.wy"
 load "test/module.wy"
+load "test/fileio.wy"
 
 failures = []
 testCount = 0
