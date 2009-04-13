@@ -322,6 +322,10 @@ module Foundation (
   def arguments (
     primitive 'arguments'
   )
+
+  def exit (
+    primitive 'exit'
+  )
 )
 
 module FileIO (

@@ -13,6 +13,7 @@ import Control.Monad.Reader
 import Control.Monad.Error
 import Control.Monad.Cont
 import System.Environment(getArgs)
+import System.Exit
 import Debug.Trace
 
 import Wy.Parser(ASTType(..), parseWy)
@@ -371,13 +372,18 @@ stdIOPrim f =
                           return WyNull ) $
   defp "arguments" (\ps -> liftM (WyList . map WyString . safeTail) (liftIO getArgs) ) $
   defp "load" (\ps -> do
-    fname <- eval (head ps) >>= literalStr
+    fname <- eval (head ps) >>= stringOrShow
     fcnt <- liftIO $ readFile fname
-    eval $ parseWy fname fcnt ) f
+    eval $ parseWy fname fcnt ) $
+  defp "exit" (\ps -> do
+    code <- if length ps == 0 then eval (head ps) >>= asInt
+                              else return 0
+    if code == 0 then liftIO $ exitWith ExitSuccess
+                 else liftIO $ exitWith $ ExitFailure (fromInteger code) ) f
   
-  where concatWyStr s = liftM concat $ mapM literalStr s
-        literalStr (WyString s) = return s
-        literalStr anyWy = liftIO $ showWy anyWy
+  where concatWyStr s = liftM concat $ mapM stringOrShow s
+        stringOrShow (WyString s) = return s
+        stringOrShow anyWy = liftIO $ showWy anyWy
         safeTail [] = []
         safeTail (x:xs) = xs
 
