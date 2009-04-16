@@ -363,7 +363,14 @@ metaPrim f =
     case applic of
       (WyTemplate (ASTStmt [ASTApplic _ ps])) ->  return . WyTemplate $ ps !! fromInteger idx
       (WyTemplate (ASTApplic _ ps))           ->  return . WyTemplate $ ps !! fromInteger idx
-      x                                       -> throwError $ ArgumentErr $ "Not a function application: " ++ (show x)) f
+      x -> appErr1 (\e -> "Not a function application: " ++ e) x ) $
+  
+  defp "blockStmts" (\ps -> do
+    block <- eval $ head ps
+    case block of
+      (WyTemplate (ASTBlock stmts)) -> return $ WyList $ map WyTemplate stmts
+      ts@(WyTemplate (ASTStmt _)) -> return $ WyList [ts]
+      x -> appErr1 (\e -> "Not a block or a statement: " ++ e) x ) f
 
 stdIOPrim f =
   defp "print" (\ps -> do eps <- mapM eval ps 

@@ -6,6 +6,49 @@ def import name (
   primitive 'import'
 )
 
+// Witty in witty. Provides functions to manipulate Witty code.
+module Meta (
+
+  // Returns true if the provided expression is a function application, false 
+  // otherwise.
+  def applic? expression (
+    primitive 'applic?'
+  )
+
+  // Returns the function name in the provided application. Raises an ArgumentError
+  // if the argument isn't a function application or if it has no obvious name (i.e.
+  // anonymous lambda)
+  def fnName expression (
+    primitive 'fnName'
+  )
+
+  // Returns a list of parameters provided to an application. Raises an ArgumentError
+  // if the argument isn't a function application.
+  def params expression (
+    primitive 'params'
+  )
+
+  // Returns the nth parameter provided to an application. Raises an ArgumentError
+  // if the argument isn't a function application.
+  def nthParam expression idx (
+    primitive 'nthParam'
+  )
+
+  // Returns an array of statements from the provided block. If the provided is
+  // already an expression, returns it in an array. If it's neither a block, nor
+  // an array, raises an ArgumentError.
+  def blockStmts expression (
+    primitive 'blockStmts'
+  )
+
+  // Iterates on the statements in the provided block by calling the one-parameter
+  // lambda for each of them. Just calls the lambda once if the expression is a
+  // single statement. Raises an ArgumentError otherwise.
+  def eachStmt expression l (
+    foldl (lambda acc x (l x)) null (blockStmts expression)
+  )
+)
+
 module Foundation (
 
   def macrop exp priority body (
@@ -26,24 +69,7 @@ module Foundation (
 
   macro (macropx `exp `priority `body) ((`) (macrop $exp $priority ((`) $body)))
 
-  // Meta
-  //
-
-  def applic? expression (
-    primitive 'applic?'
-  )
-
-  def fnName expression (
-    primitive 'fnName'
-  )
-
-  def params expression (
-    primitive 'params'
-  )
-
-  def nthParam expression idx (
-    primitive 'nthParam'
-  )
+  import Meta
 
   // Applies a named function with provided arguments. The function name
   // can either be a string or a symbol. Arguments can be specified eiter
@@ -328,6 +354,8 @@ module Foundation (
   )
 )
 
+import Foundation
+
 module FileIO (
   // Returns true if the provided directory path exists and points to a directory, false otherwise.
   def dirExist? dir (
@@ -360,4 +388,20 @@ module FileIO (
   )
 )
 
-import Foundation
+module Meta (
+  // Meta returns
+
+  // Returns an array of statements from the provided block. If the provided is
+  // already an expression, returns it in an array. If it's neither a block, nor
+  // an array, raises an ArgumentError.
+  def blockStmts expression (
+    primitive 'blockStmts'
+  )
+
+  // Iterates on the statements in the provided block by calling the one-parameter
+  // lambda for each of them. Just calls the lambda once if the expression is a
+  // single statement. Raises an ArgumentError otherwise.
+  def eachStmt expression l (
+    for (blockStmts expression) l
+  )
+)
