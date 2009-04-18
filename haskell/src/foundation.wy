@@ -33,20 +33,6 @@ module Meta (
   def nthParam expression idx (
     primitive 'nthParam'
   )
-
-  // Returns an array of statements from the provided block. If the provided is
-  // already an expression, returns it in an array. If it's neither a block, nor
-  // an array, raises an ArgumentError.
-  def blockStmts expression (
-    primitive 'blockStmts'
-  )
-
-  // Iterates on the statements in the provided block by calling the one-parameter
-  // lambda for each of them. Just calls the lambda once if the expression is a
-  // single statement. Raises an ArgumentError otherwise.
-  def eachStmt expression l (
-    foldl (lambda acc x (l x)) null (blockStmts expression)
-  )
 )
 
 module Foundation (
@@ -391,17 +377,42 @@ module FileIO (
 module Meta (
   // Meta returns
 
-  // Returns an array of statements from the provided block. If the provided is
-  // already an expression, returns it in an array. If it's neither a block, nor
+  // Returns an array of statements from the provided block. If the provided argument 
+  // is already an expression, returns it in an array. If it's neither a block, nor
   // an array, raises an ArgumentError.
-  def blockStmts expression (
-    primitive 'blockStmts'
+  def splitBlock expression (
+    primitive 'splitBlock'
   )
 
   // Iterates on the statements in the provided block by calling the one-parameter
   // lambda for each of them. Just calls the lambda once if the expression is a
   // single statement. Raises an ArgumentError otherwise.
   def eachStmt expression l (
-    for (blockStmts expression) l
+    for (splitBlock expression) l
+  )
+
+  // Returns an array of statement compounds (ids, literals or applications) from 
+  // the provided statement. Raises an ArgumentError if the expression isn't a
+  // statement.
+  def splitStmt expression (
+    primitive 'splitStmt'
+  )
+
+  // Iterates on the compound in the provided statement by calling the one-parameter
+  // lambda for each of them. Raies an ArgumentError if the expression isn't a
+  // statement.
+  def eachCompound expression (
+    for (splitStmt expression) l
+  )
+
+  // Returns true if the provided expression is an identifier, false otherwise.
+  def identifier? expression (
+    primitive('identifier?')
+  )
+  
+  // Returns the provided identifier as a string. Raises an ArgumentError if the
+  // expression isn't an identifier.
+  def identifier expression (
+    primitive('identifier')
   )
 )

@@ -365,12 +365,30 @@ metaPrim f =
       (WyTemplate (ASTApplic _ ps))           ->  return . WyTemplate $ ps !! fromInteger idx
       x -> appErr1 (\e -> "Not a function application: " ++ e) x ) $
   
-  defp "blockStmts" (\ps -> do
+  defp "splitBlock" (\ps -> do
     block <- eval $ head ps
     case block of
       (WyTemplate (ASTBlock stmts)) -> return $ WyList $ map WyTemplate stmts
       ts@(WyTemplate (ASTStmt _)) -> return $ WyList [ts]
-      x -> appErr1 (\e -> "Not a block or a statement: " ++ e) x ) f
+      x -> appErr1 (\e -> "Not a block or a statement: " ++ e) x ) $
+  
+  defp "splitStmt" (\ps -> do
+    block <- eval $ head ps
+    case block of
+      (WyTemplate (ASTStmt xs)) -> return $ WyList $ map WyTemplate xs
+      x -> appErr1 (\e -> "Not a statement: " ++ e) x ) $
+  
+  defp "identifier?" (\ps -> do 
+    id <- eval $ head ps
+    case id of
+      (WyTemplate (ASTId _)) -> return $ WyBool True
+      x -> return $ WyBool False ) $
+
+  defp "identifier" (\ps -> do 
+    id <- eval $ head ps
+    case id of
+      (WyTemplate (ASTId ix)) -> return $ WyString ix
+      x -> appErr1 (\e -> "Not an identifier: " ++ e) x ) f
 
 stdIOPrim f =
   defp "print" (\ps -> do eps <- mapM eval ps 
