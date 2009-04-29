@@ -1,0 +1,106 @@
+import FileIO
+import Meta
+
+args = arguments()
+if (length args != 1) (
+  print "Usage: wydoc [file]"
+  exit(1)
+)
+
+cnt = readFile (args.0)
+
+// monad:: state -> [state, result]
+
+def makeStateM action ['stateM', action]
+
+def readStateM action (
+  if (action.0 == 'stateM') (action.1) (raise ("Not an action " + action))
+)
+
+def runState state stateM ((readStateM stateM) state)
+
+def mreturn val (makeStateM (lambda state [state, val]))
+
+def mbind m f (
+  makeStateM (lambda oldState (
+    newState = ((readStateM m) oldState)
+    funw = readStateM (f (newState.1))
+    funw (newState.0)
+  ))
+)
+
+macrox (`a >>= `b) (mbind $a $b)
+macrox (`a >>. `b) ($a >>= lambda x $b)
+
+seqfn = lambda stmts (
+  if (length stmts == 1) (
+    stmts.0
+  )(
+    curr = splitStmt (head stmts)
+    if (identifier? (curr.1) && identifier (curr.1) == "<-") (
+      `( ($ (curr.2)) >>= (lambda ($ (curr.0)) ($ (seqfn (tail stmts)))) )
+    )(
+      `( ($ (curr.0)) >>. ($ (seqfn (tail stmts))) )
+    )
+  )
+)
+
+macro (seq `actions) (
+  seqfn (splitBlock actions)
+)
+
+def getState (makeStateM (lambda s [s,s]))
+
+def setState newState (makeStateM (lambda oldState ([newState, null])))
+
+tick = (getState()) >>= (lambda s (setState (s+1))) >>= (lambda x (getState()))
+
+tick2 = seq (
+  s <- getState()
+  setState (s+1)
+  getState()
+)
+
+print (runState 10 tick)
+print "---"
+print (runState 10 tick2)
+
+/*
+def munit posval (
+  lambda p [p.0, posval.0, posval.1]  // buff, pos, result
+)
+def mbind p pfn (
+  lambda oldp (
+    newp = p oldp
+    if (length newp == 0) [] (pfn [newp.1, newp.2])
+  )
+)
+
+def getSt (
+  lambda s [s.0, s.1, s.0]
+)
+
+def char ch (
+  lambda posval (
+    getSt >>= lambda posbuf (
+      if ((posbuf.1).(posval.0) == ch) (
+        munit [posval.0 + 1, posval.1]
+      )( [] )
+    )
+  )
+)
+
+def parensParse (
+  char '(' >>= char ')'
+)
+
+print((parensParse()) [cnt, 0, null])
+
+wyfile = many1 compound
+
+compound = commentWithDef <|> otherCode
+
+commentWithDef = string "/**" >> commentBody
+
+commentBody = manyTill anyChar (string "*/")
+*/
