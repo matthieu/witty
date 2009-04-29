@@ -150,9 +150,9 @@ module Foundation (
   // Arithmetic operators
   macrop (`a = `b) 1 (
     if (applic? a && fnName a == "@") (
-      (`) ((@!) (($) (nthParam a 0))  (($) (nthParam a 1)) $b) 
+      ` ((@!) ($ (nthParam a 0))  ($ (nthParam a 1)) $b) 
     )(
-      (`)((=) $a $b)
+      ` ((=) $a $b)
     )
   )
   macropx (`a += `b) 1 ($a = $a + $b)
@@ -175,12 +175,12 @@ module Foundation (
   macro (`arr . `idx) (
     if (applic? idx) (
       if (empty? (params idx)) (
-        (`) ((@) $arr (($) (fnName idx)))
+        ` ((@) $arr ($ (fnName idx)))
       )(
-        (`) ( ((@) $arr (($) (fnName(idx)))) (($^) (params idx)) )
+        ` ( ((@) $arr ($ (fnName(idx)))) ($^ (params idx)) )
       )
     )(
-      (`) ((@) $arr $idx)
+      ` ((@) $arr $idx)
     )
   )
 
@@ -192,12 +192,12 @@ module Foundation (
   macro (`mod :: `def) (
     if (applic? def) (
       if (empty? (params def)) (
-        (`) ((::) $mod (($) (fnName def)))
+        ` ((::) $mod ($ (fnName def)))
       )(
-        (`) ( ((::) $mod (($) (fnName def))) (($^) (params def)) )
+        ` ( ((::) $mod ($ (fnName def))) ($^ (params def)) )
       )
     )(
-      (`) ((::) $mod $def)
+      ` ((::) $mod $def)
     )
   )
 
