@@ -401,7 +401,7 @@ module Meta (
   // Iterates on the compound in the provided statement by calling the one-parameter
   // lambda for each of them. Raies an ArgumentError if the expression isn't a
   // statement.
-  def eachCompound expression (
+  def eachCompound expression l (
     for (splitStmt expression) l
   )
 
