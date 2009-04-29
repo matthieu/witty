@@ -121,8 +121,8 @@ basePrim f =
           init <- evalSnd ps
           arr  <- eval $ last ps
           case arr of
-            (WyList a)   -> foldFn (\x acc -> apply [wyToAST x, wyToAST acc] fn) init a
-            (WyString s) -> foldFn (\x acc -> apply [wyToAST x, wyToAST acc] fn) init (map (WyString . (:[])) s)
+            (WyList a)   -> foldFn (\x acc -> applyDirect fn [x, acc]) init a
+            (WyString s) -> foldFn (\x acc -> applyDirect fn [x, acc]) init (map (WyString . (:[])) s)
             x            -> throwError $ ArgumentErr $ "Can't fold on " ++ show x
 
         handleErr [] err = throwError err
