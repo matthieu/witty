@@ -37,6 +37,7 @@ describe "Macros calling lambdas" (
 )
 
 describe "Macros manipulating functions" (
+  import Meta
   bar = lambda a ("bar" + a)
   macro (foo `p) (if (applic?(p)) ((`)(bar(($^)(params p)))) ((`)(bar $p)))
   it "should make parameters rewriting possible with list expansion" (foo (baz "a") == "bara")
