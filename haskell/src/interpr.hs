@@ -48,9 +48,7 @@ evalWy (WyId idn) | otherwise = do
     Nothing -> throwError $ UnknownRef ("Unknown reference: " ++ idn)
     Just v  -> return v
     
-evalWy (WyApplic fn ps) = evalWy fn >>= unstring >>= apply ps
-  where unstring (WyString s) = evalWy (WyId s) -- accepting string function reference
-        unstring x = return x
+evalWy (WyApplic fn ps) = eval fn >>= apply ps
 
 -- evalWy (WyStmt xs) = liftM last $ applyMacros xs >>= (\x -> trace (show x) (return x)) >>= mapM evalWy
 evalWy (WyStmt xs) = liftM last $ applyMacros xs >>= mapM evalWy
@@ -179,7 +177,7 @@ slurpyPattern pes =
     x         -> False
 
 applyMacros :: [WyType] -> Eval [WyType]
-applyMacros stmt = liftM (map pruneAST) $ liftM orderFound (findMacros stmt 0) >>= rewriteMatch stmt
+applyMacros stmt = liftM orderFound (findMacros stmt 0) >>= rewriteMatch stmt
   where rewriteMatch stmt [] = return stmt
         rewriteMatch stmt (mi@(m,idx):ms) = do
           matchM <- matchMacro stmt mi

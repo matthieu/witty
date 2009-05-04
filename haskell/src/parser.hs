@@ -119,7 +119,7 @@ pruneAST (WyBlock [single]) = pruneAST single
 
 pruneAST (WyBlock ss) = WyBlock $ map pruneAST ss
 pruneAST (WyStmt [single]) | isApplic single = WyStmt $ [pruneAST single]
-                            | otherwise       = pruneAST single
+                           | otherwise       = pruneAST single
 pruneAST (WyStmt ss) = WyStmt $ map pruneAST ss 
 pruneAST (WyApplic s ps) = WyApplic (pruneAST s) $ map pruneAST ps
 pruneAST (WyList xs) = WyList $ map pruneAST xs

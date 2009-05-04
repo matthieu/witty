@@ -16,7 +16,7 @@ import System.Environment(getArgs)
 import System.Exit
 import Debug.Trace
 
-import Wy.Parser(parseWy)
+import Wy.Parser
 import Wy.Interpr
 import Wy.Types
 import Wy.FileIO
@@ -61,7 +61,7 @@ basePrim f =
       WyRef y    -> liftIO $ varUpdate env n $ WyRef y
       y          -> liftIO $ varUpdate env n y ) $
 
-  defp "`" (\ps -> unescapeBq . head $ ps) $
+  defp "`" (\ps -> liftM pruneAST $ unescapeBq . head $ ps) $
   defp "if" (\ps -> do
     expr <- eval $ head ps
     if (truthy expr)
@@ -373,18 +373,16 @@ metaPrim f =
     case block of
       WyStmt xs -> return $ WyList xs
       x         -> appErr1 (\e -> "Not a statement: " ++ e) x ) $
-  
+ 
+  defp "wyId" (\ps -> do
+    idstr <- eval $ head ps
+    liftM WyId (asString idstr) ) $
+ 
   defp "identifier?" (\ps -> do 
     id <- eval $ head ps
     case id of
       WyId _ -> return $ WyBool True
-      x      -> return $ WyBool False ) $
-
-  defp "identifier" (\ps -> do 
-    id <- eval $ head ps
-    case id of
-      WyId ix -> return $ WyString ix
-      x       -> appErr1 (\e -> "Not an identifier: " ++ e) x ) f
+      x      -> return $ WyBool False ) f
 
 stdIOPrim f =
   defp "print" (\ps -> do eps <- mapM eval ps 

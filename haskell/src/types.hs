@@ -115,8 +115,8 @@ showWy (WyPrimitive n _) = return $ "<primitive " ++ (show n) ++ ">"
 showWy (WyCont c) = return "<cont>"
 showWy (WyModule n _ _) = return $ "module " ++ n ++ " .."
 showWy (WyId s) = return s
-showWy (WyApplic n ps) = liftM ((\x -> "(" ++ (show n) ++ " " ++ x ++ ")") . unwords) $ mapM showWy ps
-showWy (WyStmt ss) = liftM ((\x -> "(" ++ x ++ ")") . unwords) $ mapM showWy ss
+showWy (WyApplic n ps) = liftM2 ((\ps n -> "(a " ++ n ++ " " ++ ps ++ ")") . unwords) (mapM showWy ps) (showWy n)
+showWy (WyStmt ss) = liftM ((\x -> "(s " ++ x ++ ")") . unwords) $ mapM showWy ss
 
 showWyE = liftIO . showWy
 

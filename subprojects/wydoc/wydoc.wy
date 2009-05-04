@@ -37,7 +37,7 @@ seqfn = lambda stmts (
     stmts.0
   )(
     curr = splitStmt ^ head stmts
-    if (identifier? (curr.1) && identifier (curr.1) == "<-") (
+    if (identifier? (curr.1) && toS (curr.1) == "<-") (
       `( ($ (curr.2)) >>= lambda ($ (curr.0)) ($ (seqfn ^ tail stmts)) )
     )(
       `( ($ (curr.0)) >>. ($ (seqfn ^ tail stmts)) )
