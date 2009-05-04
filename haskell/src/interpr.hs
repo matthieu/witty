@@ -47,7 +47,9 @@ evalWy (ASTId idn) | otherwise = do
     Nothing -> throwError $ UnknownRef ("Unknown reference: " ++ idn)
     Just v  -> return v
     
-evalWy (ASTApplic fn ps) = evalWy fn >>= apply ps
+evalWy (ASTApplic fn ps) = evalWy fn >>= unstring >>= apply ps
+  where unstring (WyString s) = evalWy (ASTId s) -- accepting string function reference
+        unstring x            = return x
 
 -- evalWy (ASTStmt xs) = liftM last $ applyMacros xs >>= (\x -> trace (show x) (return x)) >>= mapM evalWy
 evalWy (ASTStmt xs) = liftM last $ applyMacros xs >>= mapM evalWy
@@ -74,8 +76,9 @@ applyDirect (WyLambda ps body lenv) vals =
         Just adjV -> liftIO $ envStack (snd $ unslurps ps) adjV e
 
 -- Adjusts the values provided for an application to a function's arguments. Handles
--- optionals and varargs. Needs a zero to replace a missing optional and a list
+-- optionals and varargs. Needs a zero to set missing optionals value and a list
 -- wrapper function to wrap varargs.
+adjust :: a -> ([a] -> a) -> [String] -> [a] -> Int -> Maybe [a]
 adjust z l (p:ps) (v:vs) dif 
   | last p == '?' && dif <= 0 = liftM (z :) $ adjust z l ps (v:vs) dif
   | last p == '?' && dif > 0  = liftM (v :) $ adjust z l ps vs (dif - 1)
@@ -113,7 +116,7 @@ patternMatch :: ASTType -> ASTType -> Maybe (M.Map String ASTType) -> Maybe (M.M
 patternMatch _ _ Nothing = Nothing
 patternMatch (ASTId s1) (ASTId s2) f | s1 == s2      = f
 patternMatch (ASTId s) x (Just f)    | head s == '`' = Just $ M.insert (unslurp $ tail s) x f
-patternMatch (ASTStmt (x1:xs1)) (ASTStmt (x2:xs2)) f = patternMatch x1 x2 $ matchList xs1 xs2 f
+patternMatch (ASTStmt xs@(x1:xs1)) (ASTStmt ys@(x2:xs2)) f = matchList xs ys f
 patternMatch (ASTStmt [x]) y f = patternMatch x y f
 patternMatch (ASTStmt []) (ASTStmt []) f = f
 patternMatch (ASTApplic n1 ps1) (ASTApplic n2 ps2) f | n1 == n2 = 
@@ -126,6 +129,9 @@ patternMatch (ASTApplic n1 ps1) (ASTApplic n2 ps2) f | n1 == n2 =
         toIdStr _         = "placeholder"
 patternMatch _ _ _ = Nothing
 
+-- todo only supports last slurpy for now, should eventually be a full blown parser generator
+matchList [ai@(ASTId i1)] xs f | head i1 == '`' && last i1 == '~' =
+  patternMatch ai (ASTStmt xs) f
 matchList (x1:xs1) (x2:xs2) f = patternMatch x1 x2 $ matchList xs1 xs2 f
 matchList [] _ f = f
 matchList _ _ _ = Nothing
@@ -161,14 +167,19 @@ runMacro (WyMacro _ b _ env) f = localIO (const $ envAdd f M.empty env) $ evalWy
 rewriteStmt :: [ASTType] -> (WyType, Int, [ASTType]) -> ([ASTType], Int)
 rewriteStmt stmt (m , idx, nast) =
   let startIdx = idx - (fst $ macroPivot m)
-      newOffs = length nast - macroPattLgth m   
-  in (take startIdx stmt ++ nast ++ drop (startIdx + macroPattLgth m) stmt, newOffs)
+      newOffs = length nast - macroPattLgth m stmt 
+  in (take startIdx stmt ++ nast ++ drop (startIdx + macroPattLgth m stmt) stmt, newOffs)
                                                  
-macroPattLgth m = 
+macroPattLgth m stmt = 
   case macroPattern m of
-    (ASTStmt es)    -> length es
+    (ASTStmt es)    -> if slurpyPattern es then length stmt else (length es)
     (ASTApplic _ _) -> 1
     _               -> error $ "Bad macro pattern: " ++ (show $ macroPattern m)
+
+slurpyPattern pes =
+  case last pes of
+    (ASTId i) -> last i == '~'
+    x         -> False
 
 applyMacros :: [ASTType] -> Eval [ASTType]
 applyMacros stmt = liftM (map pruneAST) $ liftM orderFound (findMacros stmt 0) >>= rewriteMatch stmt

@@ -7,40 +7,40 @@ if (length args != 1) (
   exit(1)
 )
 
-cnt = readFile (args.0)
+cnt = readFile ^ args.0
 
 // monad:: state -> [state, result]
 
 def makeStateM action ['stateM', action]
 
 def readStateM action (
-  if (action.0 == 'stateM') (action.1) (raise ("Not an action " + action))
+  if (action.0 == 'stateM') (action.1) (raise ^ "Not an action " + action)
 )
 
 def runState state stateM ((readStateM stateM) state)
 
-def mreturn val (makeStateM (lambda state [state, val]))
+def mreturn val ^ makeStateM ^ lambda state [state, val]
 
 def mbind m f (
   makeStateM (lambda oldState (
-    newState = ((readStateM m) oldState)
-    funw = readStateM (f (newState.1))
-    funw (newState.0)
+    newState = (readStateM m) oldState
+    funw = readStateM ^ f ^ newState.1
+    funw ^ newState.0
   ))
 )
 
-macrox (`a >>= `b) (mbind $a $b)
-macrox (`a >>. `b) ($a >>= lambda x $b)
+macrox (`a >>= `b) ^ mbind $a $b
+macrox (`a >>. `b) ^ $a >>= lambda x $b
 
 seqfn = lambda stmts (
   if (length stmts == 1) (
     stmts.0
   )(
-    curr = splitStmt (head stmts)
+    curr = splitStmt ^ head stmts
     if (identifier? (curr.1) && identifier (curr.1) == "<-") (
-      `( ($ (curr.2)) >>= (lambda ($ (curr.0)) ($ (seqfn (tail stmts)))) )
+      `( ($ (curr.2)) >>= lambda ($ (curr.0)) ($ (seqfn ^ tail stmts)) )
     )(
-      `( ($ (curr.0)) >>. ($ (seqfn (tail stmts))) )
+      `( ($ (curr.0)) >>. ($ (seqfn ^ tail stmts)) )
     )
   )
 )
