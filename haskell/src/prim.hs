@@ -16,7 +16,7 @@ import System.Environment(getArgs)
 import System.Exit
 import Debug.Trace
 
-import Wy.Parser(ASTType(..), parseWy)
+import Wy.Parser(parseWy)
 import Wy.Interpr
 import Wy.Types
 import Wy.FileIO
@@ -28,7 +28,7 @@ defWy ps = do
   env <- ask
   defName <- extractId $ head ps
   case last ps of
-    (ASTStmt [ASTApplic (ASTId n) [ASTString primName]]) | n == "primitive" -> do
+    (WyStmt [WyApplic (WyId n) [WyString primName]]) | n == "primitive" -> do
       case M.lookup primName $ primitives M.empty of
         Nothing -> throwError $ ArgumentErr ("Unknown primitive referenced in def: " ++ primName)
         Just x  -> liftIO $ varUpdate env defName x
@@ -61,7 +61,7 @@ basePrim f =
       WyRef y    -> liftIO $ varUpdate env n $ WyRef y
       y          -> liftIO $ varUpdate env n y ) $
 
-  defp "`" (\ps -> liftM WyTemplate $ unescapeBq . head $ ps) $
+  defp "`" (\ps -> unescapeBq . head $ ps) $
   defp "if" (\ps -> do
     expr <- eval $ head ps
     if (truthy expr)
@@ -77,7 +77,7 @@ basePrim f =
   defp "eval" (\ps -> do
    liftM (parseWy "<eval>") (eval (head ps) >>= asString) >>= evalWy ) $
 
-  defp "evalWy" (eval . head >=> unwrapTemplate >=> evalWy) $
+  defp "evalWy" (eval . head >=> evalWy) $
 
   defp "apply" (\ps -> do
     env <- ask
@@ -87,8 +87,8 @@ basePrim f =
     lstP <- astList fstP
     case fn of
       Just f  -> case lstP of
-                   Just l  -> apply (map ASTWyWrapper l) f
-                   Nothing -> apply (ASTWyWrapper fstP : (tail . tail) ps) f
+                   Just l  -> apply l f
+                   Nothing -> apply (fstP : (tail . tail) ps) f
       Nothing -> throwError . ArgumentErr $ "Unknown function: " ++ fnNm ) $
 
   defp "try" (\ps ->
@@ -112,10 +112,9 @@ basePrim f =
         astList (WyList l) = return $ Just l
         astList x          = return $ Nothing
   
-        extractInt (ASTInt i) = return i
+        extractInt (WyInt i) = return i
         extractInt x = throwError $ ArgumentErr $ (show x) ++ " isn't an integer value"
-        applySeq l elmt acc = do re <- liftIO $ readRef elmt
-                                 apply [wyToAST re] l
+        
         wyFold foldFn ps = do
           fn   <- eval $ head ps
           init <- evalSnd ps
@@ -165,9 +164,6 @@ basePrim f =
             then liftM Just $ applyDirect (last xs) 
               [WyMap $ M.insert (WyString "message") (WyString $ errstr ++ ": " ++ msg) m]
             else return Nothing
-
-        unwrapTemplate (WyTemplate ast) = return ast
-        unwrapTemplate x = throwError $ ArgumentErr $ "A witty expression was expected."
 
 arithmPrim f = 
   defp "+" (opEvalM wyPlus) $
@@ -269,11 +265,11 @@ dataPrim f =
                                                return (obj, WyString lid)
                                x         -> liftM ((,) obj) (eval $ last ps)
 
-        updatedVal (WyList xs) (ASTInt n) val = -- sparse list 
+        updatedVal (WyList xs) (WyInt n) val = -- sparse list 
           WyList $ takeOrFill (fromInteger n) xs ++ [val] ++ drop ((fromInteger n)+1) xs
-        updatedVal (WyString s) (ASTInt n) (WyString ns) = 
+        updatedVal (WyString s) (WyInt n) (WyString ns) = 
           WyString $ take (fromInteger n) s ++ ns ++ drop ((fromInteger n)+1) s
-        updatedVal (WyMap m) (ASTId i) v = WyMap $ M.insert (WyString i) v m
+        updatedVal (WyMap m) (WyId i) v = WyMap $ M.insert (WyString i) v m
         updatedVal x y _ = error $ "Can't update an element in " ++ show x ++ " at position " ++ show y
         takeOrFill n xs = if (length xs > n) then take n xs
                                              else take n xs ++ take (n - length xs) (repeat WyNull)
@@ -340,55 +336,55 @@ metaPrim f =
   defp "applic?" (\ps -> do 
     applic <- eval $ head ps
     case applic of
-      (WyTemplate (ASTStmt [ASTApplic _ _])) -> return $ WyBool True
-      (WyTemplate (ASTApplic _ _))           -> return $ WyBool True
-      _                                      -> return $ WyBool False) $
+      WyStmt [WyApplic _ _] -> return $ WyBool True
+      WyApplic _ _          -> return $ WyBool True
+      _                     -> return $ WyBool False) $
   defp "params" (\ps -> do
     applic <- eval $ head ps 
     case applic of
-      (WyTemplate (ASTStmt [ASTApplic _ ps])) -> return $ WyList $ map WyTemplate ps
-      (WyTemplate (ASTApplic _ ps))           -> return $ WyList $ map WyTemplate ps
-      _                                       -> throwError $ ArgumentErr "Not a function application.") $
+      WyStmt [WyApplic _ ps] -> return $ WyList ps
+      WyApplic _ ps          -> return $ WyList ps
+      _                      -> throwError $ ArgumentErr "Not a function application.") $
 
   defp "fnName" (\ps -> do
     applic <- eval $ head ps 
     case applic of
-      (WyTemplate (ASTStmt [ASTApplic (ASTId n) _])) -> return $ WyString n
-      (WyTemplate (ASTApplic (ASTId n) _))           -> return $ WyString n
+      WyStmt [WyApplic (WyId n) _] -> return $ WyString n
+      WyApplic (WyId n) _          -> return $ WyString n
       _ -> throwError $ ArgumentErr "Not a function application or no obvious name.") $
 
   defp "nthParam" (\ps -> do
     applic <- eval $ head ps 
     idx <- evalSnd ps >>= asInt
     case applic of
-      (WyTemplate (ASTStmt [ASTApplic _ ps])) ->  return . WyTemplate $ ps !! fromInteger idx
-      (WyTemplate (ASTApplic _ ps))           ->  return . WyTemplate $ ps !! fromInteger idx
+      (WyStmt [WyApplic _ ps]) ->  return $ ps !! fromInteger idx
+      WyApplic _ ps            ->  return $ ps !! fromInteger idx
       x -> appErr1 (\e -> "Not a function application: " ++ e) x ) $
   
   defp "splitBlock" (\ps -> do
     block <- eval $ head ps
     case block of
-      (WyTemplate (ASTBlock stmts)) -> return $ WyList $ map WyTemplate stmts
-      ts@(WyTemplate (ASTStmt _)) -> return $ WyList [ts]
+      WyBlock stmts -> return $ WyList stmts
+      ts@(WyStmt _) -> return $ WyList [ts]
       x -> appErr1 (\e -> "Not a block or a statement: " ++ e) x ) $
   
   defp "splitStmt" (\ps -> do
     block <- eval $ head ps
     case block of
-      (WyTemplate (ASTStmt xs)) -> return $ WyList $ map WyTemplate xs
-      x -> appErr1 (\e -> "Not a statement: " ++ e) x ) $
+      WyStmt xs -> return $ WyList xs
+      x         -> appErr1 (\e -> "Not a statement: " ++ e) x ) $
   
   defp "identifier?" (\ps -> do 
     id <- eval $ head ps
     case id of
-      (WyTemplate (ASTId _)) -> return $ WyBool True
-      x -> return $ WyBool False ) $
+      WyId _ -> return $ WyBool True
+      x      -> return $ WyBool False ) $
 
   defp "identifier" (\ps -> do 
     id <- eval $ head ps
     case id of
-      (WyTemplate (ASTId ix)) -> return $ WyString ix
-      x -> appErr1 (\e -> "Not an identifier: " ++ e) x ) f
+      WyId ix -> return $ WyString ix
+      x       -> appErr1 (\e -> "Not an identifier: " ++ e) x ) f
 
 stdIOPrim f =
   defp "print" (\ps -> do eps <- mapM eval ps 
@@ -417,10 +413,9 @@ stdIOPrim f =
 
 defp n l = M.insert n (WyPrimitive n l)
 
-extractName (ASTId i) = return i
-extractName (ASTStmt [x]) = extractName x
-extractName (ASTString s) = return s
-extractName (ASTWyWrapper (WyString s)) = return s
+extractName (WyId i) = return i
+extractName (WyStmt [x]) = extractName x
+extractName (WyString s) = return s
 extractName x = do
   vstr <- eval x
   case vstr of
@@ -438,20 +433,20 @@ asList x          = appErr1 (\y -> "A list was expected, got " ++ y) x
 asString (WyString s) = return s
 asString x          = appErr1 (\y -> "A string was expected, got " ++ y) x
 
-unescapeBq :: ASTType -> Eval ASTType
-unescapeBq ai@(ASTId i) | i !! 0 == '$' = do
+unescapeBq :: WyType -> Eval WyType
+unescapeBq ai@(WyId i) | i !! 0 == '$' = do
   env <- ask
   res <- liftIO $ varValue (tail i) env
   case res of
-    Just v  -> return $ wyToAST v
+    Just v  -> return v
     Nothing -> return ai
-unescapeBq (ASTList ss) = mapUnxBq ASTList ss
-unescapeBq (ASTMap m) = liftM ASTMap $ T.mapM unescapeBq m
-unescapeBq (ASTApplic n1 [ASTStmt [ASTApplic (ASTId n2) [p]]]) | n2 == "$^" =
-  liftM2 ASTApplic (unescapeBq n1) $ liftM (map wyToAST) $ eval p >>= asList
-unescapeBq (ASTApplic (ASTId n) ps) | n == "$" = liftM wyToAST $ evalWy (ps !! 0)
-unescapeBq (ASTApplic n ps) = liftM2 ASTApplic (unescapeBq n) $ mapM unescapeBq ps
-unescapeBq (ASTStmt xs) = mapUnxBq ASTStmt xs
-unescapeBq (ASTBlock xs) = mapUnxBq ASTBlock xs
+unescapeBq (WyList ss) = mapUnxBq WyList ss
+unescapeBq (WyMap m) = liftM WyMap $ T.mapM unescapeBq m
+unescapeBq (WyApplic n1 [WyStmt [WyApplic (WyId n2) [p]]]) | n2 == "$^" =
+  liftM2 WyApplic (unescapeBq n1) $ eval p >>= asList
+unescapeBq (WyApplic (WyId n) ps) | n == "$" = evalWy (ps !! 0)
+unescapeBq (WyApplic n ps) = liftM2 WyApplic (unescapeBq n) $ mapM unescapeBq ps
+unescapeBq (WyStmt xs) = mapUnxBq WyStmt xs
+unescapeBq (WyBlock xs) = mapUnxBq WyBlock xs
 unescapeBq x = return x
 mapUnxBq c e = liftM c $ mapM unescapeBq e

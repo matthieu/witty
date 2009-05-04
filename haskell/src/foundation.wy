@@ -231,9 +231,9 @@ module Foundation (
 
   foldl1 = lambda fn arr (foldl fn (head arr) (tail arr))
 
-  map = lambda fn arr (foldr (lambda x ys ^ [fn(x)] + ys) [] arr)
+  map = lambda fn arr (foldr (lambda x ys ([fn(x)] + ys)) [] arr)
 
-  for = lambda arr l (foldl (lambda acc x ^ l x) null arr)
+  for = lambda arr l (foldl (lambda acc x (l x)) null arr)
 
   def callcc fn (
     primitive 'callcc'

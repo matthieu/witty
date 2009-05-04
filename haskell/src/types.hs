@@ -4,9 +4,8 @@
 {-# LANGUAGE TypeSynonymInstances #-}
 
 module Wy.Types
-  ( ASTType(..),
-    WyError(..),
-    WyType(..), readRef, mapReadRef, newWyRef, truthy, wyToAST, showWy, macroPivot,
+  ( WyError(..),
+    WyType(..), readRef, mapReadRef, newWyRef, truthy, showWy, macroPivot,
     extractId,
     wyPlus, wyMinus, wyDiv, wyMult,
     WyEnv, Frame(..), macroValue, varValue, macroUpdate, varInsert, varUpdate, envStack, envAdd, envAddMod,
@@ -27,22 +26,6 @@ import System.IO.Unsafe(unsafePerformIO)
 import Debug.Trace
 
 --
--- AST Nodes
-
-data ASTType = ASTString String
-                | ASTInt Integer
-                | ASTFloat Double
-                | ASTBool Bool
-                | ASTList [ASTType]
-                | ASTMap (M.Map ASTType ASTType)
-                | ASTId String
-                | ASTApplic ASTType [ASTType]
-                | ASTStmt [ASTType]
-                | ASTBlock [ASTType]
-                | ASTWyWrapper WyType
-    deriving (Show, Eq, Ord)
-
---
 -- Language types and supporting function
 
 data WyType = WyString String
@@ -51,14 +34,18 @@ data WyType = WyString String
             | WyBool Bool
             | WyNull
             | WyRef { extractRef:: (IORef WyType) }
-            | WyList [WyType] -- todo change to sequence / todo use reference
-            | WyMap (M.Map WyType WyType) -- todo use reference as value
-            | WyTemplate ASTType
-            | WyLambda [String] ASTType WyEnv
-            | WyMacro { macroPattern:: ASTType, macroBody:: ASTType, macroPriority:: Integer, macroEnv:: WyEnv }
-            | WyPrimitive String ([ASTType] -> Eval WyType)
+            | WyList [WyType] -- todo change to sequence
+            | WyMap (M.Map WyType WyType)
+            | WyLambda [String] WyType WyEnv
+            | WyMacro { macroPattern:: WyType, macroBody:: WyType, macroPriority:: Integer, macroEnv:: WyEnv }
+            | WyPrimitive String ([WyType] -> Eval WyType)
             | WyCont (WyType -> Eval WyType)
             | WyModule String (M.Map String WyType) (M.Map String WyType)
+
+            | WyId String
+            | WyApplic WyType [WyType]
+            | WyStmt [WyType]
+            | WyBlock [WyType]
     deriving (Show, Eq, Ord)
             
 readRef (WyRef r) = readIORef r
@@ -74,9 +61,9 @@ truthy _ = True
 
 macroPivot :: (Num t) => WyType -> (t, String)
 macroPivot (WyMacro p b _ e) = firstNonVar p
-  where firstNonVar (ASTStmt [ASTApplic (ASTId n) _]) = (0, n)
-        firstNonVar (ASTStmt es) = firstNonVar' es 0
-        firstNonVar' ((ASTId i):es) idx | i !! 0 /= '`' = (idx, i)
+  where firstNonVar (WyStmt [WyApplic (WyId n) _]) = (0, n)
+        firstNonVar (WyStmt es) = firstNonVar' es 0
+        firstNonVar' ((WyId i):es) idx | i !! 0 /= '`' = (idx, i)
         firstNonVar' [] idx = error $ "No pivot found in macro pattern " ++ (show p)
         firstNonVar' (e:es) idx = firstNonVar' es (idx+1)
 
@@ -122,42 +109,41 @@ showWy WyNull = return "null"
 showWy (WyRef r) = readIORef r >>= showWy
 showWy (WyList s) = liftM (\x -> "[" ++ (intercalate "," x) ++ "]") $ mapM showWy s
 showWy (WyMap s) = showRet s
-showWy (WyTemplate ast) = return $ "`(" ++ (show ast) ++ ")"
 showWy (WyLambda ss ast env) = return $ "lambda(" ++ (show ss) ++ ", " ++ (show ast) ++ ")"
 showWy (WyMacro p b _ env) = return $ "macro(" ++ (show p) ++ ", " ++ (show b) ++ ")"
 showWy (WyPrimitive n _) = return $ "<primitive " ++ (show n) ++ ">"
 showWy (WyCont c) = return "<cont>"
-showWy (WyModule n _ _) = return $ "module(" ++ n ++ ")"
+showWy (WyModule n _ _) = return $ "module " ++ n ++ " .."
+showWy (WyId s) = return s
+showWy (WyApplic n ps) = liftM ((\x -> "(" ++ (show n) ++ " " ++ x ++ ")") . unwords) $ mapM showWy ps
+showWy (WyStmt ss) = liftM ((\x -> "(" ++ x ++ ")") . unwords) $ mapM showWy ss
 
 showWyE = liftIO . showWy
 
 showRet:: (Monad m, Show x) => x -> m String
 showRet = return . show
 
-instance Show ([ASTType] -> Eval WyType) where
+instance Show ([WyType] -> Eval WyType) where
   show _ = "<prim>"
 instance Show (WyType -> Eval WyType) where
   show _ = "<cont>"
 instance Show (IORef WyType) where
   show x = show $ unsafePerformIO $ readIORef x
 
-instance Eq ([ASTType] -> Eval WyType) where
+instance Eq ([WyType] -> Eval WyType) where
   _ == _ = False
 instance Eq (WyType -> Eval WyType) where
   _ == _ = False
 
-instance Ord ([ASTType] -> Eval WyType) where
+instance Ord ([WyType] -> Eval WyType) where
   _ <= _ = True
 instance Ord (WyType -> Eval WyType) where
   _ <= _ = True
 instance Ord (IORef WyType) where
   x <= y = True
 
-wyToAST (WyTemplate t) = t
-wyToAST x = ASTWyWrapper x
-
-extractId (ASTId i) = return i
-extractId (ASTStmt [ASTId i]) = return i
+extractId (WyId i) = return i
+extractId (WyStmt [WyId i]) = return i
 extractId x = throwError $ ArgumentErr $ "Non identifier value when one was expected: " ++ (show x)
 
 -- Environment definition

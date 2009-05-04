@@ -1,6 +1,5 @@
 module Wy.Parser
-  ( ASTType(..),
-    parseWy,
+  ( parseWy,
     pruneAST
   ) where
 
@@ -23,11 +22,11 @@ parseWy f input = pruneAST $ case (parse wyParser f input) of
 
 wyParser = whitespace >> block >>= \x -> eof >> return x
 
-block = liftM ASTBlock $ stmt `sepEndBy1` eol
+block = liftM WyBlock $ stmt `sepEndBy1` eol
 
 parensBlock = parens (try cr >> block)
 
-stmt = liftM ASTStmt $ assocOrComp
+stmt = liftM WyStmt $ assocOrComp
 
 assocOrComp = do c <- compound
                  a <- assoc
@@ -35,7 +34,7 @@ assocOrComp = do c <- compound
 
 assoc = do op <- try operator
            rv <- assocOrComp
-           return $ (ASTId op) : rv
+           return $ (WyId op) : rv
         <|> return []
 
 compound = literals <|> idOrApplic
@@ -48,26 +47,26 @@ idOrApplic = do idr <- try idRef <|> parensBlock
 -- optimizing by enumerating chars instead of full parser primitives
 idOnly idr = notFollowed (oneOf "({[\"'" <|> digit <|> P.identStart wyDef) >> return idr
 
-applic fn = liftM (ASTApplic fn) ( try (string "()" >> return []) <|> params)
+applic fn = liftM (WyApplic fn) ( try (string "()" >> return []) <|> params)
 
 params = liftM concat $ (many1 (try idRef <|> literals <|> parensBlock)) `sepBy1` (symbol "\\" >> cr)
 
-idRef = liftM ASTId (identifier <|> parens operator)
+idRef = liftM WyId (identifier <|> parens operator)
 
-literalList = liftM ASTList $ brackets (commaSep stmt)
+literalList = liftM WyList $ brackets (commaSep stmt)
 
-literalMap = liftM (ASTMap . M.fromList) $ braces (commaSep keyVal)
+literalMap = liftM (WyMap . M.fromList) $ braces (commaSep keyVal)
   where keyVal = do key <- parseMapKey
                     colon
                     value <- stmt
                     return (key, value)
-        parseMapKey = literalString <|> (liftM ASTString $ identifier)
+        parseMapKey = literalString <|> (liftM WyString $ identifier)
 
-literalString = liftM ASTString $ (stringLiteral <|> charString)
+literalString = liftM WyString $ (stringLiteral <|> charString)
 
 literalNumber = try literalFloat <|> literalInt
-literalInt = liftM ASTInt $ lexeme decimal
-literalFloat = liftM ASTFloat $ float
+literalInt = liftM WyInt $ lexeme decimal
+literalFloat = liftM WyFloat $ float
 
 charString = lexeme (
     between (char '\'') (char '\'' <?> "end of string") (many characterChar)
@@ -116,16 +115,16 @@ whitespace = P.whiteSpace lexer
 --
 -- AST "optimizer"
 
-pruneAST (ASTBlock [single]) = pruneAST single
+pruneAST (WyBlock [single]) = pruneAST single
 
-pruneAST (ASTBlock ss) = ASTBlock $ map pruneAST ss
-pruneAST (ASTStmt [single]) | isApplic single = ASTStmt $ [pruneAST single]
+pruneAST (WyBlock ss) = WyBlock $ map pruneAST ss
+pruneAST (WyStmt [single]) | isApplic single = WyStmt $ [pruneAST single]
                             | otherwise       = pruneAST single
-pruneAST (ASTStmt ss) = ASTStmt $ map pruneAST ss 
-pruneAST (ASTApplic s ps) = ASTApplic (pruneAST s) $ map pruneAST ps
-pruneAST (ASTList xs) = ASTList $ map pruneAST xs
-pruneAST (ASTMap m) = ASTMap $ M.mapKeys pruneAST . M.map pruneAST $ m
+pruneAST (WyStmt ss) = WyStmt $ map pruneAST ss 
+pruneAST (WyApplic s ps) = WyApplic (pruneAST s) $ map pruneAST ps
+pruneAST (WyList xs) = WyList $ map pruneAST xs
+pruneAST (WyMap m) = WyMap $ M.mapKeys pruneAST . M.map pruneAST $ m
 pruneAST x = x
 
-isApplic (ASTApplic _ _) = True
+isApplic (WyApplic _ _) = True
 isApplic _               = False

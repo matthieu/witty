@@ -26,47 +26,46 @@ import Wy.Types
 --
 -- Interpreter
 
-evalWy:: ASTType -> Eval WyType
+evalWy:: WyType -> Eval WyType
 
-evalWy (ASTBool b) = return $ WyBool b
-evalWy (ASTFloat f) = return $ WyFloat f 
-evalWy (ASTInt i) = return $ WyInt i
-evalWy (ASTString s) = newWyRef $ WyString s
+evalWy WyNull = return $ WyNull
+evalWy (WyBool b) = return $ WyBool b
+evalWy (WyFloat f) = return $ WyFloat f 
+evalWy (WyInt i) = return $ WyInt i
+evalWy (WyString s) = newWyRef $ WyString s
 
-evalWy (ASTList xs) = liftM WyList (mapM evalWy xs) >>= newWyRef
-evalWy (ASTMap m) = liftM (WyMap . M.fromList) (T.mapM evalKeyVal $ M.toList m) >>= newWyRef
+evalWy (WyList xs) = liftM WyList (mapM evalWy xs) >>= newWyRef
+evalWy (WyMap m) = liftM (WyMap . M.fromList) (T.mapM evalKeyVal $ M.toList m) >>= newWyRef
   where evalKeyVal (k,v) = liftM2 (,) (eval k) (evalWy v)
 
-evalWy (ASTId idn) | idn == "true" = return $ WyBool True
-evalWy (ASTId idn) | idn == "false" = return $ WyBool False
-evalWy (ASTId idn) | idn == "null" = return $ WyNull
-evalWy (ASTId idn) | otherwise = do
+evalWy (WyId idn) | idn == "true" = return $ WyBool True
+evalWy (WyId idn) | idn == "false" = return $ WyBool False
+evalWy (WyId idn) | idn == "null" = return $ WyNull
+evalWy (WyId idn) | otherwise = do
   env <- ask
   val <- liftIO $ varValue idn env
   case val of
     Nothing -> throwError $ UnknownRef ("Unknown reference: " ++ idn)
     Just v  -> return v
     
-evalWy (ASTApplic fn ps) = evalWy fn >>= unstring >>= apply ps
-  where unstring (WyString s) = evalWy (ASTId s) -- accepting string function reference
-        unstring x            = return x
+evalWy (WyApplic fn ps) = evalWy fn >>= unstring >>= apply ps
+  where unstring (WyString s) = evalWy (WyId s) -- accepting string function reference
+        unstring x = return x
 
--- evalWy (ASTStmt xs) = liftM last $ applyMacros xs >>= (\x -> trace (show x) (return x)) >>= mapM evalWy
-evalWy (ASTStmt xs) = liftM last $ applyMacros xs >>= mapM evalWy
-evalWy (ASTBlock xs) = liftM last $ mapM evalWy xs
-
-evalWy (ASTWyWrapper w) = return w
+-- evalWy (WyStmt xs) = liftM last $ applyMacros xs >>= (\x -> trace (show x) (return x)) >>= mapM evalWy
+evalWy (WyStmt xs) = liftM last $ applyMacros xs >>= mapM evalWy
+evalWy (WyBlock xs) = liftM last $ mapM evalWy xs
 
 eval ast = evalWy ast >>= liftIO . readRef
 
 -- Function application, either primitive or lambdas
-apply:: [ASTType] -> WyType -> Eval WyType
+apply:: [WyType] -> WyType -> Eval WyType
 apply vals (WyPrimitive n fn) = fn vals
 apply vals wl@(WyLambda _ _ _) = mapM evalWy vals >>= applyDirect wl
 apply vals (WyCont c) = liftM head (mapM evalWy vals) >>= c
-apply ps other = appErr1 (\x -> "Don't know how to apply: " ++ x) other
+apply ps other = appErr1 (\x -> "Don't know how to apply: " ++ x ++ " " ++ show ps) other
 
--- Application of lambdas from argument list and evaluted values
+-- Application of lambdas from argument list and evaluated values
 applyDirect (WyLambda ps body lenv) vals = 
     localM (const $ buildFrame ps vals lenv) $ evalWy body
   where 
@@ -110,36 +109,36 @@ unslurp x | last x == '?' || last x == '~' = init x
 -------------------------------------------------------------------------------
 -- Macro system
 
--- Tries to match an AST pattern (like `a + `b) with an AST expression 
+-- Tries to match an Wy pattern (like `a + `b) with an Wy expression 
 -- (like 2 + 3), producing a map of bindings.
-patternMatch :: ASTType -> ASTType -> Maybe (M.Map String ASTType) -> Maybe (M.Map String ASTType)
+patternMatch :: WyType -> WyType -> Maybe (M.Map String WyType) -> Maybe (M.Map String WyType)
 patternMatch _ _ Nothing = Nothing
-patternMatch (ASTId s1) (ASTId s2) f | s1 == s2      = f
-patternMatch (ASTId s) x (Just f)    | head s == '`' = Just $ M.insert (unslurp $ tail s) x f
-patternMatch (ASTStmt xs@(x1:xs1)) (ASTStmt ys@(x2:xs2)) f = matchList xs ys f
-patternMatch (ASTStmt [x]) y f = patternMatch x y f
-patternMatch (ASTStmt []) (ASTStmt []) f = f
-patternMatch (ASTApplic n1 ps1) (ASTApplic n2 ps2) f | n1 == n2 = 
+patternMatch (WyId s1) (WyId s2) f | s1 == s2      = f
+patternMatch (WyId s) x (Just f)    | head s == '`' = Just $ M.insert (unslurp $ tail s) x f
+patternMatch (WyStmt xs@(x1:xs1)) (WyStmt ys@(x2:xs2)) f = matchList xs ys f
+patternMatch (WyStmt [x]) y f = patternMatch x y f
+patternMatch (WyStmt []) (WyStmt []) f = f
+patternMatch (WyApplic n1 ps1) (WyApplic n2 ps2) f | n1 == n2 = 
   case adjps2 of
       Just vs -> matchList ps1 vs f
       Nothing -> Nothing
-  where adjps2 = adjust (ASTId "null") ASTList strps1 ps2 (length ps2 - (fst $ unslurps strps1))
+  where adjps2 = adjust (WyId "null") WyList strps1 ps2 (length ps2 - (fst $ unslurps strps1))
         strps1 =  map toIdStr ps1
-        toIdStr (ASTId x) = x
+        toIdStr (WyId x) = x
         toIdStr _         = "placeholder"
 patternMatch _ _ _ = Nothing
 
 -- todo only supports last slurpy for now, should eventually be a full blown parser generator
-matchList [ai@(ASTId i1)] xs f | head i1 == '`' && last i1 == '~' =
-  patternMatch ai (ASTStmt xs) f
+matchList [ai@(WyId i1)] xs f | head i1 == '`' && last i1 == '~' =
+  patternMatch ai (WyStmt xs) f
 matchList (x1:xs1) (x2:xs2) f = patternMatch x1 x2 $ matchList xs1 xs2 f
 matchList [] _ f = f
 matchList _ _ _ = Nothing
 
-findMacros :: (Num a) => [ASTType] -> a -> Eval [(WyType, a)]
+findMacros :: (Num a) => [WyType] -> a -> Eval [(WyType, a)]
 findMacros [] num = return []
-findMacros ((ASTId x):xs) num = lookupMacro x xs num
-findMacros ((ASTApplic (ASTId n) _):xs) num = lookupMacro n xs num
+findMacros ((WyId x):xs) num = lookupMacro x xs num
+findMacros ((WyApplic (WyId n) _):xs) num = lookupMacro n xs num
 findMacros (x:xs) num = findMacros xs (num+1)
 lookupMacro n xs num = do
   env <- ask
@@ -149,14 +148,12 @@ lookupMacro n xs num = do
                    return $ (res, num) : t
     Nothing -> findMacros xs (num+1)
 
-matchMacro :: [ASTType] -> (WyType, Int) -> Eval (Maybe (WyType, Int, M.Map String WyType))
+matchMacro :: [WyType] -> (WyType, Int) -> Eval (Maybe (WyType, Int, M.Map String WyType))
 matchMacro stmt (m@(WyMacro p b _ e), idx) = matchOffset [-1, 0, 1] stmt p idx
   where matchOffset (offs:offss) stmt mi idx = 
           if offs + idx >= 0
-              then case patternMatch mi (ASTStmt $ drop (offs + idx) stmt) (Just M.empty) of
-                      Just f -> do env <- ask
-                                   let fr = M.map WyTemplate f
-                                   return $ Just (m, idx, fr)
+              then case patternMatch mi (WyStmt $ drop (offs + idx) stmt) (Just M.empty) of
+                      Just f -> return $ Just (m, idx, f)
                       Nothing -> matchOffset offss stmt mi idx
               else matchOffset offss stmt mi idx
         matchOffset [] stmt mi idx = return Nothing
@@ -164,7 +161,7 @@ matchMacro stmt (m@(WyMacro p b _ e), idx) = matchOffset [-1, 0, 1] stmt p idx
 runMacro :: WyType -> M.Map String WyType -> Eval WyType
 runMacro (WyMacro _ b _ env) f = localIO (const $ envAdd f M.empty env) $ evalWy b
 
-rewriteStmt :: [ASTType] -> (WyType, Int, [ASTType]) -> ([ASTType], Int)
+rewriteStmt :: [WyType] -> (WyType, Int, [WyType]) -> ([WyType], Int)
 rewriteStmt stmt (m , idx, nast) =
   let startIdx = idx - (fst $ macroPivot m)
       newOffs = length nast - macroPattLgth m stmt 
@@ -172,16 +169,16 @@ rewriteStmt stmt (m , idx, nast) =
                                                  
 macroPattLgth m stmt = 
   case macroPattern m of
-    (ASTStmt es)    -> if slurpyPattern es then length stmt else (length es)
-    (ASTApplic _ _) -> 1
+    (WyStmt es)    -> if slurpyPattern es then length stmt else (length es)
+    (WyApplic _ _) -> 1
     _               -> error $ "Bad macro pattern: " ++ (show $ macroPattern m)
 
 slurpyPattern pes =
   case last pes of
-    (ASTId i) -> last i == '~'
+    (WyId i) -> last i == '~'
     x         -> False
 
-applyMacros :: [ASTType] -> Eval [ASTType]
+applyMacros :: [WyType] -> Eval [WyType]
 applyMacros stmt = liftM (map pruneAST) $ liftM orderFound (findMacros stmt 0) >>= rewriteMatch stmt
   where rewriteMatch stmt [] = return stmt
         rewriteMatch stmt (mi@(m,idx):ms) = do
@@ -191,7 +188,7 @@ applyMacros stmt = liftM (map pruneAST) $ liftM orderFound (findMacros stmt 0) >
                              rewriteMatch (fst newStmt) $ updIndexes idx (snd newStmt) ms
             Nothing -> rewriteMatch stmt ms
         runMatch (m, idx, f) = do res <- runMacro m f
-                                  return (m, idx, [wyToAST res])
+                                  return (m, idx, [res])
         orderFound ms = sortBy (comparing priority) $ ms
                         where priority = ((-)0) . macroPriority . fst
         updIndexes p offs [] = []
