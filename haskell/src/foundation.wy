@@ -201,7 +201,7 @@ module Foundation (
     )
   )
 
-  macrop (`appl ^ `sub~) (
+  macro (`appl ^ `sub~) (
     if (applic? appl) (
       print ( `( ($ (fnName appl)) ($^ (params appl << sub )) ) )
       `( ($ (fnName appl)) ($^ (params appl << sub )) )
