@@ -32,6 +32,16 @@ describe "Function isa" (
   it "should be false for string and function" (isa "abc" print == false)
 )
 
+describe "Last argument macro ^ " (
+  it "should factor in operations" (((+) 1 2 ^ 3+4) == 10)
+  it "should work with a macro application" ^ 3 + 4 == 7
+  it "should be chainable" (((+) 1 ^ (+) 2 ^ (+) 3 4) == 10)
+  it "should work in a macro definition" (
+    macrox (foo `a) ^ (+) 1 ^ $a + 2
+    foo 3 == 6
+  )
+)
+
 describe "Error throwing" (
   it "should throw standard errors" (
     try (raise ArgumentError) (catch ArgumentError ae "caught") == "caught"
