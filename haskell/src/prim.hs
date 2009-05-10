@@ -62,6 +62,7 @@ basePrim f =
       y          -> liftIO $ varUpdate env n y ) $
 
   defp "`" (\ps -> liftM pruneAST $ unescapeBq . head $ ps) $
+  defp "isa?" (\ps -> liftM WyBool $ liftM2 wyIsA (eval $ head ps) (evalSnd ps)) $
   defp "if" (\ps -> do
     expr <- eval $ head ps
     if (truthy expr)

@@ -93,6 +93,10 @@ module Foundation (
     primitive 'empty?'
   )
 
+  def isa? expression (
+    primitive 'isa?'
+  )
+
   // Comparison and arithmetic operators
   //
 

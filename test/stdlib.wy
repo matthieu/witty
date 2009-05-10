@@ -20,16 +20,18 @@ describe "Function eval" (
   it "should affect current environment" (a = 0; eval "a += 1"; a == 1)
 )
 
-describe "Function isa" (
-  it "should return true for two strings" (isa "abc" "cde")
-  it "should return true for two numbers" (isa 3.7 18)
-  it "should return true for two functions" (isa (+) print)
+describe "Function isa?" (
+  it "should return true for two strings" (isa? "abc" "cde")
+  it "should return true for two ints" (isa? 3 18)
+  it "should return true for two floats" (isa? 3.3 18.892)
+  it "should return true for two functions" (isa? (+) print)
   it "should return true for primitive and non primitive functions" (
     fn = lambda x (x+1)
-    isa fn print
+    isa? fn print
   )
-  it "should be false for number and string" (isa "abc" 7 == false)
-  it "should be false for string and function" (isa "abc" print == false)
+  it "should be false for number and string" (isa? "abc" 7 == false)
+  it "should be false for ints and floats" (isa? 7.2 7 == false)
+  it "should be false for string and function" (isa? "abc" print == false)
 )
 
 describe "Last argument macro ^ " (

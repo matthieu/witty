@@ -7,7 +7,7 @@ module Wy.Types
   ( WyError(..),
     WyType(..), readRef, mapReadRef, newWyRef, truthy, showWy, macroPivot,
     extractId,
-    wyPlus, wyMinus, wyDiv, wyMult,
+    wyPlus, wyMinus, wyDiv, wyMult, wyIsA,
     WyEnv, Frame(..), macroValue, varValue, macroUpdate, varInsert, varUpdate, envStack, envAdd, envAddMod,
     Eval, localM, localIO, runEval, appErr1, appErr2
   ) where
@@ -145,6 +145,26 @@ instance Ord (IORef WyType) where
 extractId (WyId i) = return i
 extractId (WyStmt [WyId i]) = return i
 extractId x = throwError $ ArgumentErr $ "Non identifier value when one was expected: " ++ (show x)
+
+wyIsA (WyInt _) (WyInt _) = True
+wyIsA (WyFloat _) (WyFloat _) = True
+wyIsA (WyString _) (WyString _) = True
+wyIsA (WyBool _) (WyBool _) = True
+wyIsA WyNull WyNull = True
+wyIsA (WyList _) (WyList _) = True
+wyIsA (WyMap _) (WyMap _) = True
+wyIsA (WyLambda _ _ _) (WyLambda _ _ _) = True
+wyIsA (WyLambda _ _ _) (WyPrimitive _ _) = True
+wyIsA (WyPrimitive _ _) (WyLambda _ _ _) = True
+wyIsA (WyPrimitive _ _) (WyPrimitive _ _) = True
+wyIsA (WyMacro _ _ _ _) (WyMacro _ _ _ _) = True
+wyIsA (WyCont _) (WyCont _) = True
+wyIsA (WyModule _ _ _) (WyModule _ _ _) = True
+wyIsA (WyId _) (WyId _) = True
+wyIsA (WyApplic _ _) (WyApplic _ _) = True
+wyIsA (WyStmt _) (WyStmt _) = True
+wyIsA (WyBlock _) (WyBlock _) = True
+wyIsA _ _ = False
 
 -- Environment definition
 --
