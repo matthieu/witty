@@ -50,7 +50,7 @@ data WyType = WyString String
     deriving (Show, Eq, Ord)
 
 -- Line, column, file name
-data WySourcePos = WySourcePos Integer Integer String
+data WySourcePos = WySourcePos { wySrcLine:: Integer, wySrcCol:: Integer, wySrcFile:: String }
                  | NoPos
     deriving (Show, Eq, Ord)
 

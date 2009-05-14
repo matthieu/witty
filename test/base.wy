@@ -43,7 +43,12 @@ for descriptions (lambda desc (
       bef = desc.2
       bef()
     )
-    success = try (caseBody()) (catch SysError se (print(se.message); false))
+    success = try (
+      caseBody()
+    )( catch SysError se (
+      print (se.source) ':' (se.line) ':' (se.column) ' ' (se.message)
+      false
+    ))
     if verbose (print ("  " + case.0 + " -> " + if success "OK" "FAILED"))
     testCount += 1
     unless success (push! failures (desc.1 + " " + case.0))

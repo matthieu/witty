@@ -135,8 +135,8 @@ basePrim f =
             Nothing  -> handleErr ps err
 
         -- matchErr caught thrown
-        matchErr (WyList ((WyMap m):xs)) (UnknownRef s _) = sysErr m xs s "UnknownRef"
-        matchErr (WyList ((WyMap m):xs)) (ArgumentErr s _) = sysErr m xs s "ArgumentError"
+        matchErr (WyList ((WyMap m):xs)) (UnknownRef s pos) = sysErr m xs s "UnknownRef" pos
+        matchErr (WyList ((WyMap m):xs)) (ArgumentErr s pos) = sysErr m xs s "ArgumentError" pos
         matchErr (WyList ((WyMap m1):xs)) (UserErr wm@(WyMap m2))
           | M.member (WyString "type") m1 &&  M.member (WyString "type") m2 
               = let c = M.lookup (WyString "type") m1
@@ -160,11 +160,15 @@ basePrim f =
         readArrRef (WyList l) = liftM WyList $ mapReadRef l
         readArrRef x          = error $ "Expected a list but didn't get one, a bug " ++ (show x)
 
-        sysErr m xs msg errstr = do
+        sysErr m xs msg errstr pos = do
           v <- liftIO . readRef $ M.findWithDefault WyNull (WyString "type") m
           if (v == WyString errstr)
             then liftM Just $ applyDirect (last xs) 
-              [WyMap $ M.insert (WyString "message") (WyString $ errstr ++ ": " ++ msg) m]
+              [WyMap $ 
+                M.insert (WyString "source") (WyString $ wySrcFile pos) $
+                M.insert (WyString "line") (WyInt $ wySrcLine pos) $
+                M.insert (WyString "column") (WyInt $ wySrcCol pos) $
+                M.insert (WyString "message") (WyString $ errstr ++ ": " ++ msg) m]
             else return Nothing
 
 arithmPrim f = 
