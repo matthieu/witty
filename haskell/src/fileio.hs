@@ -5,6 +5,7 @@ module Wy.FileIO
 import qualified Data.Map as M
 import Control.Monad(liftM)
 import Control.Monad.Trans
+import Control.Monad.State
 
 import System.Directory (doesDirectoryExist, doesFileExist, removeFile,
                          getCurrentDirectory, getDirectoryContents)
@@ -34,4 +35,4 @@ updateFile updFn ps = do
 defp n l = M.insert n (WyPrimitive n l)
 
 asString (WyString s) = return s
-asString x            = appErr1 (\y -> "A string was expected, got " ++ y) x
+asString x            = get >>= appErr1 (\y -> "A string was expected, got " ++ y) x

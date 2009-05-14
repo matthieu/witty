@@ -38,17 +38,17 @@ evalWy (WyList xs) = liftM WyList (mapM evalWy xs) >>= newWyRef
 evalWy (WyMap m) = liftM (WyMap . M.fromList) (T.mapM evalKeyVal $ M.toList m) >>= newWyRef
   where evalKeyVal (k,v) = liftM2 (,) (eval k) (evalWy v)
 
-evalWy (WyId idn) | idn == "true" = return $ WyBool True
-evalWy (WyId idn) | idn == "false" = return $ WyBool False
-evalWy (WyId idn) | idn == "null" = return $ WyNull
-evalWy (WyId idn) | otherwise = do
+evalWy (WyId idn _) | idn == "true" = return $ WyBool True
+evalWy (WyId idn _) | idn == "false" = return $ WyBool False
+evalWy (WyId idn _) | idn == "null" = return $ WyNull
+evalWy (WyId idn pos) | otherwise = do
   env <- ask
   val <- liftIO $ varValue idn env
   case val of
-    Nothing -> throwError $ UnknownRef ("Unknown reference: " ++ idn)
+    Nothing -> throwError $ UnknownRef ("Unknown reference: " ++ idn) pos
     Just v  -> return v
     
-evalWy (WyApplic fn ps) = eval fn >>= apply ps
+evalWy (WyApplic fn ps pos) = eval fn >>= apply ps
 
 -- evalWy (WyStmt xs) = liftM last $ applyMacros xs >>= (\x -> trace (show x) (return x)) >>= mapM evalWy
 evalWy (WyStmt xs) = liftM last $ applyMacros xs >>= mapM evalWy
@@ -61,7 +61,7 @@ apply:: [WyType] -> WyType -> Eval WyType
 apply vals (WyPrimitive n fn) = fn vals
 apply vals wl@(WyLambda _ _ _) = mapM evalWy vals >>= applyDirect wl
 apply vals (WyCont c) = liftM head (mapM evalWy vals) >>= c
-apply ps other = appErr1 (\x -> "Don't know how to apply: " ++ x ++ " " ++ show ps) other
+apply ps other = get >>= appErr1 (\x -> "Don't know how to apply: " ++ x ++ " " ++ show ps) other
 
 -- Application of lambdas from argument list and evaluated values
 applyDirect (WyLambda ps body lenv) vals = 
@@ -69,7 +69,7 @@ applyDirect (WyLambda ps body lenv) vals =
   where 
     buildFrame ps vs e  =
       case adjust WyNull WyList ps vs $ length vs - (fst $ unslurps ps) of
-        Nothing   -> appErr1 (\x -> "Wrong number of arguments in function call: " ++ x ++ " for " ++ show ps) (WyList vs)
+        Nothing   -> get >>= appErr1 (\x -> "Wrong number of arguments in function call: " ++ x ++ " for " ++ show ps) (WyList vs)
         Just adjV -> liftIO $ envStack (snd $ unslurps ps) adjV e
 
 -- Adjusts the values provided for an application to a function's arguments. Handles
@@ -111,23 +111,23 @@ unslurp x | last x == '?' || last x == '~' = init x
 -- (like 2 + 3), producing a map of bindings.
 patternMatch :: WyType -> WyType -> Maybe (M.Map String WyType) -> Maybe (M.Map String WyType)
 patternMatch _ _ Nothing = Nothing
-patternMatch (WyId s1) (WyId s2) f | s1 == s2      = f
-patternMatch (WyId s) x (Just f)    | head s == '`' = Just $ M.insert (unslurp $ tail s) x f
+patternMatch (WyId s1 _) (WyId s2 _) f | s1 == s2      = f
+patternMatch (WyId s _) x (Just f)     | head s == '`' = Just $ M.insert (unslurp $ tail s) x f
 patternMatch (WyStmt xs@(x1:xs1)) (WyStmt ys@(x2:xs2)) f = matchList xs ys f
 patternMatch (WyStmt [x]) y f = patternMatch x y f
 patternMatch (WyStmt []) (WyStmt []) f = f
-patternMatch (WyApplic n1 ps1) (WyApplic n2 ps2) f | n1 == n2 = 
+patternMatch (WyApplic (WyId n1 _) ps1 _) (WyApplic (WyId n2 _) ps2 _) f | n1 == n2 = 
   case adjps2 of
       Just vs -> matchList ps1 vs f
       Nothing -> Nothing
-  where adjps2 = adjust (WyId "null") WyList strps1 ps2 (length ps2 - (fst $ unslurps strps1))
+  where adjps2 = adjust (WyId "null" NoPos) WyList strps1 ps2 (length ps2 - (fst $ unslurps strps1))
         strps1 =  map toIdStr ps1
-        toIdStr (WyId x) = x
+        toIdStr (WyId x _) = x
         toIdStr _         = "placeholder"
 patternMatch _ _ _ = Nothing
 
 -- todo only supports last slurpy for now, should eventually be a full blown parser generator
-matchList [ai@(WyId i1)] xs f | head i1 == '`' && last i1 == '~' =
+matchList [ai@(WyId i1 _)] xs f | head i1 == '`' && last i1 == '~' =
   patternMatch ai (WyStmt xs) f
 matchList (x1:xs1) (x2:xs2) f = patternMatch x1 x2 $ matchList xs1 xs2 f
 matchList [] _ f = f
@@ -135,8 +135,8 @@ matchList _ _ _ = Nothing
 
 findMacros :: (Num a) => [WyType] -> a -> Eval [(WyType, a)]
 findMacros [] num = return []
-findMacros ((WyId x):xs) num = lookupMacro x xs num
-findMacros ((WyApplic (WyId n) _):xs) num = lookupMacro n xs num
+findMacros ((WyId x _):xs) num = lookupMacro x xs num
+findMacros ((WyApplic (WyId n _) _ _):xs) num = lookupMacro n xs num
 findMacros (x:xs) num = findMacros xs (num+1)
 lookupMacro n xs num = do
   env <- ask
@@ -167,13 +167,13 @@ rewriteStmt stmt (m , idx, nast) =
                                                  
 macroPattLgth m stmt = 
   case macroPattern m of
-    (WyStmt es)    -> if slurpyPattern es then length stmt else (length es)
-    (WyApplic _ _) -> 1
-    _               -> error $ "Bad macro pattern: " ++ (show $ macroPattern m)
+    (WyStmt es)      -> if slurpyPattern es then length stmt else (length es)
+    (WyApplic _ _ _) -> 1
+    _                -> error $ "Bad macro pattern: " ++ (show $ macroPattern m)
 
 slurpyPattern pes =
   case last pes of
-    (WyId i) -> last i == '~'
+    (WyId i _) -> last i == '~'
     x         -> False
 
 applyMacros :: [WyType] -> Eval [WyType]

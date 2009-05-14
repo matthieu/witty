@@ -17,10 +17,13 @@ import Wy.Types
 import Wy.Prim
 import Wy.Interpr(eval, evalWy)
 
-doEval :: S.Seq Frame -> WyType -> IO (Either WyError WyType, S.Seq Frame)
+--doEval :: S.Seq Frame -> WyType -> IO (Either WyError WyType, S.Seq Frame)
 doEval env p = do 
-  res <- runEval (evalWy p) env return
+  res <- runEval (evalWy p) env NoPos (return . nopos)
   return (res, env)
+
+nopos (Right (res,pos)) = Right res
+nopos (Left err) = Left err
 
 wyInterpr env f = doEval env . parseWy f
 

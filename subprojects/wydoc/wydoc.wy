@@ -65,6 +65,11 @@ print (runState 10 tick)
 print "---"
 print (runState 10 tick2)
 
+char c = seq (
+  st <- getState()
+  if ((st.0).(st.1) == c) (setState []) 
+)
+
 /*
 def munit posval (
   lambda p [p.0, posval.0, posval.1]  // buff, pos, result

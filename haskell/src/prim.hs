@@ -12,6 +12,7 @@ import Data.Foldable (foldrM, foldlM)
 import Control.Monad.Reader
 import Control.Monad.Error
 import Control.Monad.Cont
+import Control.Monad.State
 import System.Environment(getArgs)
 import System.Exit
 import Debug.Trace
@@ -28,9 +29,9 @@ defWy ps = do
   env <- ask
   defName <- extractId $ head ps
   case last ps of
-    (WyStmt [WyApplic (WyId n) [WyString primName]]) | n == "primitive" -> do
+    (WyStmt [WyApplic (WyId n _) [WyString primName] pos]) | n == "primitive" -> do
       case M.lookup primName $ primitives M.empty of
-        Nothing -> throwError $ ArgumentErr ("Unknown primitive referenced in def: " ++ primName)
+        Nothing -> throwError $ ArgumentErr ("Unknown primitive referenced in def: " ++ primName) pos
         Just x  -> liftIO $ varUpdate env defName x
     x -> do params <- mapM extractId $ tail $ init ps
             let wl = WyLambda params (last ps) env
@@ -90,7 +91,7 @@ basePrim f =
       Just f  -> case lstP of
                    Just l  -> apply l f
                    Nothing -> apply (fstP : (tail . tail) ps) f
-      Nothing -> throwError . ArgumentErr $ "Unknown function: " ++ fnNm ) $
+      Nothing -> get >>= (appErr $ "Unknown function: " ++ fnNm) ) $
 
   defp "try" (\ps ->
     eval (head ps) `catchError` handleErr (tail ps) ) $
@@ -114,7 +115,7 @@ basePrim f =
         astList x          = return $ Nothing
   
         extractInt (WyInt i) = return i
-        extractInt x = throwError $ ArgumentErr $ (show x) ++ " isn't an integer value"
+        extractInt x = get >>= appErr1 (\x -> x ++ " isn't an integer value") x
         
         wyFold foldFn ps = do
           fn   <- eval $ head ps
@@ -123,7 +124,7 @@ basePrim f =
           case arr of
             (WyList a)   -> foldFn (\x acc -> applyDirect fn [x, acc]) init a
             (WyString s) -> foldFn (\x acc -> applyDirect fn [x, acc]) init (map (WyString . (:[])) s)
-            x            -> throwError $ ArgumentErr $ "Can't fold on " ++ show x
+            x            -> get >>= appErr1 (\x -> "Can't fold on " ++ x) x
 
         handleErr [] err = throwError err
         handleErr (p:ps) err = do
@@ -134,8 +135,8 @@ basePrim f =
             Nothing  -> handleErr ps err
 
         -- matchErr caught thrown
-        matchErr (WyList ((WyMap m):xs)) (UnknownRef s) = sysErr m xs s "UnknownRef"
-        matchErr (WyList ((WyMap m):xs)) (ArgumentErr s) = sysErr m xs s "ArgumentError"
+        matchErr (WyList ((WyMap m):xs)) (UnknownRef s _) = sysErr m xs s "UnknownRef"
+        matchErr (WyList ((WyMap m):xs)) (ArgumentErr s _) = sysErr m xs s "ArgumentError"
         matchErr (WyList ((WyMap m1):xs)) (UserErr wm@(WyMap m2))
           | M.member (WyString "type") m1 &&  M.member (WyString "type") m2 
               = let c = M.lookup (WyString "type") m1
@@ -200,7 +201,7 @@ dataPrim f =
   defp "L" (\ps -> liftM WyList (mapM evalWy ps) >>= newWyRef ) $
   defp "M" (\ps ->
     if odd $ length ps
-      then throwError $ ArgumentErr "Odd number of arguments in map constructor."
+      then get >>= appErr "Odd number of arguments in map constructor."
       else evalToAssoc ps >>= newWyRef . WyMap . M.fromList ) $
   defp "empty?" (\ps -> 
     onContainers ps (WyBool . null) (WyBool . null) (WyBool . M.null) ) $
@@ -248,13 +249,13 @@ dataPrim f =
                (WyList l) -> return . fnl $ l
                (WyString s) -> return . fns $ s
                (WyMap m) -> return . fnm $ m
-               x -> throwError $ ArgumentErr $ "Can't check the length of " ++ show x
+               x -> get >>= appErr1 (\x -> "Can't check the length of ") x
         wyLength = WyInt .toInteger . length
   
         elemAt ((WyList xs), (WyInt n)) = elemInArr xs n id
         elemAt ((WyString s), (WyInt n)) = elemInArr s n (WyString . (:[]))
         elemAt ((WyMap m), k) = return $ maybe WyNull id $ M.lookup k m
-        elemAt (c, n) = throwError $ ArgumentErr $ "Can't access element " ++ show n ++ " in " ++ show c
+        elemAt (c, n) = get >>= appErr2 (\x y -> "Can't access element " ++ x ++ " in " ++ y) n c
         elemInArr xs n fn = 
           if m >= length xs || m < -(length xs)
             then return WyNull
@@ -270,15 +271,14 @@ dataPrim f =
           WyList $ takeOrFill (fromInteger n) xs ++ [val] ++ drop ((fromInteger n)+1) xs
         updatedVal (WyString s) (WyInt n) (WyString ns) = 
           WyString $ take (fromInteger n) s ++ ns ++ drop ((fromInteger n)+1) s
-        updatedVal (WyMap m) (WyId i) v = WyMap $ M.insert (WyString i) v m
+        updatedVal (WyMap m) (WyId i _) v = WyMap $ M.insert (WyString i) v m
         updatedVal x y _ = error $ "Can't update an element in " ++ show x ++ " at position " ++ show y
         takeOrFill n xs = if (length xs > n) then take n xs
                                              else take n xs ++ take (n - length xs) (repeat WyNull)
 
         stickToList fn (WyList xs) val _ = return $ WyList (fn val xs)
         stickToList fn (WyString xs) (WyString val) _ = return $ WyString (xs ++ val)
-        stickToList _ x val errstr = throwError $ ArgumentErr $ 
-          "Can't " ++ errstr  ++ " value " ++ (show val) ++ " in " ++ (show x)
+        stickToList _ x val errstr = get >>= appErr ("Can't " ++ errstr ++ " value " ++ show val ++ " in " ++ show x)
 
         -- assumes even number of arguments (faster to check before)
         evalToAssoc (x1:x2:xs) = liftM2 (:) (liftM2 (,) (eval x1) (evalWy x2)) $ evalToAssoc xs
@@ -337,53 +337,54 @@ metaPrim f =
   defp "applic?" (\ps -> do 
     applic <- eval $ head ps
     case applic of
-      WyStmt [WyApplic _ _] -> return $ WyBool True
-      WyApplic _ _          -> return $ WyBool True
-      _                     -> return $ WyBool False) $
+      WyStmt [WyApplic _ _ _] -> return $ WyBool True
+      WyApplic _ _ _          -> return $ WyBool True
+      _                       -> return $ WyBool False) $
   defp "params" (\ps -> do
     applic <- eval $ head ps 
     case applic of
-      WyStmt [WyApplic _ ps] -> return $ WyList ps
-      WyApplic _ ps          -> return $ WyList ps
-      _                      -> throwError $ ArgumentErr "Not a function application.") $
+      WyStmt [WyApplic _ ps _] -> return $ WyList ps
+      WyApplic _ ps _          -> return $ WyList ps
+      _                        -> get >>= appErr "Not a function application.") $
 
   defp "fnName" (\ps -> do
     applic <- eval $ head ps 
     case applic of
-      WyStmt [WyApplic (WyId n) _] -> return $ WyString n
-      WyApplic (WyId n) _          -> return $ WyString n
-      _ -> throwError $ ArgumentErr "Not a function application or no obvious name.") $
+      WyStmt [WyApplic (WyId n _) _ _] -> return $ WyString n
+      WyApplic (WyId n _) _ _          -> return $ WyString n
+      _ -> get >>= appErr "Not a function application or no obvious name.") $
 
   defp "nthParam" (\ps -> do
     applic <- eval $ head ps 
     idx <- evalSnd ps >>= asInt
     case applic of
-      (WyStmt [WyApplic _ ps]) ->  return $ ps !! fromInteger idx
-      WyApplic _ ps            ->  return $ ps !! fromInteger idx
-      x -> appErr1 (\e -> "Not a function application: " ++ e) x ) $
+      (WyStmt [WyApplic _ ps _]) ->  return $ ps !! fromInteger idx
+      WyApplic _ ps _            ->  return $ ps !! fromInteger idx
+      x -> get >>= appErr1 (\e -> "Not a function application: " ++ e) x ) $
   
   defp "splitBlock" (\ps -> do
     block <- eval $ head ps
     case block of
       WyBlock stmts -> return $ WyList stmts
       ts@(WyStmt _) -> return $ WyList [ts]
-      x -> appErr1 (\e -> "Not a block or a statement: " ++ e) x ) $
+      x -> get >>= appErr1 (\e -> "Not a block or a statement: " ++ e) x ) $
   
   defp "splitStmt" (\ps -> do
     block <- eval $ head ps
     case block of
       WyStmt xs -> return $ WyList xs
-      x         -> appErr1 (\e -> "Not a statement: " ++ e) x ) $
+      x         -> get >>= appErr1 (\e -> "Not a statement: " ++ e) x ) $
  
   defp "wyId" (\ps -> do
     idstr <- eval $ head ps
-    liftM WyId (asString idstr) ) $
+    asstr <- asString idstr
+    return $ WyId asstr NoPos ) $
  
   defp "identifier?" (\ps -> do 
     id <- eval $ head ps
     case id of
-      WyId _ -> return $ WyBool True
-      x      -> return $ WyBool False ) f
+      WyId _ _ -> return $ WyBool True
+      x        -> return $ WyBool False ) f
 
 stdIOPrim f =
   defp "print" (\ps -> do eps <- mapM eval ps 
@@ -412,28 +413,28 @@ stdIOPrim f =
 
 defp n l = M.insert n (WyPrimitive n l)
 
-extractName (WyId i) = return i
+extractName (WyId i _) = return i
 extractName (WyStmt [x]) = extractName x
 extractName (WyString s) = return s
 extractName x = do
   vstr <- eval x
   case vstr of
     (WyString s) -> return s
-    _ -> throwError $ ArgumentErr $ "Non identifier or name value when one was expected: " ++ (show x)
+    _ -> get >>= appErr1 (\x -> "Non identifier or name value when one was expected: ") x
         
 evalSnd = eval . head . tail
 
 asInt (WyInt i) = return i
-asInt x         = appErr1 (\y -> "An int was expected, got " ++ y) x
+asInt x         = get >>= appErr1 (\y -> "An int was expected, got " ++ y) x
 
 asList (WyList l) = return l
-asList x          = appErr1 (\y -> "A list was expected, got " ++ y) x
+asList x          = get >>= appErr1 (\y -> "A list was expected, got " ++ y) x
 
 asString (WyString s) = return s
-asString x          = appErr1 (\y -> "A string was expected, got " ++ y) x
+asString x          = get >>= appErr1 (\y -> "A string was expected, got " ++ y) x
 
 unescapeBq :: WyType -> Eval WyType
-unescapeBq ai@(WyId i) | i !! 0 == '$' = do
+unescapeBq ai@(WyId i _) | i !! 0 == '$' = do
   env <- ask
   res <- liftIO $ varValue (tail i) env
   case res of
@@ -441,10 +442,15 @@ unescapeBq ai@(WyId i) | i !! 0 == '$' = do
     Nothing -> return ai
 unescapeBq (WyList ss) = mapUnxBq WyList ss
 unescapeBq (WyMap m) = liftM WyMap $ T.mapM unescapeBq m
-unescapeBq (WyApplic n1 [WyStmt [WyApplic (WyId n2) [p]]]) | n2 == "$^" =
-  liftM2 WyApplic (unescapeBq n1) $ eval p >>= asList
-unescapeBq (WyApplic (WyId n) ps) | n == "$" = evalWy (ps !! 0)
-unescapeBq (WyApplic n ps) = liftM2 WyApplic (unescapeBq n) $ mapM unescapeBq ps
+unescapeBq (WyApplic n1 [WyStmt [WyApplic (WyId n2 _) [p] _]] pos) | n2 == "$^" = do
+  newn <- unescapeBq n1
+  ps   <- eval p >>= asList
+  return $ WyApplic newn ps pos
+unescapeBq (WyApplic (WyId n _) ps _) | n == "$" = evalWy (ps !! 0)
+unescapeBq (WyApplic n ps pos) = do
+  newn  <- unescapeBq n
+  newps <- mapM unescapeBq ps 
+  return $ WyApplic newn newps pos
 unescapeBq (WyStmt xs) = mapUnxBq WyStmt xs
 unescapeBq (WyBlock xs) = mapUnxBq WyBlock xs
 unescapeBq x = return x

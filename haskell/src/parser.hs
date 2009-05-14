@@ -34,7 +34,8 @@ assocOrComp = do c <- compound
 
 assoc = do op <- try operator
            rv <- assocOrComp
-           return $ (WyId op) : rv
+           ppos <- getPosition
+           return $ (WyId op $ convertSPos ppos) : rv
         <|> return []
 
 compound = literals <|> idOrApplic
@@ -47,11 +48,17 @@ idOrApplic = do idr <- try idRef <|> parensBlock
 -- optimizing by enumerating chars instead of full parser primitives
 idOnly idr = notFollowed (oneOf "({[\"'" <|> digit <|> P.identStart wyDef) >> return idr
 
-applic fn = liftM (WyApplic fn) ( try (string "()" >> return []) <|> params)
+applic fn = do
+  ppos <- getPosition
+  ps <- try (string "()" >> return []) <|> params
+  return $ WyApplic fn ps $ convertSPos ppos
 
 params = liftM concat $ (many1 (try idRef <|> literals <|> parensBlock)) `sepBy1` (symbol "\\" >> cr)
 
-idRef = liftM WyId (identifier <|> parens operator)
+idRef = do
+  ppos <- getPosition
+  id <- identifier <|> parens operator
+  return $ WyId id $ convertSPos ppos 
 
 literalList = liftM WyList $ brackets (commaSep stmt)
 
@@ -82,6 +89,9 @@ cr = skipChar '\n'
 skipChar = skipMany . lexeme . char
 
 notFollowed p = try ( do { c <- p; unexpected (show [c]) } <|> return () )
+
+-- Parsec source pos to wy
+convertSPos psp = WySourcePos (toInteger $ sourceLine psp) (toInteger $ sourceColumn psp) (sourceName psp)
 
 --
 -- Lexer
@@ -121,10 +131,10 @@ pruneAST (WyBlock ss) = WyBlock $ map pruneAST ss
 pruneAST (WyStmt [single]) | isApplic single = WyStmt $ [pruneAST single]
                            | otherwise       = pruneAST single
 pruneAST (WyStmt ss) = WyStmt $ map pruneAST ss 
-pruneAST (WyApplic s ps) = WyApplic (pruneAST s) $ map pruneAST ps
+pruneAST (WyApplic s ps pos) = WyApplic (pruneAST s) (map pruneAST ps) pos
 pruneAST (WyList xs) = WyList $ map pruneAST xs
 pruneAST (WyMap m) = WyMap $ M.mapKeys pruneAST . M.map pruneAST $ m
 pruneAST x = x
 
-isApplic (WyApplic _ _) = True
-isApplic _               = False
+isApplic (WyApplic _ _ _) = True
+isApplic _                = False

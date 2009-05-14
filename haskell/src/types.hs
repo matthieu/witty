@@ -4,24 +4,25 @@
 {-# LANGUAGE TypeSynonymInstances #-}
 
 module Wy.Types
-  ( WyError(..),
+  ( WyError(..), WySourcePos(..),
     WyType(..), readRef, mapReadRef, newWyRef, truthy, showWy, macroPivot,
     extractId,
     wyPlus, wyMinus, wyDiv, wyMult, wyIsA,
     WyEnv, Frame(..), macroValue, varValue, macroUpdate, varInsert, varUpdate, envStack, envAdd, envAddMod,
-    Eval, localM, localIO, runEval, appErr1, appErr2
+    Eval, localM, localIO, runEval, appErr, appErr1, appErr2
   ) where
 
 import qualified Data.Sequence as S
 import qualified Data.Map as M
 import Data.List(intercalate, (\\))
 import Control.Monad.Error
+import Control.Monad.State
 import Control.Monad.Reader
 import Control.Monad.Cont
 import Data.IORef
 import Data.Char(toLower)
 import Data.Sequence ((<|))
-import Control.Monad(liftM, liftM2)
+import Control.Monad(liftM, liftM2, liftM3)
 import System.IO.Unsafe(unsafePerformIO)
 import Debug.Trace
 
@@ -42,12 +43,17 @@ data WyType = WyString String
             | WyCont (WyType -> Eval WyType)
             | WyModule String (M.Map String WyType) (M.Map String WyType)
 
-            | WyId String
-            | WyApplic WyType [WyType]
+            | WyId String WySourcePos
+            | WyApplic WyType [WyType] WySourcePos
             | WyStmt [WyType]
             | WyBlock [WyType]
     deriving (Show, Eq, Ord)
-            
+
+-- Line, column, file name
+data WySourcePos = WySourcePos Integer Integer String
+                 | NoPos
+    deriving (Show, Eq, Ord)
+
 readRef (WyRef r) = readIORef r
 readRef x         = return x
 mapReadRef = mapM (liftIO . readRef)
@@ -61,9 +67,9 @@ truthy _ = True
 
 macroPivot :: (Num t) => WyType -> (t, String)
 macroPivot (WyMacro p b _ e) = firstNonVar p
-  where firstNonVar (WyStmt [WyApplic (WyId n) _]) = (0, n)
+  where firstNonVar (WyStmt [WyApplic (WyId n _) _ _]) = (0, n)
         firstNonVar (WyStmt es) = firstNonVar' es 0
-        firstNonVar' ((WyId i):es) idx | i !! 0 /= '`' = (idx, i)
+        firstNonVar' ((WyId i _):es) idx | i !! 0 /= '`' = (idx, i)
         firstNonVar' [] idx = error $ "No pivot found in macro pattern " ++ (show p)
         firstNonVar' (e:es) idx = firstNonVar' es (idx+1)
 
@@ -75,7 +81,7 @@ wyPlus (WyFloat f1) (WyFloat f2) = return $ WyFloat (f1 + f2)
 wyPlus (WyInt i1) (WyFloat f2) = return $ WyFloat ((fromInteger i1) + f2)
 wyPlus (WyFloat f1) (WyInt i2) = return $ WyFloat (f1 + (fromInteger i2))
 wyPlus (WyList l1) (WyList l2) = return $ WyList (l1 ++ l2)
-wyPlus x1 x2 = appErr2 (\x y -> "can't add " ++ x ++ " and " ++ y) x1 x2
+wyPlus x1 x2 = appErr2 (\x y -> "can't add " ++ x ++ " and " ++ y) x1 x2 NoPos
 
 wyMinus (WyString s1) (WyString s2) = return $ WyString (s1 \\ s2)
 wyMinus (WyInt i1) (WyInt i2) = return $ WyInt (i1 - i2)
@@ -83,21 +89,21 @@ wyMinus (WyFloat f1) (WyFloat f2) = return $ WyFloat (f1 - f2)
 wyMinus (WyInt i1) (WyFloat f2) = return $ WyFloat ((fromInteger i1) - f2)
 wyMinus (WyFloat f1) (WyInt i2) = return $ WyFloat (f1 - (fromInteger i2))
 wyMinus (WyList l1) (WyList l2) = liftM WyList $ liftM2 (\\) (mapReadRef l1) (mapReadRef l2)
-wyMinus x1 x2 = appErr2 (\x y -> "can't subtract " ++ y ++ " from " ++ x) x1 x2
+wyMinus x1 x2 = appErr2 (\x y -> "can't subtract " ++ y ++ " from " ++ x) x1 x2 NoPos
 
 wyMult (WyInt i1) (WyInt i2) = return $ WyInt (i1 * i2)
 wyMult (WyFloat f1) (WyFloat f2) = return $ WyFloat (f1 * f2)
 wyMult (WyInt i1) (WyFloat f2) = return $ WyFloat (fromInteger i1 * f2)
 wyMult (WyFloat f1) (WyInt i2) = return $ WyFloat (f1 * fromInteger i2)
-wyMult x1 x2 = appErr2 (\x y -> "can't multiply " ++ x ++ " and " ++ y) x1 x2
+wyMult x1 x2 = appErr2 (\x y -> "can't multiply " ++ x ++ " and " ++ y) x1 x2 NoPos
 
 wyDiv (WyInt i1) (WyInt i2) = 
-  if i2 == 0 then throwError $ ArgumentErr "Division by 0"
+  if i2 == 0 then throwError $ ArgumentErr "Division by 0" NoPos
              else return $ WyFloat ((fromInteger i1) / (fromInteger i2))
 wyDiv (WyFloat f1) (WyFloat f2) = return $ WyFloat (f1 / f2)
 wyDiv (WyInt i1) (WyFloat f2) = return $ WyFloat ((fromInteger i1) / f2)
 wyDiv (WyFloat f1) (WyInt i2) = return $ WyFloat (f1 / (fromInteger i2))
-wyDiv x1 x2 = appErr2 (\x y -> "can't multiply " ++ x ++ " and " ++ y) x1 x2
+wyDiv x1 x2 = appErr2 (\x y -> "can't multiply " ++ x ++ " and " ++ y) x1 x2 NoPos
 
 showWy :: WyType -> IO String
 showWy (WyString s) = showRet s
@@ -114,8 +120,8 @@ showWy (WyMacro p b _ env) = return $ "macro(" ++ (show p) ++ ", " ++ (show b) +
 showWy (WyPrimitive n _) = return $ "<primitive " ++ (show n) ++ ">"
 showWy (WyCont c) = return "<cont>"
 showWy (WyModule n _ _) = return $ "module " ++ n ++ " .."
-showWy (WyId s) = return s
-showWy (WyApplic n ps) = liftM2 ((\ps n -> "(a " ++ n ++ " " ++ ps ++ ")") . unwords) (mapM showWy ps) (showWy n)
+showWy (WyId s _) = return s
+showWy (WyApplic n ps _) = liftM2 ((\ps n -> "(a " ++ n ++ " " ++ ps ++ ")") . unwords) (mapM showWy ps) (showWy n)
 showWy (WyStmt ss) = liftM ((\x -> "(s " ++ x ++ ")") . unwords) $ mapM showWy ss
 
 showWyE = liftIO . showWy
@@ -142,9 +148,9 @@ instance Ord (WyType -> Eval WyType) where
 instance Ord (IORef WyType) where
   x <= y = True
 
-extractId (WyId i) = return i
-extractId (WyStmt [WyId i]) = return i
-extractId x = throwError $ ArgumentErr $ "Non identifier value when one was expected: " ++ (show x)
+extractId (WyId i _) = return i
+extractId (WyStmt [WyId i _]) = return i
+extractId x = get >>= appErr1 (\x -> "Non identifier value when one was expected: " ++ x) x
 
 wyIsA (WyInt _) (WyInt _) = True
 wyIsA (WyFloat _) (WyFloat _) = True
@@ -160,8 +166,8 @@ wyIsA (WyPrimitive _ _) (WyPrimitive _ _) = True
 wyIsA (WyMacro _ _ _ _) (WyMacro _ _ _ _) = True
 wyIsA (WyCont _) (WyCont _) = True
 wyIsA (WyModule _ _ _) (WyModule _ _ _) = True
-wyIsA (WyId _) (WyId _) = True
-wyIsA (WyApplic _ _) (WyApplic _ _) = True
+wyIsA (WyId _ _) (WyId _ _) = True
+wyIsA (WyApplic _ _ _) (WyApplic _ _ _) = True
 wyIsA (WyStmt _) (WyStmt _) = True
 wyIsA (WyBlock _) (WyBlock _) = True
 wyIsA _ _ = False
@@ -237,21 +243,23 @@ envAddMod isMod fv mv env = do
 -- Evaluation monad
 
 newtype Eval a = E {
-    runE :: ReaderT WyEnv (ErrorT WyError (ContT (Either WyError WyType) IO)) a
-  } deriving (Monad, MonadIO, MonadError WyError, MonadReader WyEnv, MonadCont)
+    runE :: StateT WySourcePos (ReaderT WyEnv (ErrorT WyError (ContT (Either WyError WyType) IO))) a
+  } deriving (Monad, MonadIO, MonadError WyError, MonadReader WyEnv, MonadCont, MonadState WySourcePos)
 
 --runEval :: Eval a -> WyEnv -> IO (Either WyError a)
-runEval :: Eval a -> WyEnv -> (Either WyError a -> IO (Either WyError WyType)) -> IO (Either WyError WyType)
-runEval e env = runContT (runErrorT (runReaderT (runE e) env))
+runEval :: Eval a -> WyEnv -> WySourcePos -> (Either WyError (a, WySourcePos) -> IO (Either WyError WyType)) -> IO (Either WyError WyType)
 
-data WyError = UnknownRef String
-             | ArgumentErr String
+runEval e env pos = runContT (runErrorT (runReaderT (runStateT (runE e) pos) env))
+
+data WyError = UnknownRef String WySourcePos
+             | ArgumentErr String WySourcePos
              | UserErr WyType
              | Undef String
     deriving (Eq, Ord, Show)
 
-appErr2 txtFn x1 x2 = liftM2 txtFn (showWyE x1) (showWyE x2) >>= (throwError . ArgumentErr)
-appErr1 txtFn x = liftM txtFn (showWyE x) >>= (throwError . ArgumentErr)
+appErr2 txtFn x1 x2 pos = liftM2 txtFn (showWyE x1) (showWyE x2) >>= (throwError . (flip ArgumentErr $ pos))
+appErr1 txtFn x pos = liftM txtFn (showWyE x) >>= (throwError . (flip ArgumentErr $ pos))
+appErr txtFn pos = throwError $ ArgumentErr txtFn pos
 
 instance Error WyError where
   noMsg  = Undef "Undefined error. Sucks to be you."
