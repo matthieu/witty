@@ -253,7 +253,7 @@ runEval e env pos = runContT (runErrorT (runReaderT (runStateT (runE e) pos) env
 
 data WyError = UnknownRef String WySourcePos
              | ArgumentErr String WySourcePos
-             | UserErr WyType
+             | UserErr WyType WySourcePos
              | Undef String
     deriving (Eq, Ord, Show)
 

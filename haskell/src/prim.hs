@@ -96,7 +96,10 @@ basePrim f =
   defp "try" (\ps ->
     eval (head ps) `catchError` handleErr (tail ps) ) $
 
-  defp "raise" (\ps -> eval (head ps) >>= throwError . UserErr ) $
+  defp "raise" (\ps -> do
+    exc <- eval (head ps)
+    pos <- get
+    throwError $ UserErr exc pos ) $
 
   defp "toS" (\ps -> do 
     arg <- eval (head ps)
@@ -137,7 +140,7 @@ basePrim f =
         -- matchErr caught thrown
         matchErr (WyList ((WyMap m):xs)) (UnknownRef s pos) = sysErr m xs s "UnknownRef" pos
         matchErr (WyList ((WyMap m):xs)) (ArgumentErr s pos) = sysErr m xs s "ArgumentError" pos
-        matchErr (WyList ((WyMap m1):xs)) (UserErr wm@(WyMap m2))
+        matchErr (WyList ((WyMap m1):xs)) (UserErr wm@(WyMap m2) _)
           | M.member (WyString "type") m1 &&  M.member (WyString "type") m2 
               = let c = M.lookup (WyString "type") m1
                     t = M.lookup (WyString "type") m2
@@ -150,7 +153,7 @@ basePrim f =
           case m of
             Just x  -> return $ Just x
             Nothing -> matchErr (WyList ((WyList es):xs)) err
-        matchErr (WyList (x:xs)) ue@(UserErr y) 
+        matchErr (WyList (x:xs)) ue@(UserErr y _) 
           | x == y    = liftM Just $ applyCatch (last xs) [y]
         matchErr _ _ = return Nothing
 

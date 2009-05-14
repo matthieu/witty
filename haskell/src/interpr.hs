@@ -48,7 +48,7 @@ evalWy (WyId idn pos) | otherwise = do
     Nothing -> throwError $ UnknownRef ("Unknown reference: " ++ idn) pos
     Just v  -> return v
     
-evalWy (WyApplic fn ps pos) = eval fn >>= apply ps
+evalWy (WyApplic fn ps pos) = put pos >> eval fn >>= apply ps
 
 -- evalWy (WyStmt xs) = liftM last $ applyMacros xs >>= (\x -> trace (show x) (return x)) >>= mapM evalWy
 evalWy (WyStmt xs) = liftM last $ applyMacros xs >>= mapM evalWy
