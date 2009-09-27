@@ -73,20 +73,20 @@ patternMatchTests = TestList [testEmptyFn, testParamFn, testTwoVarExpr, testMiss
 
 testEmptyFn = TestCase $ assertEqual
   "Should match empty application" (Just M.empty) $
-  patternMatch (WyApplic (WyId "foo") []) (WyApplic (WyId "foo") []) (Just M.empty)
+  patternMatch (WyApplic (WyId "foo" NoPos) [] NoPos) (WyApplic (WyId "foo" NoPos) [] NoPos) (Just M.empty)
 
 testParamFn = TestCase $ assertEqual
   "Should match parametered application" (Just [("a", WyString "bar"), ("b", WyInt 3)]) $ liftM M.toList $
-  patternMatch (WyApplic (WyId "foo") [WyId "`a", WyId "`b"]) 
-    (WyApplic (WyId "foo") [WyString "bar", WyInt 3]) (Just M.empty)
+  patternMatch (WyApplic (WyId "foo" NoPos) [WyId "`a" NoPos, WyId "`b" NoPos] NoPos) 
+    (WyApplic (WyId "foo" NoPos) [WyString "bar", WyInt 3] NoPos) (Just M.empty)
 
 testTwoVarExpr = TestCase $ assertEqual
   "Should match expression with two variables" (Just [("a", WyInt 2), ("b", WyInt 3)]) $ liftM M.toList $
-  patternMatch (WyStmt [(WyId "`a") , (WyId "+"), (WyId "`b")])
-    (WyStmt [(WyInt 2) , (WyId "+"), (WyInt 3)]) (Just M.empty)
+  patternMatch (WyStmt [(WyId "`a" NoPos) , (WyId "+" NoPos), (WyId "`b" NoPos)])
+    (WyStmt [(WyInt 2) , (WyId "+" NoPos), (WyInt 3)]) (Just M.empty)
 
 testMissingOptionalPatt = TestCase $ assertEqual
-  "Should match application with missing optional" (Just [("a", WyString "bar"), ("b", (WyId "null"))]) $ liftM M.toList $
-  patternMatch (WyApplic (WyId "foo") [WyId "`a", WyId "`b?"])
-      (WyApplic (WyId "foo") [WyString "bar"]) (Just M.empty)
+  "Should match application with missing optional" (Just [("a", WyString "bar"), ("b", (WyId "null" NoPos))]) $ liftM M.toList $
+  patternMatch (WyApplic (WyId "foo" NoPos) [WyId "`a" NoPos, WyId "`b?" NoPos] NoPos)
+      (WyApplic (WyId "foo" NoPos) [WyString "bar"] NoPos) (Just M.empty)
 

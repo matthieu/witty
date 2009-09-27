@@ -85,9 +85,8 @@ adjust z l (p:ps) (v:vs) dif
   | otherwise = liftM (v :) $ adjust z l ps vs dif
 
 adjust z l (p:ps) [] dif 
-  | last p == '?' && dif <= 0  = liftM (z :) $ adjust z l ps [] dif
-  | last p == '~' && dif == 0 = liftM (z :) $ adjust z l ps [] dif
-adjust z l [] [] dif | dif >= 0 = Just []
+  | last p == '?' && dif <= 0 || last p == '~' && dif == 0 = liftM (z :) $ adjust z l ps [] dif
+adjust z l [] [] dif | dif == 0 = Just []
 adjust z l _  _  x = Nothing
 
 -- Consumes values matched to a vararg
