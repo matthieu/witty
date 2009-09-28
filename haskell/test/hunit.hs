@@ -20,6 +20,9 @@ testAdjustFixed = TestCase $ assertEqual
   "Should leave fixed params unchanged" (Just [WyInt 1, WyInt 2]) $ adjust WyNull WyList ["a", "b"] [WyInt 1, WyInt 2] 0
 testAdjustFixedErr = TestCase $ assertEqual
   "Should fail for insufficent fixed values" Nothing $ adjust WyNull WyList ["a", "b"] [WyInt 1] 0
+testAdjustFailTooManyParams = TestCase $ assertEqual
+  "Should fail with too many parameters" Nothing $ 
+  adjust WyNull WyList ["a", "b"] [WyInt 0, WyInt 1, WyInt 2] (-1)
 testAdjustFixedErr2 = TestCase $ assertEqual
   "Should fail for too many fixed values" Nothing $ adjust WyNull WyList ["a", "b"] [WyInt 1, WyInt 2, WyInt 3] 1
 testAdjustOneOpt = TestCase $ assertEqual
@@ -48,7 +51,7 @@ testAdjustInterEndMissing = TestCase $ assertEqual
 
 adjustOptTests = TestList [testAdjustEmpty, testAdjustFixed, testAdjustFixedErr, testAdjustOneOpt, 
   testAdjustOneOptMissing, testAdjustTwoOpt, testAdjustTwoOptOneMiss, testAdjustTwoOptTwoMiss,
-  testAdjustInter]
+  testAdjustInter, testAdjustFailTooManyParams]
 
 testAdjustEmptySlurpy = TestCase $ assertEqual
   "Should nullify missing slurpy" (Just [WyInt 0, WyNull]) $ 
@@ -59,12 +62,15 @@ testAdjustEndingSlurpy = TestCase $ assertEqual
 testAdjustMiddleSlurpy = TestCase $ assertEqual
   "Should fill middle slurpy" (Just [WyInt 0, WyList [WyInt 1, WyInt 2], WyInt 3]) $ 
   adjust WyNull WyList ["a", "b~", "c"] [WyInt 0, WyInt 1, WyInt 2, WyInt 3] 2
+testAdjustEmptyMiddleSlurpy = TestCase $ assertEqual
+  "Should insert empty middle slurpy" (Just [WyInt 0, WyList [], WyInt 3]) $ 
+  adjust WyNull WyList ["a", "b~", "c"] [WyInt 0, WyInt 3] 0
 testAdjustFailFixedMissSlurpy = TestCase $ assertEqual
-  "Should fail with slurpy but missing fixed params" Nothing $ 
+  "Should fail with slurpy but missing fixed params" (Just [WyInt 0]) $ 
   adjust WyNull WyList ["a", "b~", "c"] [WyInt 0] (-1)
 
 adjustSlurpyTests = TestList [testAdjustEmptySlurpy, testAdjustEndingSlurpy, testAdjustMiddleSlurpy, 
-  testAdjustFailFixedMissSlurpy]
+  testAdjustEmptyMiddleSlurpy, testAdjustFailFixedMissSlurpy]
 
 --
 -- Pattern matching

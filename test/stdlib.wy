@@ -35,7 +35,7 @@ describe "Function isa?" (
 )
 
 describe "Last argument macro ^ " (
-  it "should factor in operations" (((+) 1 2 ^ 3+4) == 10)
+  it "should factor in operations" (((+) 1 ^ 3+4) == 8)
   it "should work with a macro application" ^ 3 + 4 == 7
   it "should be chainable" (((+) 1 ^ (+) 2 ^ (+) 3 4) == 10)
   it "should work in a macro definition" (

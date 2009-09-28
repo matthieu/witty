@@ -32,7 +32,5 @@ updateFile updFn ps = do
   liftIO $ updFn f cnt
   return WyNull
 
-defp n l = M.insert n (WyPrimitive n l)
-
 asString (WyString s) = return s
 asString x            = get >>= appErr1 (\y -> "A string was expected, got " ++ y) x

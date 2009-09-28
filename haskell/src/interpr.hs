@@ -13,6 +13,7 @@ import Control.Monad.State
 import Data.Foldable(foldrM)
 import Text.ParserCombinators.Parsec(parse)
 
+import qualified Data.Sequence as S
 import qualified Data.Map as M
 import Data.IORef(newIORef, readIORef)
 import qualified Data.Traversable as T
@@ -48,45 +49,65 @@ evalWy (WyId idn pos) | otherwise = do
     Nothing -> throwError $ UnknownRef ("Unknown reference: " ++ idn) pos
     Just v  -> return v
     
-evalWy (WyApplic fn ps pos) = put pos >> eval fn >>= apply ps
+evalWy wa@(WyApplic fn vals pos) = put pos >> do
+  efn <- eval fn
+  let ps = params efn
+  case adjust WyNull WyList ps vals $ length vals - (fst $ unslurps ps) of
+    Nothing   -> paramErr ps vals
+    Just adjv -> if (length adjv == length ps) 
+                   -- normal application
+                   then apply adjv vals efn
+                   -- partial application
+                   else let rmndr = drop (length adjv) ps
+                            newps = vals ++ map (flip WyId pos) rmndr
+                        in return $ WyLambda rmndr (WyApplic fn newps pos) S.empty
+  where 
+    params (WyLambda ps _ _) = ps
+    params (WyPrimitive _ ps _) = ps
+    params (WyCont _) = ["c"]
 
--- evalWy (WyStmt xs) = liftM last $ applyMacros xs >>= (\x -> trace (show x) (return x)) >>= mapM evalWy
 evalWy (WyStmt xs) = liftM last $ applyMacros xs >>= mapM evalWy
 evalWy (WyBlock xs) = liftM last $ mapM evalWy xs
+evalWy wy = get >>= appErr1 (\x -> "Don't know how to eval: " ++ x) wy
 
 eval ast = evalWy ast >>= liftIO . readRef
 
 -- Function application, either primitive or lambdas
-apply:: [WyType] -> WyType -> Eval WyType
-apply vals (WyPrimitive n fn) = fn vals
-apply vals wl@(WyLambda _ _ _) = mapM evalWy vals >>= applyDirect wl
-apply vals (WyCont c) = liftM head (mapM evalWy vals) >>= c
-apply ps other = get >>= appErr1 (\x -> "Don't know how to apply: " ++ x ++ " " ++ show ps) other
+apply:: [WyType] -> [WyType] -> WyType -> Eval WyType
+
+apply adjv vals (WyPrimitive n _ fn) = fn vals -- TODO primitives should use adjusted parameters
+apply adjv vals wl@(WyLambda _ _ _) = mapM evalWy adjv >>= applyDirect wl
+apply adjv vals (WyCont c) = liftM head (mapM evalWy vals) >>= c
+apply _ vals other = get >>= appErr1 (\x -> "Don't know how to apply: " ++ x ++ " " ++ show vals) other
 
 -- Application of lambdas from argument list and evaluated values
-applyDirect (WyLambda ps body lenv) vals = 
-    localM (const $ buildFrame ps vals lenv) $ evalWy body
-  where 
-    buildFrame ps vs e  =
-      case adjust WyNull WyList ps vs $ length vs - (fst $ unslurps ps) of
-        Nothing   -> get >>= appErr1 (\x -> "Wrong number of arguments in function call: " ++ x ++ " for " ++ show ps) (WyList vs)
-        Just adjV -> liftIO $ envStack (snd $ unslurps ps) adjV e
+
+applyDirect wl@(WyLambda ps body lenv) vals =
+  let buildFrame ps vs e = liftIO $ envStack (snd $ unslurps ps) vs e
+  in localM (const $ buildFrame ps vals lenv) $ evalWy body
+
+paramErr ps vs = get >>= 
+  appErr ("Wrong number of arguments in function call: " ++ 
+          (show . length $ vs) ++ " for " ++ (show . length $ ps))
 
 -- Adjusts the values provided for an application to a function's arguments. Handles
 -- optionals and varargs. Needs a zero to set missing optionals value and a list
 -- wrapper function to wrap varargs.
 adjust :: a -> ([a] -> a) -> [String] -> [a] -> Int -> Maybe [a]
+
 adjust z l (p:ps) (v:vs) dif 
   | last p == '?' && dif <= 0 = liftM (z :) $ adjust z l ps (v:vs) dif
   | last p == '?' && dif > 0  = liftM (v :) $ adjust z l ps vs (dif - 1)
-  | last p == '~' && dif >= 0 =
+  | last p == '~' && dif > 0 =
       let s = slurp (v:vs) dif 
       in liftM (l s :) $ adjust z l ps (drop (length s - 1) vs) (dif - length s)
+  | last p == '~' && dif <= 0 = liftM (l [] :) $ adjust z l ps (v:vs) dif
   | otherwise = liftM (v :) $ adjust z l ps vs dif
 
 adjust z l (p:ps) [] dif 
   | last p == '?' && dif <= 0 || last p == '~' && dif == 0 = liftM (z :) $ adjust z l ps [] dif
 adjust z l [] [] dif | dif == 0 = Just []
+adjust z l (p:ps) [] dif | dif < 0 = Just []
 adjust z l _  _  x = Nothing
 
 -- Consumes values matched to a vararg

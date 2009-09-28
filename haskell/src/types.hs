@@ -9,7 +9,8 @@ module Wy.Types
     extractId,
     wyPlus, wyMinus, wyDiv, wyMult, wyIsA,
     WyEnv, Frame(..), macroValue, varValue, macroUpdate, varInsert, varUpdate, envStack, envAdd, envAddMod,
-    Eval, localM, localIO, runEval, appErr, appErr1, appErr2
+    Eval, localM, localIO, runEval, appErr, appErr1, appErr2,
+    WyNativeDef, toPrimitive, defp
   ) where
 
 import qualified Data.Sequence as S
@@ -39,7 +40,7 @@ data WyType = WyString String
             | WyMap (M.Map WyType WyType)
             | WyLambda [String] WyType WyEnv
             | WyMacro { macroPattern:: WyType, macroBody:: WyType, macroPriority:: Integer, macroEnv:: WyEnv }
-            | WyPrimitive String ([WyType] -> Eval WyType)
+            | WyPrimitive String [String] ([WyType] -> Eval WyType)
             | WyCont (WyType -> Eval WyType)
             | WyModule String (M.Map String WyType) (M.Map String WyType)
 
@@ -117,7 +118,7 @@ showWy (WyList s) = liftM (\x -> "[" ++ (intercalate "," x) ++ "]") $ mapM showW
 showWy (WyMap s) = showRet s
 showWy (WyLambda ss ast env) = return $ "lambda(" ++ (show ss) ++ ", " ++ (show ast) ++ ")"
 showWy (WyMacro p b _ env) = return $ "macro(" ++ (show p) ++ ", " ++ (show b) ++ ")"
-showWy (WyPrimitive n _) = return $ "<primitive " ++ (show n) ++ ">"
+showWy (WyPrimitive n _ _) = return $ "<primitive " ++ (show n) ++ ">"
 showWy (WyCont c) = return "<cont>"
 showWy (WyModule n _ _) = return $ "module " ++ n ++ " .."
 showWy (WyId s _) = return s
@@ -160,9 +161,9 @@ wyIsA WyNull WyNull = True
 wyIsA (WyList _) (WyList _) = True
 wyIsA (WyMap _) (WyMap _) = True
 wyIsA (WyLambda _ _ _) (WyLambda _ _ _) = True
-wyIsA (WyLambda _ _ _) (WyPrimitive _ _) = True
-wyIsA (WyPrimitive _ _) (WyLambda _ _ _) = True
-wyIsA (WyPrimitive _ _) (WyPrimitive _ _) = True
+wyIsA (WyLambda _ _ _) (WyPrimitive _ _ _) = True
+wyIsA (WyPrimitive _ _ _) (WyLambda _ _ _) = True
+wyIsA (WyPrimitive _ _ _) (WyPrimitive _ _ _) = True
 wyIsA (WyMacro _ _ _ _) (WyMacro _ _ _ _) = True
 wyIsA (WyCont _) (WyCont _) = True
 wyIsA (WyModule _ _ _) (WyModule _ _ _) = True
@@ -259,7 +260,7 @@ data WyError = UnknownRef String WySourcePos
 
 appErr2 txtFn x1 x2 pos = liftM2 txtFn (showWyE x1) (showWyE x2) >>= (throwError . (flip ArgumentErr $ pos))
 appErr1 txtFn x pos = liftM txtFn (showWyE x) >>= (throwError . (flip ArgumentErr $ pos))
-appErr txtFn pos = throwError $ ArgumentErr txtFn pos
+appErr txt pos = throwError $ ArgumentErr txt pos
 
 instance Error WyError where
   noMsg  = Undef "Undefined error. Sucks to be you."
@@ -275,3 +276,12 @@ localM f a = do
   env <- ask
   newEnv <- f env
   local (const newEnv) a
+
+--
+-- Helpers for primitives definition
+
+data WyNativeDef = WyNativeDef String ([WyType] -> Eval WyType)
+toPrimitive (WyNativeDef n fn) args = WyPrimitive n args fn
+
+defp n l = M.insert n (WyNativeDef n l)
+

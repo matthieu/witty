@@ -28,13 +28,13 @@ import Wy.FileIO
 defWy ps = do
   env <- ask
   defName <- extractId $ head ps
+  params  <- mapM extractId . tail . init $ ps
   case last ps of
     (WyStmt [WyApplic (WyId n _) [WyString primName] pos]) | n == "primitive" -> do
       case M.lookup primName $ primitives M.empty of
         Nothing -> throwError $ ArgumentErr ("Unknown primitive referenced in def: " ++ primName) pos
-        Just x  -> liftIO $ varUpdate env defName x
-    x -> do params <- mapM extractId $ tail $ init ps
-            let wl = WyLambda params (last ps) env
+        Just x  -> liftIO $ varUpdate env defName (toPrimitive x params)
+    x -> do let wl = WyLambda params (last ps) env
             liftIO $ varInsert defName wl env
             return wl
 
@@ -87,10 +87,11 @@ basePrim f =
     fn   <- liftIO $ varValue fnNm env
     fstP <- evalWy . head $ tail ps
     lstP <- astList fstP
+    let lps = (fstP : (tail . tail) ps)
     case fn of
       Just f  -> case lstP of
-                   Just l  -> apply l f
-                   Nothing -> apply (fstP : (tail . tail) ps) f
+                   Just l  -> apply l l f
+                   Nothing -> apply lps lps f
       Nothing -> get >>= (appErr $ "Unknown function: " ++ fnNm) ) $
 
   defp "try" (\ps ->
@@ -167,12 +168,15 @@ basePrim f =
           v <- liftIO . readRef $ M.findWithDefault WyNull (WyString "type") m
           if (v == WyString errstr)
             then liftM Just $ applyDirect (last xs) 
-              [WyMap $ 
-                M.insert (WyString "source") (WyString $ wySrcFile pos) $
-                M.insert (WyString "line") (WyInt $ wySrcLine pos) $
-                M.insert (WyString "column") (WyInt $ wySrcCol pos) $
-                M.insert (WyString "message") (WyString $ errstr ++ ": " ++ msg) m]
+              [WyMap $                
+                M.insert (WyString "message") (WyString $ errstr ++ ": " ++ msg) $
+                addSrcInfo m pos]
             else return Nothing
+        addSrcInfo m (WySourcePos l c f) = 
+          M.insert (WyString "source") (WyString f) $
+          M.insert (WyString "line") (WyInt l) $
+          M.insert (WyString "column") (WyInt c) m
+        addSrcInfo m NoPos = m
 
 arithmPrim f = 
   defp "+" (opEvalM wyPlus) $
@@ -417,8 +421,6 @@ stdIOPrim f =
 
 --
 -- Common support functions
-
-defp n l = M.insert n (WyPrimitive n l)
 
 extractName (WyId i _) = return i
 extractName (WyStmt [x]) = extractName x

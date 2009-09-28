@@ -85,15 +85,15 @@ module Foundation (
 
   // Accepts either a string or a symbol. Returns true if it corresponds
   // to a known binding in the current environment, false otherwise.
-  def defined? expression (
+  def defined? expr (
     primitive 'defined?'
   )
 
-  def empty? expression (
+  def empty? expr (
     primitive 'empty?'
   )
 
-  def isa? expression (
+  def isa? expr1 expr2 (
     primitive 'isa?'
   )
 
@@ -124,7 +124,7 @@ module Foundation (
     primitive '>='
   )
 
-  def (!) lexpr rexpr (
+  def (!) expr (
     primitive '!'
   )
 
@@ -144,7 +144,7 @@ module Foundation (
     primitive '+'
   )
 
-  def (-) lexpr rexpr (
+  def (-) lexpr? rexpr (
     primitive '-'
   )
 
@@ -212,7 +212,7 @@ module Foundation (
 
   macro (`appl ^ `sub~) (
     if (applic? appl) (
-      `( ($ (wyId (fnName appl))) ($^ (params appl << sub )) )
+      `( ($ (wyId (fnName appl))) ($^ (params appl << sub)) )
     )(
       `( ($appl) ($^ [sub]) )
     )
@@ -221,7 +221,7 @@ module Foundation (
   // Control structures
   //
 
-  def if cond body contra (
+  def if cond body contra? (
     primitive 'if'
   )
 
@@ -291,7 +291,7 @@ module Foundation (
   )
   macropx (`a >> `b) 1 ((>>) $a $b)
 
-  def (@!) ref val (
+  def (@!) ref pos val (
     primitive '@!'
   )
 
@@ -311,7 +311,7 @@ module Foundation (
     primitive 'toS'
   )
 
-  def slice list start end (
+  def slice list start end? (
     primitive 'slice'
   )
 

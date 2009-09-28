@@ -44,7 +44,7 @@ trim = trimR . trimR
   where trimR = reverse . dropWhile isSpace
 
 main = do params <- getArgs
-          p <- newIORef $ M.insert "def" (WyPrimitive "def" defWy) M.empty
+          p <- newIORef $ M.insert "def" (WyPrimitive "def" ["name", "params~", "body"] defWy) M.empty
           m <- newIORef M.empty
           let blankEnv = S.empty |> Frame p m False
           e <-  wyInterpr blankEnv "foundation" foundationText
