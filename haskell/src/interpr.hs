@@ -13,7 +13,6 @@ import Control.Monad.State
 import Data.Foldable(foldrM)
 import Text.ParserCombinators.Parsec(parse)
 
-import qualified Data.Sequence as S
 import qualified Data.Map as M
 import Data.IORef(newIORef, readIORef)
 import qualified Data.Traversable as T
@@ -50,6 +49,7 @@ evalWy (WyId idn pos) | otherwise = do
     Just v  -> return v
     
 evalWy wa@(WyApplic fn vals pos) = put pos >> do
+  env <- ask
   efn <- eval fn
   let ps = params efn
   case adjust WyNull WyList ps vals $ length vals - (fst $ unslurps ps) of
@@ -60,7 +60,7 @@ evalWy wa@(WyApplic fn vals pos) = put pos >> do
                    -- partial application
                    else let rmndr = drop (length adjv) ps
                             newps = vals ++ map (flip WyId pos) rmndr
-                        in return $ WyLambda rmndr (WyApplic fn newps pos) S.empty
+                        in return $ WyLambda rmndr (WyApplic fn newps pos) env
   where 
     params (WyLambda ps _ _) = ps
     params (WyPrimitive _ ps _) = ps
