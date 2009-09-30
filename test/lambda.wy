@@ -1,4 +1,4 @@
-describe "Simple lambda definitions" (
+describe "Direct lambda definitions" (
   add = lambda a b (a + b)
   fact = lambda n (if (n == 1) 1 (n * fact (n - 1)))
 
@@ -21,7 +21,7 @@ describe "Simple lambda definitions" (
   )
 )
 
-describe "Direct def" (
+describe "Function def" (
   it "should defined a new named lambda" (
     def add2 val (val + 2)
     add2 3 == 5
@@ -31,6 +31,14 @@ describe "Direct def" (
     (lambda (def add2 val (val + 3)))()
     add2(3) == 5
   )
+)
+
+describe "Lambda application" (
+  it "should error when too many parameters are supplied" (
+    try (isa? 12 13 14) (catch ArgumentError ae "caught") == "caught"
+  )
+  it "should return a lambda on partial application" (isa? (map length) lambda)
+  it "should apply completely a partial once all parameters supplied" ((map length) [[1,2],[]] == [2,0])
 )
 
 /* TODO
