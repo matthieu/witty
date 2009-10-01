@@ -34,6 +34,12 @@ module Meta (
     primitive 'nthParam'
   )
 
+  // Returns the list of arguments defined with the provided function. Each element
+  // in the list is the name of the argument as a string.
+  def arguments fn (
+    primitive 'arguments'
+  )
+
   // Creates an identifier from a string.
   def wyId str (
     primitive 'wyId'
@@ -158,8 +164,8 @@ module Foundation (
 
   // Arithmetic operators
   macrop (`a = `b) 1 (
-    if (applic? a && fnName a == "@") (
-      ` ((@!) ($ (nthParam a 0))  ($ (nthParam a 1)) $b) 
+    if (applic? a && fnName a == "at") (
+      ` ((at!) ($ (nthParam a 0))  ($ (nthParam a 1)) $b) 
     )(
       ` ((=) $a $b)
     )
@@ -184,12 +190,12 @@ module Foundation (
   macro (`arr . `idx) (
     if (applic? idx) (
       if (empty? (params idx)) (
-        ` ((@) $arr ($ (fnName idx)))
+        ` (at $arr ($ (fnName idx)))
       )(
-        ` ( ((@) $arr ($ (fnName(idx)))) ($^ (params idx)) )
+        ` ( (at $arr ($ (fnName(idx)))) ($^ (params idx)) )
       )
     )(
-      ` ((@) $arr $idx)
+      ` (at $arr $idx)
     )
   )
 
@@ -210,6 +216,8 @@ module Foundation (
     )
   )
 
+  // Syntax sugar for opening and closing parentheses (when the closing occurs at
+  // then end of the statement)
   macro (`appl ^ `sub~) (
     if (applic? appl) (
       `( ($ (wyId (fnName appl))) ($^ (params appl << sub)) )
@@ -217,6 +225,12 @@ module Foundation (
       `( ($appl) ($^ [sub]) )
     )
   )
+
+  // Function composition
+  def compose f1 f2 x (f1 (f2 x))
+
+  // Operator for function composition
+  macrox (`fn1 @ `fn2) (compose $fn1 $fn2)
 
   // Control structures
   //
@@ -277,8 +291,8 @@ module Foundation (
     primitive 'M'
   )
 
-  def (@) list elmt (
-    primitive '@'
+  def at list elmt (
+    primitive 'at'
   )
 
   def (<<) list elmt (
@@ -291,8 +305,8 @@ module Foundation (
   )
   macropx (`a >> `b) 1 ((>>) $a $b)
 
-  def (@!) ref pos val (
-    primitive '@!'
+  def (at!) ref pos val (
+    primitive 'at!'
   )
 
   def push! list val (
@@ -348,8 +362,8 @@ module Foundation (
     primitive 'load'
   )
 
-  def arguments (
-    primitive 'arguments'
+  def ARGS (
+    primitive 'ARGS'
   )
 
   def exit (

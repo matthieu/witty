@@ -220,9 +220,9 @@ dataPrim f =
     onContainers ps wyLength wyLength (WyInt . toInteger . M.size) ) $
   defp "reverse" (\ps -> 
     onContainers ps (WyList . reverse) (WyString . reverse) (WyMap . id) ) $
-  defp "@" (\ps -> 
+  defp "at" (\ps -> 
     evalAtParams ps >>= elemAt ) $
-  defp "@!" (\ps -> do 
+  defp "at!" (\ps -> do 
     ref <- evalWy $ head ps
     oldVal <- liftIO $ readRef ref
     newVal <- evalWy $ last ps
@@ -372,6 +372,13 @@ metaPrim f =
       (WyStmt [WyApplic _ ps _]) ->  return $ ps !! fromInteger idx
       WyApplic _ ps _            ->  return $ ps !! fromInteger idx
       x -> get >>= appErr1 (\e -> "Not a function application: " ++ e) x ) $
+
+  defp "arguments" (\ps -> do
+    fn <- eval $ head ps
+    case fn of
+      (WyLambda as _ _) -> return . WyList . map WyString $ as
+      (WyPrimitive _ as _) -> return . WyList . map WyString $ as
+      (WyCont _) -> return $ WyList [WyString "c"] ) $
   
   defp "splitBlock" (\ps -> do
     block <- eval $ head ps
@@ -402,7 +409,7 @@ stdIOPrim f =
                           str <- concatWyStr eps
                           liftIO $ putStrLn str
                           return WyNull ) $
-  defp "arguments" (\ps -> liftM (WyList . map WyString . safeTail) (liftIO getArgs) ) $
+  defp "ARGS" (\ps -> liftM (WyList . map WyString . safeTail) (liftIO getArgs) ) $
   defp "load" (\ps -> do
     fname <- eval (head ps) >>= stringOrShow
     fcnt <- liftIO $ readFile fname

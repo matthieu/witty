@@ -1,4 +1,4 @@
-verbose = arguments().0 == "-v"
+verbose = ARGS().0 == "-v"
 descriptions = []
 
 macrox (describe `str `descBody) (
